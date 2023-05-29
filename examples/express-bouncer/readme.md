@@ -1,0 +1,3 @@
+This example will create a basic http express server, and filter ips from crowdsec ban list .
+
+This is a very light example, you can try to use other scopes, checking ip range banned ...

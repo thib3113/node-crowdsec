@@ -1,0 +1,28 @@
+{
+  "name": "crowdsec-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "type": "module",
+  "scripts": {
+    "prepack": "npm run build",
+    "build": "npm run generate-pkg && tsc",
+    "debug": "npm build && node -r source-map-support/register ./lib/debug.js",
+    "generate-pkg": "node -p \"`export const pkg = {name: '${process.env.npm_package_name}',version: '${process.env.npm_package_version}'};`\" > src/pkg.ts",
+    "generate-api": "node --loader ts-node/esm generator.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "debug": "^4.3.4"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.8",
+    "dotenv": "^16.0.3",
+    "source-map-support": "^0.5.21",
+    "swagger-typescript-api": "^12.0.4",
+    "ts-node": "10.9.1"
+  }
+}

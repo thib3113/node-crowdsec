@@ -1,0 +1,8 @@
+examples
+lib
+src
+templates
+*.tgz
+tsconfig.json
+.env
+generator.ts

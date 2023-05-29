@@ -1,0 +1,25 @@
+{
+  "name": "example-express-bouncer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "debug": "tsc && node -r source-map-support/register ./build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "crowdsec-client": "workspace:^",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.8",
+    "@types/express": "^4.17.17",
+    "dotenv": "^16.0.3",
+    "source-map-support": "^0.5.21",
+    "swagger-typescript-api": "^12.0.4",
+    "ts-node": "10.9.1"
+  }
+}
