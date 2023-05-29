@@ -1,0 +1,14 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "extends": "@tsconfig/node-lts",
+    "compilerOptions": {
+        "esModuleInterop": true,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "sourceMap": true,
+        "declaration": true,
+        "strict": true,
+        "typeRoots": ["./node_modules/@types"]
+    },
+    "exclude": ["node_modules", "tests", "build"]
+}
