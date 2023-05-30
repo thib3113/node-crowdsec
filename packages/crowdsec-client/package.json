@@ -9,7 +9,8 @@
     "build": "npm run generate-pkg && tsc",
     "debug": "npm build && node -r source-map-support/register ./lib/debug.js",
     "generate-pkg": "node -p \"`export const pkg = {name: '${process.env.npm_package_name}',version: '${process.env.npm_package_version}'};`\" > src/pkg.ts",
-    "generate-api": "node --loader ts-node/esm generator.ts"
+    "generate-api": "node --loader ts-node/esm generator.ts",
+    "test": "echo fake test"
   },
   "keywords": [],
   "author": "",
