@@ -55,9 +55,9 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: 6.9.1
-      - run: $(pnpm -s m ls --depth -1 -F \"./packages/**\" --only-projects --json | jq -c)
+      - run: $(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(echo [$(pnpm -s m ls --depth -1 -F \"./packages/**\" --only-projects --json | jq -c)])"
+        run: echo ::set-output name=matrix::$(echo [$(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)])
 
   # This workflow contains a single job called "build"
   build:
