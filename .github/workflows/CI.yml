@@ -60,7 +60,7 @@ jobs:
           version: latest
 #      - run: $(echo pnpm ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)
       - id: set-matrix
-        run: echo ::set-output name=matrix::$(echo [$(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)])
+        run: echo "matrix=$(echo [$(pnpm -s m ls --depth -1 -F \"./packages/**\" --json | jq -c)])" >> $GITHUB_OUTPUT
 
   # This workflow contains a single job called "build"
   build:
