@@ -59,7 +59,8 @@ jobs:
           run_install: true
           version: latest
       - id: set-matrix
-        run: echo "matrix=$(echo [$(pnpm -s m ls --depth -1 -F \"./packages/**\" --json | jq -c)])" | tee -a $GITHUB_OUTPUT
+        run: |
+          echo "matrix=$(pnpm -s m ls --depth -1 -F \"./packages/**\" --json | jq -c)" | tee -a $GITHUB_OUTPUT
 
   # This workflow contains a single job called "build"
   build:
