@@ -60,6 +60,8 @@ jobs:
           version: latest
       - id: set-matrix
         run: |
+          pnpm -s m ls --depth -1
+          pnpm -s m ls --depth -1 -F "./packages/**"
           pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c
           MATRIX=$(pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c) echo "matrix=$MATRIX" | tee -a $GITHUB_OUTPUT
 
