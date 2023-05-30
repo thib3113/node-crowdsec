@@ -53,9 +53,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
         with:
-          version: 6.9.1
-      - run: $(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)
+          run_install: true
+          version: latest
+      - run: $(pnpm ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)
       - id: set-matrix
         run: echo ::set-output name=matrix::$(echo [$(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)])
 
