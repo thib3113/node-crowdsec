@@ -58,7 +58,7 @@ jobs:
         with:
           run_install: true
           version: latest
-      - run: $(pnpm ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)
+      - run: $(echo $(pnpm ls --depth -1 -F "./packages/**" --only-projects --json | jq -c))
       - id: set-matrix
         run: echo ::set-output name=matrix::$(echo [$(pnpm -s m ls --depth -1 -F "./packages/**" --only-projects --json | jq -c)])
 
