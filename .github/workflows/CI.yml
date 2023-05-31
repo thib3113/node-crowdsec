@@ -76,6 +76,9 @@ jobs:
 
     name: Test package ${{ matrix.package.name }} with node ${{ matrix.node-version }}
 
+    permissions:
+      statuses: write
+      pull-requests: write
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
@@ -111,9 +114,6 @@ jobs:
         run: pnpm install
 
       - uses: mattallty/jest-github-action@v1.0.3
-        permissions:
-          statuses: write
-          pull-requests: write
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
