@@ -52,8 +52,6 @@ const main = async () => {
             return;
         }
 
-        console.log(bannedIps.length);
-
         next();
     });
 
