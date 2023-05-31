@@ -3,10 +3,8 @@ import { pkg } from '../pkg.js';
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
 import { createDebugger, getUrlRepresentation } from '../utils.js';
-import { AxiosError } from '../Errors/AxiosError.js';
-import { CrowdSecError } from '../Errors/CrowdSecError.js';
-import { ConnectionTestError } from '../Errors/ConnectionTestError.js';
-import { EErrorsCodes } from '../Errors/EErrorsCodes.js';
+import { AxiosError, ConnectionTestError, CrowdSecError, EErrorsCodes } from '../Errors/index.js';
+import type { ErrorResponse } from '../types/index.js';
 
 const debug = createDebugger('client');
 const axiosDebug = createDebugger('axios');
@@ -103,8 +101,8 @@ export abstract class CrowdSecClient {
                 }
                 if (error?.response) {
                     const message =
-                        error.response.data?.message ||
-                        error.response.data?.errors?.join('\n\n ----- \n\n') ||
+                        (error.response.data as ErrorResponse)?.message ||
+                        (error.response.data as ErrorResponse)?.errors ||
                         error.response.statusText ||
                         'Unknown HTTP Error';
                     // axios error will remove circular dependency + format a little the sub error

@@ -76,3 +76,5 @@ export const parseExpiration = (duration: string) => {
     expiration.setSeconds(expiration.getSeconds() + seconds);
     return expiration;
 };
+
+export const forceArray = <T>(p: T | Array<T>): Array<T> => (Array.isArray(p) ? p : [p]);

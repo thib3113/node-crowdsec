@@ -3,7 +3,7 @@ import { createDebugger } from '../utils.js';
 import { IWatcherClientOptions } from '../interfaces/index.js';
 import { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
-import { DecisionsWatcher } from '../Decisions/DecisionsWatcher.js';
+import { DecisionsWatcher } from '../Decisions/index.js';
 import { Alerts } from '../Alerts/Alerts.js';
 
 const debug = createDebugger('WatcherClient');
