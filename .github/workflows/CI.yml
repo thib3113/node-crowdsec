@@ -77,8 +77,7 @@ jobs:
     name: Test package ${{ matrix.package.name }} with node ${{ matrix.node-version }}
 
     permissions:
-      statuses: write
-      pull-requests: write
+      checks: write
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
