@@ -122,16 +122,18 @@ jobs:
           coverage-comment: false
 
       - name: replace path in coverage files
-        run: find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
+        run: |
+          cd ${{ matrix.package.path }}
+          find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
         if: always()
 
       - uses: actions/upload-artifact@v3
         with:
           name: coverage
           path: |
-            ./coverage/clover.xml
-            ./coverage/coverage-final.json
-            ./coverage/lcov.info
-            ./coverage/junit.xml
-            ./coverage/test-report.xml
+            ${{ matrix.package.path }}/coverage/clover.xml
+            ${{ matrix.package.path }}/coverage/coverage-final.json
+            ${{ matrix.package.path }}/coverage/lcov.info
+            ${{ matrix.package.path }}/coverage/junit.xml
+            ${{ matrix.package.path }}/coverage/test-report.xml
         if: always()
