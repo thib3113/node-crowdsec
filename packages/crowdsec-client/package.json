@@ -10,7 +10,9 @@
     "debug": "npm build && node -r source-map-support/register ./lib/debug.js",
     "generate-pkg": "node -p \"`export const pkg = {name: '${process.env.npm_package_name}',version: '${process.env.npm_package_version}'};`\" > src/pkg.ts",
     "generate-api": "node --loader ts-node/esm generator.ts",
-    "test": "echo fake test"
+    "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:ci": "jest --ci",
+    "test:ci:coverage": "jest --ci --coverage"
   },
   "keywords": [],
   "author": "",
@@ -22,8 +24,11 @@
   "devDependencies": {
     "@types/debug": "^4.1.8",
     "dotenv": "^16.0.3",
+    "jest": "^29.5.0",
+    "jest-sonar": "^0.2.16",
     "source-map-support": "^0.5.21",
     "swagger-typescript-api": "^12.0.4",
+    "ts-jest": "^29.1.0",
     "ts-node": "10.9.1"
   }
 }

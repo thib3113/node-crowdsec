@@ -110,6 +110,89 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: test
-        run: echo node ${{ matrix.node-version }} in package ${{ matrix.package.path }}
+      - uses: mattallty/jest-github-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+        with:
+          working-directory: ${{ matrix.package.path }}
+          test-command: npm run test:ci:coverage
+          coverage-comment: false
 
+      - name: replace path in coverage files
+        run: find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
+        if: always()
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: |
+            ./coverage/clover.xml
+            ./coverage/coverage-final.json
+            ./coverage/lcov.info
+            ./coverage/junit.xml
+            ./coverage/test-report.xml
+        if: always()
+
+  eslint:
+    name: eslint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install eslint
+        run: npm install
+      - name: run eslint
+        run: |
+          mkdir coverage
+          npm run ci:eslint
+        continue-on-error: true
+        env:
+          CI: true
+
+      - name: replace path in coverage files
+        run: find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: ./coverage/eslint-report.json
+
+  send-coverage:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage
+          path: ./coverage/
+      - uses: codecov/codecov-action@v3
+        with:
+          #token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          #          files: ./coverage/clover.xml # optional
+          fail_ci_if_error: false # optional (default = false)
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: [build, eslint]
+    if: always()
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage
+          path: ./coverage/
+
+      - name: change coverage path in file
+        run: find ./coverage -type f -exec sed -i -e "s@<root>@/github/workspace@g" {} \;
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
