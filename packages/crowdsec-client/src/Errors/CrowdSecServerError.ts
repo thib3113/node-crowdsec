@@ -1,7 +1,7 @@
 import { __Error } from './__Error.js';
 import { AxiosError } from './AxiosError.js';
 
-export class CrowdSecError extends __Error {
+export class CrowdSecServerError extends __Error {
     public axiosError?: AxiosError;
 
     public constructor(message: string | Error = '', code = 0, errors = '', exception?: AxiosError) {

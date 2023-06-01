@@ -11,7 +11,7 @@
     "ts-types": " tsc --emitDeclarationOnly --outDir lib/types",
     "build": "npm run generate-pkg &&  rimraf lib && node ./esbuild.js --analyze && npm run ts-types",
     "debug": "npm run build && node -r source-map-support/register ./lib/esm/debug.mjs",
-    "generate-pkg": "node -p \"`export const pkg = {name: '${process.env.npm_package_name}',version: '${process.env.npm_package_version}'};`\" > src/pkg.ts",
+    "generate-pkg": "node -p \"`export const pkg = { name: '${process.env.npm_package_name}', version: '${process.env.npm_package_version}' };`\" > src/pkg.ts",
     "generate-api": "node --loader ts-node/esm generator.ts",
     "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:ci": "jest --ci",

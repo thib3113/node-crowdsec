@@ -1,9 +1,8 @@
 export enum EErrorsCodes {
     UNKNOWN_ERROR = 0,
-    /**
-     * fail to detect if it's UnifiOs or not
-     */
-    FAIL_TO_DETECT_UNIFIOS,
+
+    CONNECTION_TEST_FAILED = 1,
+    CONNECTION_FAILED = 2,
 
     // CODE THAT CAN COME FROM UNIFI ( 100 to 600 )
     CONTINUE = 100,

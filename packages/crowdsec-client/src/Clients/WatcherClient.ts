@@ -5,6 +5,7 @@ import { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
 import { DecisionsWatcher } from '../Decisions/index.js';
 import { Alerts } from '../Alerts/Alerts.js';
+import { CrowdsecClientError, EErrorsCodes } from '../Errors/index.js';
 
 const debug = createDebugger('WatcherClient');
 
@@ -48,8 +49,7 @@ export class WatcherClient extends CrowdSecClient {
             ).data;
 
             if (!res.token || !res.expire) {
-                //TODO
-                throw new Error('fail to get token');
+                throw new CrowdsecClientError('fail to get token', EErrorsCodes.CONNECTION_FAILED);
             }
 
             this.setAuthenticationHeaders({
@@ -76,7 +76,7 @@ export class WatcherClient extends CrowdSecClient {
         await this._login();
         const connectionResult = this.testConnection();
         if (this.heartbeat) {
-            this.heartbeatLoop().catch((e) => debug('uncatched error from heartbeatLoop : %o', e));
+            this.heartbeatLoop().catch((e) => debug('uncatched error from starting heartbeatLoop : %o', e));
         }
         return connectionResult;
     }
@@ -102,7 +102,7 @@ export class WatcherClient extends CrowdSecClient {
             const timer = typeof this.heartbeat === 'number' ? this.heartbeat : 30000;
             localDebug('next heartbeat will be send at %o', new Date(Date.now() + timer));
             setTimeout(() => {
-                this.heartbeatLoop();
+                this.heartbeatLoop().catch((e) => debug('uncatched error from heartbeatLoop : %o', e));
             }, timer);
         }
     }

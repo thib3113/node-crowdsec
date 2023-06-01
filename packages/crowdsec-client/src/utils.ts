@@ -22,7 +22,7 @@ export const createDebugger = (name: string): Debugger => {
  * @param hidePassword - to hide "auth" part of the url
  */
 export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = true): string => {
-    const urlParsed = new URL((req.baseURL || 'http://localhost') + (req.url || ''));
+    const urlParsed = new URL((req.baseURL ?? 'http://localhost') + (req.url ?? ''));
     const params = new URLSearchParams(urlParsed.search);
 
     if (req.auth) {
@@ -51,20 +51,18 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 };
 
 export const parseExpiration = (duration: string) => {
-    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d{1,8})h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>[0-9]{1,2}\.\d+)s)?/gm.exec(
+    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d{1,8})h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>\d{1,2}\.\d+)s)?/gm.exec(
         duration
     );
 
-    if (!durationRe || !durationRe[0] || !durationRe.groups) {
+    if (!durationRe?.groups || !durationRe?.[0]) {
         throw new Error(`fail to parse duration "${duration}"`);
     }
 
-    const { groups } = durationRe;
-
-    const multiplier = groups.multiplier === '-' ? -1 : 1;
-    const hours = parseInt(groups.hours);
-    const minutes = parseInt(groups.minutes);
-    let seconds = (parseFloat(groups.seconds) || 0) * 1000;
+    const multiplier = durationRe.groups.multiplier === '-' ? -1 : 1;
+    const hours = parseInt(durationRe.groups.hours);
+    const minutes = parseInt(durationRe.groups.minutes);
+    let seconds = (parseFloat(durationRe.groups.seconds) || 0) * 1000;
 
     if (hours && !isNaN(hours)) {
         seconds += hours * 60 * 60 * 1000;

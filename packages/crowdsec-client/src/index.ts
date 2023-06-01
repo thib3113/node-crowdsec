@@ -6,4 +6,5 @@ export * from './interfaces/index.js';
 export * from './BaseSubObject.js';
 
 import * as APITypes from './types/index.js';
+
 export { APITypes };

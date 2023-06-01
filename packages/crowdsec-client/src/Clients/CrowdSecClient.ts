@@ -3,7 +3,7 @@ import { pkg } from '../pkg.js';
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
 import { createDebugger, getUrlRepresentation } from '../utils.js';
-import { AxiosError, ConnectionTestError, CrowdSecError, EErrorsCodes } from '../Errors/index.js';
+import { AxiosError, CrowdsecClientError, CrowdSecServerError, EErrorsCodes } from '../Errors/index.js';
 import type { ErrorResponse } from '../types/index.js';
 
 const debug = createDebugger('client');
@@ -103,12 +103,12 @@ export abstract class CrowdSecClient {
                 }
                 if (error?.response) {
                     const message =
-                        (error.response.data as ErrorResponse)?.message ||
-                        (error.response.data as ErrorResponse)?.errors ||
-                        error.response.statusText ||
+                        (error.response.data as ErrorResponse)?.message ??
+                        (error.response.data as ErrorResponse)?.errors ??
+                        error.response.statusText ??
                         'Unknown HTTP Error';
                     // axios error will remove circular dependency + format a little the sub error
-                    error = new CrowdSecError(message, error.response.status, error.response?.data?.errors, new AxiosError(error));
+                    error = new CrowdSecServerError(message, error.response.status, error.response?.data?.errors, new AxiosError(error));
                 }
 
                 return Promise.reject(error);
@@ -147,20 +147,28 @@ export abstract class CrowdSecClient {
                     localDebug('connection success');
                     return;
                 case 403:
-                    throw new ConnectionTestError('UNEXPECTED_KEY', EErrorsCodes.FORBIDDEN);
+                    throw new CrowdsecClientError(
+                        'UNEXPECTED_KEY',
+                        EErrorsCodes.CONNECTION_TEST_FAILED,
+                        new Error('Crowdsec answer with code 403')
+                    );
                 default:
-                    throw new ConnectionTestError('UNEXPECTED_STATUS_CODE', result.status);
+                    throw new CrowdsecClientError(
+                        'UNEXPECTED_STATUS_CODE',
+                        EErrorsCodes.CONNECTION_TEST_FAILED,
+                        new Error(`Crowdsec answer with (${result.status}) ${result.statusText}`)
+                    );
             }
         } catch (e) {
-            if (e instanceof ConnectionTestError) {
+            if (e instanceof CrowdsecClientError) {
                 throw e;
             }
 
             localDebug('Error : %o', e);
             if (axios.isAxiosError(e)) {
-                throw new ConnectionTestError('HOST_NOT_REACHABLE', EErrorsCodes.UNKNOWN_ERROR);
+                throw new CrowdsecClientError('HOST_NOT_REACHABLE', EErrorsCodes.CONNECTION_TEST_FAILED, e);
             }
-            throw new ConnectionTestError('UNKNOWN_ERROR');
+            throw new CrowdsecClientError('UNKNOWN_ERROR');
         }
     }
 }

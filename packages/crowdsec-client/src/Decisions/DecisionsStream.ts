@@ -39,8 +39,8 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
     }
 
     public push(decisions: DecisionsStreamResponse): void {
-        (decisions.new || []).forEach((decision) => this.decisions.added.push(new Decision<Scopes, Origins>(decision)));
-        (decisions.deleted || []).forEach((decision) => this.decisions.deleted.push(new Decision<Scopes, Origins>(decision)));
+        (decisions.new ?? []).forEach((decision) => this.decisions.added.push(new Decision<Scopes, Origins>(decision)));
+        (decisions.deleted ?? []).forEach((decision) => this.decisions.deleted.push(new Decision<Scopes, Origins>(decision)));
 
         this.loop();
     }

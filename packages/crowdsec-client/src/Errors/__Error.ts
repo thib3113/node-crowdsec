@@ -24,7 +24,7 @@ export class __Error implements Error {
         this.code = code;
 
         const generateStack = (): string => {
-            let tmpStack = new Error().stack || '';
+            let tmpStack = new Error().stack ?? '';
             if (this.exception) {
                 tmpStack += '\n=== CAUSED BY ===\n';
                 tmpStack += `${this.exception.toString()}`;

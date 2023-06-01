@@ -13,7 +13,7 @@ export type CallBackParams<Scopes extends string = 'ip', Origins extends string 
     type: 'added' | 'deleted';
 };
 export type CallBack<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = (
-    err: any | undefined,
+    err?: any,
     data?: CallBackParams<Scopes, Origins>
 ) => any;
 
@@ -59,7 +59,7 @@ export class DecisionsBouncer extends BaseSubObject {
         const localDebug = debug.extend('getStream');
         localDebug('(%o) with cb %o', optionsParam, !!cb);
 
-        const interval = optionsParam.interval || 10000;
+        const interval = optionsParam.interval ?? 10000;
         const options = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
             scopes: optionsParam?.scopes ? forceArray<string>(optionsParam.scopes).join(',') : undefined,
             origins: optionsParam?.origins ? forceArray<string>(optionsParam.origins).join(',') : undefined,

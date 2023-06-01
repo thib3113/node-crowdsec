@@ -18,6 +18,8 @@ function json(data: unknown): string {
     }
 }
 
+type customPickFromAxiosError = Pick<BaseAxiosError, 'config' | 'request' | 'response'>;
+
 export class AxiosError extends Error {
     config: BaseAxiosError['config'];
 
@@ -49,13 +51,13 @@ export class AxiosError extends Error {
      * new AxiosError('error message', { config, request, response })
      * ```
      */
-    constructor(message: string, error: Pick<BaseAxiosError, 'config' | 'request' | 'response'>);
+    constructor(message: string, error: customPickFromAxiosError);
 
-    constructor(messageOrError: string | BaseAxiosError, error?: BaseAxiosError | Pick<BaseAxiosError, 'config' | 'request' | 'response'>) {
-        let err: Pick<BaseAxiosError, 'config' | 'request' | 'response'>;
+    constructor(messageOrError: string | BaseAxiosError, error?: BaseAxiosError | customPickFromAxiosError) {
+        let err: customPickFromAxiosError;
         if (typeof messageOrError === 'string') {
             super(messageOrError);
-            err = error as Pick<BaseAxiosError, 'config' | 'request' | 'response'>;
+            err = error as customPickFromAxiosError;
         } else {
             super(messageOrError.message);
             err = messageOrError;
@@ -66,7 +68,7 @@ export class AxiosError extends Error {
         this.config = config;
         this.request = request;
         this.response = response;
-        if (response && response.status) {
+        if (response?.status) {
             this.status = response.status;
         }
 
