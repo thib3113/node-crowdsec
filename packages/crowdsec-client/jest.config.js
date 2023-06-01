@@ -4,7 +4,7 @@
 export default {
     clearMocks: true,
     coverageDirectory: '<rootDir>/coverage',
-    collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
+    collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/types/generated/**/*'],
     coveragePathIgnorePatterns: ['\\\\node_modules\\\\', 'tests'],
     moduleFileExtensions: ['ts', 'tsx', 'js'],
     testMatch: ['<rootDir>/tests/**/*.(test|tests|spec|specs).+(ts|tsx|js)'],
