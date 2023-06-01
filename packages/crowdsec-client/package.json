@@ -14,8 +14,8 @@
     "generate-pkg": "node -p \"`export const pkg = { name: '${process.env.npm_package_name}', version: '${process.env.npm_package_version}' };`\" > src/pkg.ts",
     "generate-api": "node --loader ts-node/esm generator.ts",
     "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:ci": "jest --ci",
-    "test:ci:coverage": "jest --ci --coverage",
+    "test:ci": "npm run jest --ci",
+    "test:ci:coverage": "npm run jest --ci --coverage",
     "lint": "eslint -f unix \"src/**\"",
     "lint:fix": "npm lint -- --fix",
     "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
