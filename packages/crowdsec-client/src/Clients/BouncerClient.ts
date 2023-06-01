@@ -8,13 +8,13 @@ const debug = createDebugger('bouncerClient');
 export class BouncerClient extends CrowdSecClient {
     public Decisions: DecisionsBouncer;
 
-    private auth: IBouncerClientOptions['auth'];
+    #auth: IBouncerClientOptions['auth'];
     constructor(options: IBouncerClientOptions) {
         super(options);
 
-        this.auth = options.auth;
+        this.#auth = options.auth;
         this.setAuthenticationHeaders({
-            'X-Api-Key': this.auth.apiKey
+            'X-Api-Key': this.#auth.apiKey
         });
 
         this.Decisions = new DecisionsBouncer({ httpClient: this.http });

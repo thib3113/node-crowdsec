@@ -13,7 +13,7 @@ export class WatcherClient extends CrowdSecClient {
     private autoRenewTimeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
 
-    private auth: IWatcherClientOptions['auth'];
+    #auth: IWatcherClientOptions['auth'];
 
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
@@ -22,7 +22,7 @@ export class WatcherClient extends CrowdSecClient {
     constructor(options: IWatcherClientOptions) {
         super(options);
 
-        this.auth = {
+        this.#auth = {
             autoRenew: true,
             ...options.auth
         };
@@ -43,8 +43,8 @@ export class WatcherClient extends CrowdSecClient {
         try {
             const res = (
                 await this.http.post<WatcherAuthResponse, AxiosResponse<WatcherAuthResponse>, WatcherAuthRequest>('/v1/watchers/login', {
-                    machine_id: this.auth.machineID,
-                    password: this.auth.password
+                    machine_id: this.#auth.machineID,
+                    password: this.#auth.password
                 })
             ).data;
 
@@ -56,7 +56,7 @@ export class WatcherClient extends CrowdSecClient {
                 Authorization: `Bearer ${res.token}`
             });
 
-            if (this.auth.autoRenew) {
+            if (this.#auth.autoRenew) {
                 // 5m
                 const renewTimeBeforeEnd = 5 * 60 * 1000;
                 const renewInTime = new Date(res.expire).getTime() - renewTimeBeforeEnd - Date.now();
