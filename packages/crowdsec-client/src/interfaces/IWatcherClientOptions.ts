@@ -6,4 +6,9 @@ export interface IWatcherClientOptions extends ICrowdSecClientOptions {
         password: string;
         autoRenew?: boolean;
     };
+    /**
+     * send heartbeat periodically
+     * pass number to specify ms between call
+     */
+    heartbeat?: boolean | number;
 }

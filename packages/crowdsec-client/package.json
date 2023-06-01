@@ -7,7 +7,7 @@
   "scripts": {
     "prepack": "npm run build",
     "build": "npm run generate-pkg && tsc",
-    "debug": "npm build && node -r source-map-support/register ./lib/debug.js",
+    "debug": "npm run build && node -r source-map-support/register ./lib/debug.js",
     "generate-pkg": "node -p \"`export const pkg = {name: '${process.env.npm_package_name}',version: '${process.env.npm_package_version}'};`\" > src/pkg.ts",
     "generate-api": "node --loader ts-node/esm generator.ts",
     "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",

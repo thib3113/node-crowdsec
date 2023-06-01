@@ -63,13 +63,13 @@ Second, ask for a decision
 ````typescript
 const stream = client.Decisions.getStream({
     //the stream will poll the API at the interval . in ms
-    interval: 2000
+    interval: 10000
 });
 
 //or with filters
 const filteredStream = client.Decisions.getStream({
     //the stream will poll the API at the interval . in ms
-    interval: 2000,
+    interval: 10000,
     scopes: ['ip', 'range'],
     origins: ['capi'] ,
     scenarios_containing: ['bruteforce'],
@@ -109,7 +109,7 @@ it's also possible to use a callback, but you can't control the stream (I recomm
 const stream = client.Decisions.getStream(
     {
     //the stream will poll the API at the interval . in ms
-    interval: 2000
+    interval: 10000
     },
     (err, {decision, type}) => {
         if(err) {
@@ -168,3 +168,9 @@ await client.Alerts.delete({
     ip: '127.0.0.1'
 });
 ```
+
+## Debug
+this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :
+````dotenv
+DEBUG=crowdsec-client:*
+````

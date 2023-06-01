@@ -36,6 +36,9 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 
     if (req.params) {
         Object.entries(req.params as Record<string, string>).forEach(([k, v]) => {
+            if (v === undefined) {
+                return;
+            }
             params.append(k, v);
         });
     }
@@ -77,4 +80,4 @@ export const parseExpiration = (duration: string) => {
     return expiration;
 };
 
-export const forceArray = <T>(p: T | Array<T>): Array<T> => (Array.isArray(p) ? p : [p]);
+export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? p : [p]);

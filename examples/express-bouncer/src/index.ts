@@ -23,7 +23,7 @@ const main = async () => {
     await client.login();
 
     //ask for stream => only ip scope managed by this example
-    const stream = client.Decisions.getStream({ interval: 2000, scopes: 'ip' });
+    const stream = client.Decisions.getStream({ interval: 10000, scopes: 'ip' });
 
     //listen for added decisions
     stream.on('added', (decision) => {

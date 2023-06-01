@@ -1,11 +1,11 @@
-import type { decisionType, decisionScope, decisionOrigin, Decision as rawDecision } from '../types/index.js';
+import type { Decision as rawDecision, decisionOrigin, decisionType } from '../types/index.js';
 import { parseExpiration } from '../utils.js';
 
-export class Decision {
+export class Decision<Scope extends string = 'ip', Origin extends string = decisionOrigin, Type extends string = decisionType> {
     public id?: number;
-    public origin: decisionOrigin;
-    public type: decisionType;
-    public scope: decisionScope;
+    public origin: Origin;
+    public type: Type;
+    public scope: Scope;
     public value: string;
     public duration: string;
     public until: string | undefined;
@@ -15,13 +15,13 @@ export class Decision {
 
     constructor(decision: rawDecision) {
         this.id = decision.id;
-        this.origin = decision.origin;
-        this.type = decision.type;
-        this.scope = decision.scope;
+        this.origin = decision.origin?.toLowerCase() as Origin;
+        this.type = decision.type as Type;
+        this.scope = decision.scope?.toLowerCase() as Scope;
         this.value = decision.value;
         this.duration = decision.duration;
         this.until = decision.until;
-        this.scenario = decision.scenario;
+        this.scenario = decision.scenario?.toLowerCase();
         this.simulated = decision.simulated ?? false;
 
         this.endAt = parseExpiration(this.duration);

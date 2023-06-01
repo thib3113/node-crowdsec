@@ -12,16 +12,19 @@ const axiosDebugVerbose = axiosDebug.extend('verbose');
 
 const defaultsOptions: Required<Omit<ICrowdSecClientOptions, 'url'>> = {
     timeout: 2000,
-    userAgent: `${pkg.name}/v${pkg.version}`,
+    userAgent: `node-${pkg.name}/v${pkg.version}`,
     strictSSL: true
 };
 
 export abstract class CrowdSecClient {
+    get http(): AxiosInstance {
+        return this._http;
+    }
     private options: ICrowdSecClientOptions;
 
     protected static http: AxiosInstance;
 
-    protected http: AxiosInstance;
+    private readonly _http: AxiosInstance;
     protected constructor(options: ICrowdSecClientOptions) {
         this.options = {
             ...defaultsOptions,
@@ -30,7 +33,7 @@ export abstract class CrowdSecClient {
 
         const baseURL = this.options.url.endsWith('/') ? this.options.url.slice(0, -1) : this.options.url;
 
-        this.http = this.addAxiosDebugInterceptors(
+        this._http = this.addAxiosDebugInterceptors(
             axios.create({
                 baseURL,
                 timeout: this.options.timeout,
@@ -66,7 +69,6 @@ export abstract class CrowdSecClient {
                     }${durationStr}`
                 );
                 axiosDebugVerbose('headers : %O', response?.headers);
-                axiosDebugVerbose(`headers sent : %O`, response?.request?._header);
                 axiosDebugVerbose(`payload : %O `, response?.data);
                 return response;
             },
@@ -117,10 +119,15 @@ export abstract class CrowdSecClient {
     }
 
     protected setAuthenticationHeaders(headers: Record<string, string>) {
-        Object.entries(headers).forEach(([key, value]) => (this.http.defaults.headers[key] = value));
+        Object.entries(headers).forEach(([key, value]) => (this._http.defaults.headers[key] = value));
     }
 
     public abstract login(): Promise<void>;
+
+    /**
+     * stop the current client, and running processes
+     */
+    public abstract stop(): Promise<void>;
 
     public abstract testConnection(): Promise<void>;
 
@@ -129,7 +136,7 @@ export abstract class CrowdSecClient {
 
         try {
             localDebug('call crowdsec');
-            const result = await this.http.head(url, {
+            const result = await this._http.head(url, {
                 validateStatus: () => true
             });
 

@@ -10,11 +10,13 @@ const debug = createDebugger('WatcherClient');
 
 export class WatcherClient extends CrowdSecClient {
     private autoRenewTimeout?: NodeJS.Timeout;
+    private heartbeatTimeout?: NodeJS.Timeout;
 
     private auth: IWatcherClientOptions['auth'];
 
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
+    private readonly heartbeat: boolean | number;
 
     constructor(options: IWatcherClientOptions) {
         super(options);
@@ -23,6 +25,8 @@ export class WatcherClient extends CrowdSecClient {
             autoRenew: true,
             ...options.auth
         };
+
+        this.heartbeat = options.heartbeat ?? true;
 
         this.Decisions = new DecisionsWatcher({ httpClient: this.http });
         this.Alerts = new Alerts({ httpClient: this.http });
@@ -70,11 +74,35 @@ export class WatcherClient extends CrowdSecClient {
 
     async login(): Promise<void> {
         await this._login();
-        return this.testConnection();
+        const connectionResult = this.testConnection();
+        if (this.heartbeat) {
+            this.heartbeatLoop().catch((e) => debug('uncatched error from heartbeatLoop : %o', e));
+        }
+        return connectionResult;
     }
 
     public async testConnection(): Promise<void> {
         return this._testConnection('/v1/alerts');
+    }
+
+    private async heartbeatLoop() {
+        const localDebug = debug.extend('heartbeatLoop');
+        if (this.heartbeatTimeout) {
+            clearTimeout(this.heartbeatTimeout);
+        }
+
+        localDebug('start heartbeat');
+
+        try {
+            await this.http.get('/v1/heartbeat');
+            localDebug('Heartbeat sent');
+        } catch (e) {
+            localDebug('error %o', e);
+        } finally {
+            const timer = typeof this.heartbeat === 'number' ? this.heartbeat : 30000;
+            localDebug('next heartbeat will be send at %o', new Date(Date.now() + timer));
+            setTimeout(() => this.heartbeatLoop(), timer);
+        }
     }
 
     /**
@@ -84,5 +112,14 @@ export class WatcherClient extends CrowdSecClient {
      */
     public async registerWatcher(options: WatcherRegistrationRequest) {
         return (await this.http.post<null, AxiosResponse<null>, WatcherRegistrationRequest>('/v1/watchers', options)).data;
+    }
+
+    public async stop() {
+        if (this.heartbeatTimeout) {
+            clearTimeout(this.heartbeatTimeout);
+        }
+        if (this.autoRenewTimeout) {
+            clearTimeout(this.autoRenewTimeout);
+        }
     }
 }

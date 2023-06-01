@@ -1,5 +1,6 @@
 import { BaseSubObject } from '../BaseSubObject.js';
 import type { Decisions } from '../types/index.js';
+import { decisionOrigin } from '../types/index.js';
 import { clearTimeout } from 'timers';
 import { createDebugger, forceArray } from '../utils.js';
 import { DecisionsStream } from './DecisionsStream.js';
@@ -7,10 +8,18 @@ import { Decision } from './Decision.js';
 
 const debug = createDebugger('DecisionsBouncer');
 
-export type CallBackParams = { decision: Decision; type: 'added' | 'deleted' };
-export type CallBack = (err: any | undefined, data?: CallBackParams) => any;
+export type CallBackParams<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = {
+    decision: Decision<Scopes, Origins>;
+    type: 'added' | 'deleted';
+};
+export type CallBack<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = (
+    err: any | undefined,
+    data?: CallBackParams<Scopes, Origins>
+) => any;
 
 export class DecisionsBouncer extends BaseSubObject {
+    private runningStreams: Array<DecisionsStream<any>> = [];
+
     private async getRawStream(options: {
         startup?: boolean;
         scopes?: string | Array<string>;
@@ -22,10 +31,12 @@ export class DecisionsBouncer extends BaseSubObject {
 
         const params = ((): Decisions.GetDecisionsStream.RequestQuery => ({
             ...options,
-            scopes: forceArray(options.scopes).join(','),
-            origins: forceArray(options.origins).join(','),
-            scenarios_containing: forceArray(options.scenarios_containing).join(','),
-            scenarios_not_containing: forceArray(options.scenarios_not_containing).join(',')
+            scopes: options?.scopes ? forceArray<string>(options.scopes).join(',') : undefined,
+            origins: options?.origins ? forceArray<string>(options.origins).join(',') : undefined,
+            scenarios_containing: options?.scenarios_containing ? forceArray<string>(options.scenarios_containing).join(',') : undefined,
+            scenarios_not_containing: options?.scenarios_not_containing
+                ? forceArray<string>(options.scenarios_not_containing).join(',')
+                : undefined
         }))();
 
         return (
@@ -35,20 +46,20 @@ export class DecisionsBouncer extends BaseSubObject {
         ).data;
     }
 
-    public getStream(
+    public getStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
         optionsParam: {
-            interval: number;
-            scopes?: string | Array<string>;
-            origins?: string | Array<string>;
+            interval?: number;
+            scopes?: Scopes | Array<Scopes>;
+            origins?: Origins | Array<Origins>;
             scenarios_containing?: string | Array<string>;
             scenarios_not_containing?: string | Array<string>;
         },
-        cb?: CallBack
-    ): DecisionsStream {
+        cb?: CallBack<Scopes, Origins>
+    ): DecisionsStream<Scopes, Origins> {
         const localDebug = debug.extend('getStream');
         localDebug('(%o) with cb %o', optionsParam, !!cb);
 
-        const interval = optionsParam.interval;
+        const interval = optionsParam.interval || 10000;
         const options = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
             scopes: optionsParam?.scopes ? forceArray<string>(optionsParam.scopes).join(',') : undefined,
             origins: optionsParam?.origins ? forceArray<string>(optionsParam.origins).join(',') : undefined,
@@ -61,7 +72,9 @@ export class DecisionsBouncer extends BaseSubObject {
         }))();
         let first = true;
 
-        const decisionStream = new DecisionsStream();
+        const decisionStream = new DecisionsStream<Scopes, Origins>(JSON.stringify(options));
+
+        this.runningStreams.push(decisionStream);
 
         let getStreamTimeout: NodeJS.Timeout | undefined;
 
@@ -76,16 +89,29 @@ export class DecisionsBouncer extends BaseSubObject {
                 first = false;
                 decisionStream.push(res);
             } catch (e) {
+                localDebug('loop error %o', e);
                 decisionStream.emit('error', e);
             }
 
             localDebug('end loop');
-            getStreamTimeout = setTimeout(() => getStreamFn(false), interval);
+            if (decisionStream.paused) {
+                localDebug('stream paused => exit loop');
+                return;
+            }
+
+            localDebug('prepare next loop');
+            getStreamTimeout = setTimeout(
+                () => getStreamFn(false).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e)),
+                interval
+            );
         };
 
         decisionStream.once('close', () => {
             localDebug('receive close event');
             clearTimeout(getStreamTimeout);
+
+            //remove from running streams
+            this.runningStreams = this.runningStreams.filter((stream) => stream != decisionStream);
         });
 
         decisionStream.on('pause', () => {
@@ -95,7 +121,12 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.on('resume', () => {
             localDebug('receive resume event');
-            getStreamFn(first);
+            getStreamFn(first).catch((e) => debug('uncatched error from getStreamFn : %o', e));
+        });
+
+        //more about this : https://nodejs.org/api/events.html#error-events
+        decisionStream.on('error', (error) => {
+            localDebug('stream emit error : %o', error);
         });
 
         if (cb) {
@@ -119,6 +150,13 @@ export class DecisionsBouncer extends BaseSubObject {
         }
 
         return decisionStream;
+    }
+
+    /**
+     * stop running streams
+     */
+    public stop() {
+        this.runningStreams.forEach((stream) => stream.close());
     }
 
     public async search(

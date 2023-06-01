@@ -27,4 +27,8 @@ export class BouncerClient extends CrowdSecClient {
     public async testConnection(): Promise<void> {
         return this._testConnection('/v1/decisions');
     }
+
+    public async stop() {
+        this.Decisions.stop();
+    }
 }

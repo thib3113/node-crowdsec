@@ -1,31 +1,46 @@
 import { TypedEventEmitter } from '../EventEmitter.js';
 import { Decision } from './Decision.js';
-import { DecisionsStreamResponse } from '../types/index.js';
+import { decisionOrigin, DecisionsStreamResponse } from '../types/index.js';
+import { createDebugger } from '../utils.js';
+import { Debugger } from 'debug';
 
-type DecisionsStreamEvents = {
-    added: (decision: Decision) => void;
-    deleted: (decision: Decision) => void;
+type DecisionsStreamEvents<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = {
+    added: (decision: Decision<Scopes, Origins>) => void;
+    deleted: (decision: Decision<Scopes, Origins>) => void;
     error: (error: any) => void;
     pause: () => void;
     resume: () => void;
     close: () => void;
 };
 
-export class DecisionsStream extends TypedEventEmitter<DecisionsStreamEvents> {
+const debug = createDebugger('DecisionsStream');
+
+export class DecisionsStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin> extends TypedEventEmitter<
+    DecisionsStreamEvents<Scopes, Origins>
+> {
     private looping: boolean = false;
+
+    private readonly debug: Debugger;
+
     public get paused(): boolean {
         return this._paused;
     }
     private _paused: boolean = true;
 
-    private decisions: { added: Array<Decision>; deleted: Array<Decision> } = {
+    private decisions: { added: Array<Decision<Scopes, Origins>>; deleted: Array<Decision<Scopes, Origins>> } = {
         added: [],
         deleted: []
     };
 
+    constructor(public readonly name: string) {
+        super();
+
+        this.debug = debug.extend(this.name);
+    }
+
     public push(decisions: DecisionsStreamResponse): void {
-        (decisions.new || []).forEach((decision) => this.decisions.added.push(new Decision(decision)));
-        (decisions.deleted || []).forEach((decision) => this.decisions.deleted.push(new Decision(decision)));
+        (decisions.new || []).forEach((decision) => this.decisions.added.push(new Decision<Scopes, Origins>(decision)));
+        (decisions.deleted || []).forEach((decision) => this.decisions.deleted.push(new Decision<Scopes, Origins>(decision)));
 
         this.loop();
     }
@@ -57,12 +72,20 @@ export class DecisionsStream extends TypedEventEmitter<DecisionsStreamEvents> {
     }
 
     public pause(): void {
+        this.debug('paused');
         this._paused = true;
         this.emit('pause');
     }
     public resume(): void {
+        this.debug('resumed');
         this._paused = false;
         this.emit('resume');
         this.loop();
+    }
+
+    public close(): void {
+        this.debug('closed');
+        this._paused = true;
+        this.emit('close');
     }
 }
