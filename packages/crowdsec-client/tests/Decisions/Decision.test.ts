@@ -14,7 +14,7 @@ describe('decision', () => {
             type: 'type',
             scope: 'Scope',
             value: 'value',
-            duration: 'duration',
+            duration: '1h54m',
             until: 'until',
             scenario: 'Scenario',
             simulated: true
@@ -42,7 +42,7 @@ describe('decision', () => {
             type: 'type',
             scope: 'Scope',
             value: 'value',
-            duration: 'duration',
+            duration: '1h54m',
             until: 'until',
             scenario: 'Scenario'
         };

@@ -60,7 +60,9 @@ describe('utils', () => {
         };
         const testsDatas: Array<[string, boolean, RawAxiosRequestConfig]> = [
             ['https://api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false', true, baseConfiguration],
-            ['https://username:password@api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false', false, baseConfiguration]
+            ['https://username:password@api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false', false, baseConfiguration],
+            ['http://localhost/v1/heartbeat?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, baseURL: '' }],
+            ['https://api-crowdsec.test.lan/?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, url: '' }]
         ];
 
         it.each(testsDatas)('should render the url : %s', async (result, hidePassword, configuration) => {

@@ -1,6 +1,6 @@
 import { RawAxiosRequestConfig } from 'axios';
 import createDebug, { Debugger } from 'debug';
-import url, { URL, URLSearchParams } from 'url';
+import url, { URL, URLSearchParams } from 'node:url';
 import { pkg } from './pkg.js';
 
 const debug = createDebug(pkg.name);
@@ -22,7 +22,7 @@ export const createDebugger = (name: string): Debugger => {
  * @param hidePassword - to hide "auth" part of the url
  */
 export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = true): string => {
-    const urlParsed = new URL((req.baseURL ?? 'http://localhost') + (req.url ?? ''));
+    const urlParsed = new URL((req.baseURL || 'http://localhost') + (req.url ?? ''));
     const params = new URLSearchParams(urlParsed.search);
 
     if (req.auth) {
