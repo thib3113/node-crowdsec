@@ -51,7 +51,7 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 };
 
 export const parseExpiration = (duration: string) => {
-    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d+)h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>[0-9]{1,2}\.[\d]+)s)?/gm.exec(
+    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d{1,8})h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>[0-9]{1,2}\.\d+)s)?/gm.exec(
         duration
     );
 

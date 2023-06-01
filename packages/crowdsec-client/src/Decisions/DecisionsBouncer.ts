@@ -100,10 +100,9 @@ export class DecisionsBouncer extends BaseSubObject {
             }
 
             localDebug('prepare next loop');
-            getStreamTimeout = setTimeout(
-                () => getStreamFn(false).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e)),
-                interval
-            );
+            getStreamTimeout = setTimeout(() => {
+                getStreamFn(false).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e));
+            }, interval);
         };
 
         decisionStream.once('close', () => {

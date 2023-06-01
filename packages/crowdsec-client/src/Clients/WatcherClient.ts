@@ -63,7 +63,7 @@ export class WatcherClient extends CrowdSecClient {
 
                 localDebug('next token renew planned at %o', new Date(Date.now() + renewInTime));
                 this.autoRenewTimeout = setTimeout(() => {
-                    this._login();
+                    this._login().catch((e) => localDebug('uncatched error in _login %o', e));
                 }, renewInTime);
             }
         } catch (e) {
@@ -101,7 +101,9 @@ export class WatcherClient extends CrowdSecClient {
         } finally {
             const timer = typeof this.heartbeat === 'number' ? this.heartbeat : 30000;
             localDebug('next heartbeat will be send at %o', new Date(Date.now() + timer));
-            setTimeout(() => this.heartbeatLoop(), timer);
+            setTimeout(() => {
+                this.heartbeatLoop();
+            }, timer);
         }
     }
 

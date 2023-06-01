@@ -18,7 +18,8 @@ describe('utils', () => {
             ['-11h29m39.698479471s', -41379699],
             ['59m49.264032632s', 3589264],
             ['2h59m', 10740000],
-            ['-4h29m', -16140000]
+            ['-4h29m', -16140000],
+            ['99999999h59m59.264032632s', 359999999999264]
         ];
 
         it.each(testDatas)('should parse "%s" to %dms', async (duration, ms) => {
@@ -30,6 +31,12 @@ describe('utils', () => {
             expect(() => {
                 parseExpiration('fake');
             }).toThrow(`fail to parse duration "fake"`);
+        });
+        it('should fail to parse too big numbers', async () => {
+            const duration = "'999999999h59m59.264032632s'";
+            expect(() => {
+                parseExpiration(duration);
+            }).toThrow(`fail to parse duration "${duration}"`);
         });
     });
 
