@@ -7,7 +7,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-
+    types: [opened, synchronize, reopened]
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   prepare:
@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-  packages:
+  list-packages:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -65,11 +65,11 @@ jobs:
 
   # This workflow contains a single job called "build"
   build:
-    needs: [prepare, packages]
+    needs: [prepare, list-packages]
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJson(needs.packages.outputs.matrix) }}
+        package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
         node-version: [ lts/*, 16 ]
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -82,6 +82,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -121,11 +123,11 @@ jobs:
           test-command: npm run test:ci:coverage
           coverage-comment: false
 
-      - name: replace path in coverage files
-        run: |
-          cd ${{ matrix.package.path }}
-          find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
-        if: always()
+#      - name: replace path in coverage files
+#        run: |
+#          cd ${{ matrix.package.path }}
+#          find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
+#        if: always()
 
       - uses: actions/upload-artifact@v3
         with:
@@ -137,3 +139,19 @@ jobs:
             ${{ matrix.package.path }}/coverage/junit.xml
             ${{ matrix.package.path }}/coverage/test-report.xml
         if: always()
+
+#      - name: change coverage path in file
+#        run: find ./coverage -type f -exec sed -i -e "s@<root>@/github/workspace@g" {} \;
+
+      - uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          name: ${{ matrix.package.name }}
+          verbose: true
+          directory: ${{ matrix.package.path }}/coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

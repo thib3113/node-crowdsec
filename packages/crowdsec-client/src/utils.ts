@@ -36,7 +36,7 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 
     if (req.params) {
         Object.entries(req.params as Record<string, string>).forEach(([k, v]) => {
-            if (v === undefined) {
+            if (v === undefined || v === null) {
                 return;
             }
             params.append(k, v);
