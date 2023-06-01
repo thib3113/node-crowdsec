@@ -20,6 +20,8 @@ export type CallBack<Scopes extends string = 'ip', Origins extends string = deci
 export class DecisionsBouncer extends BaseSubObject {
     private runningStreams: Array<DecisionsStream<any>> = [];
 
+    private getStreamTimeout?: NodeJS.Timeout;
+
     private async getRawStream(options: {
         startup?: boolean;
         scopes?: string | Array<string>;
@@ -76,38 +78,9 @@ export class DecisionsBouncer extends BaseSubObject {
 
         this.runningStreams.push(decisionStream);
 
-        let getStreamTimeout: NodeJS.Timeout | undefined;
-
-        const getStreamFn = async (startup = false) => {
-            localDebug('start loop');
-            if (getStreamTimeout) {
-                clearTimeout(getStreamTimeout);
-            }
-
-            try {
-                const res = await this.getRawStream({ ...options, startup });
-                first = false;
-                decisionStream.push(res);
-            } catch (e) {
-                localDebug('loop error %o', e);
-                decisionStream.emit('error', e);
-            }
-
-            localDebug('end loop');
-            if (decisionStream.paused) {
-                localDebug('stream paused => exit loop');
-                return;
-            }
-
-            localDebug('prepare next loop');
-            getStreamTimeout = setTimeout(() => {
-                getStreamFn(false).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e));
-            }, interval);
-        };
-
         decisionStream.once('close', () => {
             localDebug('receive close event');
-            clearTimeout(getStreamTimeout);
+            clearTimeout(this.getStreamTimeout);
 
             //remove from running streams
             this.runningStreams = this.runningStreams.filter((stream) => stream != decisionStream);
@@ -115,12 +88,20 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.on('pause', () => {
             localDebug('receive pause event');
-            clearTimeout(getStreamTimeout);
+            clearTimeout(this.getStreamTimeout);
         });
 
         decisionStream.on('resume', () => {
             localDebug('receive resume event');
-            getStreamFn(first).catch((e) => debug('uncatched error from getStreamFn : %o', e));
+            this.getStreamLoop(
+                {
+                    ...options,
+                    startup: first
+                },
+                decisionStream,
+                interval
+            ).catch((e) => debug('uncatched error from getStreamFn : %o', e));
+            first = false;
         });
 
         //more about this : https://nodejs.org/api/events.html#error-events
@@ -129,26 +110,71 @@ export class DecisionsBouncer extends BaseSubObject {
         });
 
         if (cb) {
-            decisionStream.on('added', (decision) => {
-                cb(null, {
-                    decision,
-                    type: 'added'
-                });
-            });
-            decisionStream.on('deleted', (decision) => {
-                cb(null, {
-                    decision,
-                    type: 'deleted'
-                });
-            });
-            decisionStream.on('error', (error) => {
-                cb(error);
-            });
-
-            decisionStream.resume();
+            this.streamToCallback(decisionStream, cb);
         }
 
         return decisionStream;
+    }
+
+    private async getStreamLoop<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
+        options: Decisions.GetDecisionsStream.RequestQuery,
+        decisionStream: DecisionsStream<Scopes, Origins>,
+        interval: number
+    ) {
+        const localDebug = debug.extend('getStreamLoop');
+        localDebug('start loop');
+        if (this.getStreamTimeout) {
+            clearTimeout(this.getStreamTimeout);
+        }
+
+        try {
+            const res = await this.getRawStream(options);
+            decisionStream.push(res);
+        } catch (e) {
+            localDebug('loop error %o', e);
+            decisionStream.emit('error', e);
+        }
+
+        localDebug('end loop');
+        if (decisionStream.paused) {
+            localDebug('stream paused => exit loop');
+            return;
+        }
+
+        localDebug('prepare next loop');
+        this.getStreamTimeout = setTimeout(() => {
+            this.getStreamLoop(
+                {
+                    ...options,
+                    startup: false
+                },
+                decisionStream,
+                interval
+            ).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e));
+        }, interval);
+    }
+
+    private streamToCallback<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
+        decisionStream: DecisionsStream<Scopes, Origins>,
+        cb: CallBack<Scopes, Origins>
+    ) {
+        decisionStream.on('added', (decision) => {
+            cb(null, {
+                decision,
+                type: 'added'
+            });
+        });
+        decisionStream.on('deleted', (decision) => {
+            cb(null, {
+                decision,
+                type: 'deleted'
+            });
+        });
+        decisionStream.on('error', (error) => {
+            cb(error);
+        });
+
+        decisionStream.resume();
     }
 
     /**
