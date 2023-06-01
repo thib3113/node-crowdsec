@@ -45,6 +45,15 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         this.loop();
     }
 
+    private async emitDecisions(eventName: 'added' | 'deleted', decisions: Array<Decision<Scopes, Origins>>) {
+        while (decisions.length > 0 && !this._paused) {
+            const decision = decisions.shift();
+            if (decision) {
+                this.emit(eventName, decision);
+            }
+        }
+    }
+
     private loop() {
         if (this.looping || this._paused) {
             return;
@@ -52,17 +61,10 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         this.looping = true;
         (async () => {
             try {
-                while (this.decisions.deleted.length + this.decisions.added.length > 0 && !this._paused) {
-                    const deletedDecision = this.decisions.deleted.shift();
-                    const addedDecision = this.decisions.added.shift();
-                    if (deletedDecision) {
-                        this.emit('deleted', deletedDecision);
-                    }
-
-                    if (addedDecision) {
-                        this.emit('added', addedDecision);
-                    }
-                }
+                await Promise.all([
+                    this.emitDecisions('deleted', this.decisions.deleted),
+                    this.emitDecisions('added', this.decisions.added)
+                ]);
             } catch (e) {
                 this.emit('error', e);
             } finally {
@@ -75,6 +77,13 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         this.debug('paused');
         this._paused = true;
         this.emit('pause');
+    }
+
+    /**
+     * an alias of resume
+     */
+    public start(): void {
+        this.resume();
     }
     public resume(): void {
         this.debug('resumed');

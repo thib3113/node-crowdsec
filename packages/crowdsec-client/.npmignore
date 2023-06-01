@@ -1,8 +1,10 @@
-examples
-lib
 src
-templates
+_OATemplates
+coverage
+tests
 *.tgz
 tsconfig.json
 .env
 generator.ts
+esbuild.js
+jest.config.js

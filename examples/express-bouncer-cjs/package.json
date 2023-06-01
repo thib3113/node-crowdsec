@@ -1,11 +1,10 @@
 {
-  "name": "example-express-bouncer",
+  "name": "example-express-bouncer-cjs",
   "version": "1.0.0",
   "description": "",
-  "main": "build/index.js",
-  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "debug": "tsc && node -r source-map-support/register ./build/index.js"
+    "start": "node -r source-map-support/register ./src/index.js"
   },
   "keywords": [],
   "author": "",

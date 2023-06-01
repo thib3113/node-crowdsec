@@ -7,9 +7,6 @@ export default {
     coveragePathIgnorePatterns: ['\\\\node_modules\\\\', 'tests'],
     moduleFileExtensions: ['ts', 'tsx', 'js'],
     testMatch: ['<rootDir>/tests/**/*.(test|tests|spec|specs).+(ts|tsx|js)'],
-    transform: {
-        '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }]
-    },
     reporters: [
         'default',
         [
@@ -20,5 +17,20 @@ export default {
                 reportedFilePath: 'absolute'
             }
         ]
-    ]
+    ],
+    preset: 'ts-jest/presets/default-esm', // or other ESM presets
+    moduleNameMapper: {
+        '^(\\.{1,2}/.*)\\.js$': '$1'
+    },
+    transform: {
+        // '^.+\\.[tj]sx?$' to process js/ts with `ts-jest`
+        // '^.+\\.m?[tj]sx?$' to process js/ts/mjs/mts with `ts-jest`
+        '^.+\\.tsx?$': [
+            'ts-jest',
+            {
+                tsconfig: '<rootDir>/tsconfig.json',
+                useESM: true
+            }
+        ]
+    }
 };

@@ -3,7 +3,7 @@
     "compilerOptions": {
         "outDir": "./lib"
     },
-    "exclude": ["lib", "node_modules", "tests", "examples", "generator.ts"],
+    "include": ["src"],
     "ts-node": {
         "esm": true,
         "experimentalSpecifierResolution": "node"

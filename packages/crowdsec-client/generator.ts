@@ -15,7 +15,7 @@ const main = async () => {
     await generateApi({
         name: 'crowdsec-api-generated.ts',
         output: path.join(__dirname, './src/types/generated'),
-        templates: path.join(__dirname, './templates'),
+        templates: path.join(__dirname, './_OATemplates'),
         httpClientType: 'axios',
         url: CROWDSEC_SWAGGER_URL,
         generateClient: false,

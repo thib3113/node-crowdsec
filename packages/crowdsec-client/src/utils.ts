@@ -51,33 +51,29 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 };
 
 export const parseExpiration = (duration: string) => {
-    const re = /(-?)(?:(?:(\d+)h)?(\d+)m)?(\d+).\d+(m?)s/m;
-    const matches = duration.match(re);
-    if (!matches?.length) {
-        throw new Error(`Unable to parse the following duration: ${duration}.`);
+    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d+)h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>[0-9]{1,2}\.[\d]+)s)?/gm.exec(
+        duration
+    );
+
+    if (!durationRe || !durationRe[0] || !durationRe.groups) {
+        throw new Error(`fail to parse duration "${duration}"`);
     }
-    let seconds = 0;
-    if (matches[2] !== undefined) {
-        seconds += parseInt(matches[2]) * 3600; // hours
+
+    const { groups } = durationRe;
+
+    const multiplier = groups.multiplier === '-' ? -1 : 1;
+    const hours = parseInt(groups.hours);
+    const minutes = parseInt(groups.minutes);
+    let seconds = (parseFloat(groups.seconds) || 0) * 1000;
+
+    if (hours && !isNaN(hours)) {
+        seconds += hours * 60 * 60 * 1000;
     }
-    if (matches[3] !== undefined) {
-        seconds += parseInt(matches[3]) * 60; // minutes
+    if (minutes && !isNaN(minutes)) {
+        seconds += minutes * 60 * 1000;
     }
-    if (matches[4] !== undefined) {
-        seconds += parseInt(matches[4]); // seconds
-    }
-    if ('m' === matches[5]) {
-        // units in milliseconds
-        seconds *= 0.001;
-    }
-    if ('-' === matches[1]) {
-        // negative
-        seconds *= -1;
-    }
-    seconds = Math.round(seconds);
-    const expiration = new Date();
-    expiration.setSeconds(expiration.getSeconds() + seconds);
-    return expiration;
+
+    return new Date(Date.now() + seconds * multiplier);
 };
 
 export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? p : [p]);
