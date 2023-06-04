@@ -144,7 +144,7 @@ jobs:
       - name: replace path in coverage files
         working-directory: ${{ matrix.package.path }}
         run: |
-          find ./coverage -type f -exec sed -i -e "s@$(pwd)@./@g" {} \;
+          find ./coverage -type f -exec sed -i -e "s@$(pwd)@.@g" {} \;
         if: always()
 
       - uses: actions/upload-artifact@v3
