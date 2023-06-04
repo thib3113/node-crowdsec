@@ -1,14 +1,24 @@
 import esbuild from 'esbuild';
 import path from 'path';
 import fs from 'fs';
+import * as url from 'url';
+
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const tsConfig = JSON.parse(fs.readFileSync('./tsconfig.json').toString());
 
-const dist = path.join(process.cwd(), tsConfig.compilerOptions.outDir);
+const dist = path.join(__dirname, tsConfig.compilerOptions.outDir);
 
 if (!fs.existsSync(dist)) {
     fs.mkdirSync(dist);
 }
+
+//create pkg file
+fs.writeFileSync(
+    path.join(__dirname, 'src', 'pkg.ts'),
+    `export const pkg = { name: '${process.env.npm_package_name}', version: '${process.env.npm_package_version}' };\n`
+);
 
 let makeAllPackagesExternalPlugin = {
     name: 'make-all-packages-external',
