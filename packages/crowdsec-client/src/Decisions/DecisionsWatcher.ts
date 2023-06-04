@@ -12,7 +12,7 @@ export class DecisionsWatcher extends BaseSubObject {
                 Decisions.DeleteDecisions.ResponseBody,
                 AxiosResponse<Decisions.DeleteDecisions.ResponseBody>,
                 Decisions.DeleteDecisions.RequestQuery
-            >(`/v1/decisions/`, {
+            >(`/v1/decisions`, {
                 data: options
             })
         ).data;

@@ -34,6 +34,6 @@ describe('DecisionsWatcher', () => {
 
         expect(await watcher.delete(deleteOptions)).toBe('test');
 
-        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/decisions/', { data: deleteOptions });
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/decisions', { data: deleteOptions });
     });
 });

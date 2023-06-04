@@ -123,6 +123,10 @@ jobs:
           test-command: npm run test:ci:coverage
           coverage-comment: false
 
+
+      - name: Test build
+        run: pnpm -F ${{ matrix.package.name }}... build
+
 #      - name: replace path in coverage files
 #        run: |
 #          cd ${{ matrix.package.path }}
