@@ -8,6 +8,15 @@ on:
     branches: [ main ]
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+      CODECOV_TOKEN:
+        required: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   prepare:
@@ -135,9 +144,11 @@ jobs:
         run: pnpm -F ${{ matrix.package.name }}... build
 
       - name: replace path in coverage files
+        working-directory: ${{ matrix.package.path }}
         run: |
-          cd ${{ matrix.package.path }}
-          find ./coverage -type f -exec sed -i -e "s@$(pwd)@$GITHUB_WORKSPACE@g" {} \;
+          echo replace $(pwd) by ${GITHUB_WORKSPACE} on
+          ls -alh
+          find ./coverage -type f -exec sed -i -e "s@$(pwd)@${GITHUB_WORKSPACE}@g" {} \;
         if: always()
 
       - uses: actions/upload-artifact@v3
