@@ -134,11 +134,11 @@ jobs:
       - name: Test build
         run: pnpm -F ${{ matrix.package.name }}... build
 
-#      - name: replace path in coverage files
-#        run: |
-#          cd ${{ matrix.package.path }}
-#          find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
-#        if: always()
+      - name: replace path in coverage files
+        run: |
+          cd ${{ matrix.package.path }}
+          find ./coverage -type f -exec sed -i -e "s@$(pwd)@$GITHUB_WORKSPACE@g" {} \;
+        if: always()
 
       - uses: actions/upload-artifact@v3
         with:
