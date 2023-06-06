@@ -1,11 +1,12 @@
 import { CrowdSecClient } from './CrowdSecClient.js';
 import { createDebugger } from '../utils.js';
-import { IWatcherClientOptions } from '../interfaces/index.js';
+import { ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
 import { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
 import { DecisionsWatcher } from '../Decisions/index.js';
 import { Alerts } from '../Alerts/Alerts.js';
 import { CrowdsecClientError, EErrorsCodes } from '../Errors/index.js';
+import Validate from '../Validate.js';
 
 const debug = createDebugger('WatcherClient');
 
@@ -13,7 +14,7 @@ export class WatcherClient extends CrowdSecClient {
     private autoRenewTimeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
 
-    #auth: IWatcherClientOptions['auth'];
+    readonly #auth?: IWatcherAuthentication;
 
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
@@ -22,10 +23,14 @@ export class WatcherClient extends CrowdSecClient {
     constructor(options: IWatcherClientOptions) {
         super(options);
 
-        this.#auth = {
-            autoRenew: true,
-            ...options.auth
-        };
+        if (Validate.implementsTKeys<ITLSAuthentication>(options.auth, ['key', 'cert', 'ca'])) {
+            this.setAuthenticationByTLS(options.auth);
+        } else {
+            this.#auth = {
+                autoRenew: true,
+                ...options.auth
+            };
+        }
 
         this.heartbeat = options.heartbeat ?? true;
 
@@ -36,6 +41,12 @@ export class WatcherClient extends CrowdSecClient {
     private async _login() {
         const localDebug = debug.extend('_login');
         localDebug('start _login');
+
+        if (!this.#auth) {
+            localDebug('no authentication or TLS authentication setup');
+            return;
+        }
+
         if (this.autoRenewTimeout) {
             clearTimeout(this.autoRenewTimeout);
         }
@@ -74,7 +85,7 @@ export class WatcherClient extends CrowdSecClient {
 
     async login(): Promise<void> {
         await this._login();
-        const connectionResult = this.testConnection();
+        const connectionResult = await this.testConnection();
         if (this.heartbeat) {
             this.heartbeatLoop().catch((e) => debug('uncatched error from starting heartbeatLoop : %o', e));
         }

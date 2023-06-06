@@ -1,4 +1,4 @@
-import type { ICrowdSecClientOptions } from '../interfaces/index.js';
+import type { ICrowdSecClientOptions, ITLSAuthentication } from '../interfaces/index.js';
 import { pkg } from '../pkg.js';
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
@@ -45,6 +45,15 @@ export abstract class CrowdSecClient {
                 headers: { 'User-Agent': this.options.userAgent }
             })
         );
+    }
+
+    protected setAuthenticationByTLS(auth: ITLSAuthentication) {
+        this.http.defaults.httpsAgent = new https.Agent({
+            cert: auth.cert,
+            key: auth.key,
+            ca: auth.ca,
+            rejectUnauthorized: this.options.strictSSL ?? true
+        });
     }
 
     private addAxiosDebugInterceptors(instance: AxiosInstance): AxiosInstance {

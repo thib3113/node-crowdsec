@@ -24,7 +24,7 @@ export class DecisionsBouncer extends BaseSubObject {
 
     private getStreamTimeout?: NodeJS.Timeout;
 
-    private async getRawStream(options: {
+    public async getRawStream(options?: {
         startup?: boolean;
         scopes?: string | Array<string>;
         origins?: string | Array<string>;
@@ -51,7 +51,7 @@ export class DecisionsBouncer extends BaseSubObject {
     }
 
     public getStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
-        optionsParam: {
+        optionsParam?: {
             interval?: number;
             scopes?: Scopes | Array<Scopes>;
             origins?: Origins | Array<Origins>;
@@ -63,7 +63,7 @@ export class DecisionsBouncer extends BaseSubObject {
         const localDebug = debug.extend('getStream');
         localDebug('(%o) with cb %o', optionsParam, !!cb);
 
-        const interval = optionsParam.interval ?? 10000;
+        const interval = optionsParam?.interval ?? 10000;
         const options = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
             scopes: optionsParam?.scopes ? forceArray<string>(optionsParam.scopes).join(',') : undefined,
             origins: optionsParam?.origins ? forceArray<string>(optionsParam.origins).join(',') : undefined,

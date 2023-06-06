@@ -1,4 +1,4 @@
-import { forceArray, getUrlRepresentation, parseExpiration } from '../src/utils.js';
+import { createDebugger, forceArray, getUrlRepresentation, parseExpiration } from '../src/utils.js';
 import { jest, describe, it, afterEach, beforeEach, expect } from '@jest/globals';
 import { RawAxiosRequestConfig } from 'axios';
 
@@ -77,6 +77,22 @@ describe('utils', () => {
         it('should return array of strings without modifications', async () => {
             const arr = ['test'];
             expect(forceArray(arr)).toBe(arr);
+        });
+    });
+
+    describe('createDebugger', () => {
+        it('should create a debugger', () => {
+            const d = createDebugger('test');
+            expect(d.namespace).toBe('crowdsec-client:test');
+        });
+        it('should force to set a name', () => {
+            expect.assertions(2);
+            try {
+                createDebugger('');
+            } catch (e) {
+                expect(e).toBeInstanceOf(Error);
+                expect((e as Error).message).toBe('name is mandatory');
+            }
         });
     });
 });
