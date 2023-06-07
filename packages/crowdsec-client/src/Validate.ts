@@ -17,11 +17,11 @@ export type MustBeNullable<T> = null extends T ? T : undefined extends T ? T : n
 
 export class Validate {
     public static mail(mail: string): boolean {
-        return Validate.isString(mail) && !!mail.match(/^([\w.%+-]+)@([\w-]+\.)+(\w{2,})$/i);
+        return Validate.isString(mail) && !!/^([\w.%+-]+)@([\w-]+\.)+(\w{2,})$/i.exec(mail);
     }
 
     public static uuid(uuid: string): boolean {
-        return Validate.isString(uuid) && !!uuid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}$/i);
+        return Validate.isString(uuid) && !!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}$/i.exec(uuid);
     }
 
     // Returns if a value is a string
