@@ -1,6 +1,5 @@
-import util from 'util';
+import * as util from 'util';
 import { AxiosError as BaseAxiosError } from 'axios';
-import * as console from 'console';
 
 //fork of axios-error https://github.com/bottenderjs/messaging-apis/blob/master/packages/axios-error/src/index.ts
 

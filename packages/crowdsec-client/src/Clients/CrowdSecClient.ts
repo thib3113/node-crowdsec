@@ -177,7 +177,7 @@ export abstract class CrowdSecClient {
             if (axios.isAxiosError(e)) {
                 throw new CrowdsecClientError('HOST_NOT_REACHABLE', EErrorsCodes.CONNECTION_TEST_FAILED, e);
             }
-            throw new CrowdsecClientError('UNKNOWN_ERROR');
+            throw new CrowdsecClientError('UNKNOWN_ERROR', undefined, e instanceof Error ? e : undefined);
         }
     }
 }
