@@ -1,6 +1,6 @@
 import { RawAxiosRequestConfig } from 'axios';
 import createDebug, { Debugger } from 'debug';
-import url, { URL, URLSearchParams } from 'url';
+import url, { URL, URLSearchParams } from 'node:url';
 import { pkg } from './pkg.js';
 
 const debug = createDebug(pkg.name);
@@ -22,7 +22,7 @@ export const createDebugger = (name: string): Debugger => {
  * @param hidePassword - to hide "auth" part of the url
  */
 export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = true): string => {
-    const urlParsed = new URL((req.baseURL ?? 'http://localhost') + (req.url ?? ''));
+    const urlParsed = new URL((req.baseURL || 'http://localhost') + (req.url ?? ''));
     const params = new URLSearchParams(urlParsed.search);
 
     if (req.auth) {
@@ -75,3 +75,13 @@ export const parseExpiration = (duration: string) => {
 };
 
 export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? p : [p]);
+
+/**
+ * the job of this function, is to unblock the loop when running a long while
+ * ( else the event loop is blocked, waiting for the loop to end )
+ */
+export const setImmediatePromise = async () => {
+    return new Promise<void>((resolve) => {
+        setImmediate(() => resolve());
+    });
+};

@@ -8,6 +8,13 @@ on:
     branches: [ main ]
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      CODECOV_TOKEN:
+        required: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   prepare:
@@ -114,6 +121,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: run eslint
+        run: npm run ci:eslint
+        working-directory: ${{ matrix.package.path }}
+        continue-on-error: true
+        env:
+          CI: true
+
       - uses: mattallty/jest-github-action@v1.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,11 +137,15 @@ jobs:
           test-command: npm run test:ci:coverage
           coverage-comment: false
 
-#      - name: replace path in coverage files
-#        run: |
-#          cd ${{ matrix.package.path }}
-#          find ./coverage -type f -exec sed -i -e "s@$(pwd)@<root>@g" {} \;
-#        if: always()
+
+      - name: Test build
+        run: pnpm -F ${{ matrix.package.name }}... build
+
+      - name: replace path in coverage files
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          find ./coverage -type f -exec sed -i -e "s@$(pwd)@.@g" {} \;
+        if: always()
 
       - uses: actions/upload-artifact@v3
         with:
@@ -138,6 +156,7 @@ jobs:
             ${{ matrix.package.path }}/coverage/lcov.info
             ${{ matrix.package.path }}/coverage/junit.xml
             ${{ matrix.package.path }}/coverage/test-report.xml
+            ${{ matrix.package.path }}/coverage/eslint-report.json
         if: always()
 
 #      - name: change coverage path in file

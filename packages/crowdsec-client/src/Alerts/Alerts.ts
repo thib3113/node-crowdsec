@@ -3,6 +3,10 @@ import { Alerts as AlertsTypes } from '../types/index.js';
 import { AxiosResponse } from 'axios';
 
 export class Alerts extends BaseSubObject {
+    /**
+     * Create Alerts and return the IDs
+     * @param datas
+     */
     public async pushAlerts(datas: AlertsTypes.PushAlerts.RequestBody): Promise<AlertsTypes.PushAlerts.ResponseBody> {
         return (
             await this.http.post<
@@ -20,7 +24,7 @@ export class Alerts extends BaseSubObject {
                 AxiosResponse<AlertsTypes.SearchAlerts.ResponseBody>,
                 AlertsTypes.SearchAlerts.RequestQuery
             >('/v1/alerts', {
-                data: options
+                params: options
             })
         ).data;
     }

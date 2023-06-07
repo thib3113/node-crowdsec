@@ -4,7 +4,7 @@
 export default {
     clearMocks: true,
     coverageDirectory: '<rootDir>/coverage',
-    collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/types/generated/**/*'],
+    collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/types/generated/**/*', '!<rootDir>/src/debug.ts'],
     coveragePathIgnorePatterns: ['\\\\node_modules\\\\', 'tests'],
     moduleFileExtensions: ['ts', 'tsx', 'js'],
     testMatch: ['<rootDir>/tests/**/*.(test|tests|spec|specs).+(ts|tsx|js)'],
@@ -19,7 +19,7 @@ export default {
             }
         ]
     ],
-    preset: 'ts-jest/presets/default-esm', // or other ESM presets
+    extensionsToTreatAsEsm: ['.ts'],
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1'
     },
@@ -29,7 +29,6 @@ export default {
         '^.+\\.tsx?$': [
             'ts-jest',
             {
-                tsconfig: '<rootDir>/tsconfig.json',
                 useESM: true
             }
         ]

@@ -17,12 +17,14 @@ export type CallBack<Scopes extends string = 'ip', Origins extends string = deci
     data?: CallBackParams<Scopes, Origins>
 ) => any;
 
+type commaSeparatedParams = 'scopes' | 'origins' | 'scenarios_containing' | 'scenarios_not_containing';
+
 export class DecisionsBouncer extends BaseSubObject {
     private runningStreams: Array<DecisionsStream<any>> = [];
 
     private getStreamTimeout?: NodeJS.Timeout;
 
-    private async getRawStream(options: {
+    public async getRawStream(options?: {
         startup?: boolean;
         scopes?: string | Array<string>;
         origins?: string | Array<string>;
@@ -49,7 +51,7 @@ export class DecisionsBouncer extends BaseSubObject {
     }
 
     public getStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
-        optionsParam: {
+        optionsParam?: {
             interval?: number;
             scopes?: Scopes | Array<Scopes>;
             origins?: Origins | Array<Origins>;
@@ -61,7 +63,7 @@ export class DecisionsBouncer extends BaseSubObject {
         const localDebug = debug.extend('getStream');
         localDebug('(%o) with cb %o', optionsParam, !!cb);
 
-        const interval = optionsParam.interval ?? 10000;
+        const interval = optionsParam?.interval ?? 10000;
         const options = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
             scopes: optionsParam?.scopes ? forceArray<string>(optionsParam.scopes).join(',') : undefined,
             origins: optionsParam?.origins ? forceArray<string>(optionsParam.origins).join(',') : undefined,
@@ -93,14 +95,14 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.on('resume', () => {
             localDebug('receive resume event');
-            this.getStreamLoop(
+            this.getStreamLoopWrapper<Scopes, Origins>(
                 {
                     ...options,
                     startup: first
                 },
                 decisionStream,
                 interval
-            ).catch((e) => debug('uncatched error from getStreamFn : %o', e));
+            );
             first = false;
         });
 
@@ -114,6 +116,16 @@ export class DecisionsBouncer extends BaseSubObject {
         }
 
         return decisionStream;
+    }
+
+    private getStreamLoopWrapper<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
+        options: Decisions.GetDecisionsStream.RequestQuery,
+        decisionStream: DecisionsStream<Scopes, Origins>,
+        interval: number
+    ) {
+        this.getStreamLoop<Scopes, Origins>(options, decisionStream, interval).catch((e) =>
+            debug('uncatched error from getStreamLoop : %o', e)
+        );
     }
 
     private async getStreamLoop<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
@@ -143,14 +155,14 @@ export class DecisionsBouncer extends BaseSubObject {
 
         localDebug('prepare next loop');
         this.getStreamTimeout = setTimeout(() => {
-            this.getStreamLoop(
+            this.getStreamLoopWrapper(
                 {
                     ...options,
                     startup: false
                 },
                 decisionStream,
                 interval
-            ).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e));
+            );
         }, interval);
     }
 
@@ -185,10 +197,13 @@ export class DecisionsBouncer extends BaseSubObject {
     }
 
     public async search(
-        options?: Decisions.GetDecisions.RequestQuery & {
-            origins: string | Array<string>;
-            scenarios_containing: string | Array<string>;
-            scenarios_not_containing: string | Array<string>;
+        options?: Omit<Decisions.GetDecisions.RequestQuery, commaSeparatedParams> & {
+            /** name of origins. If provided, then only the decisions originating from provided origins would be returned. */
+            origins?: string | Array<string>;
+            /** If provided, only the decisions created by scenarios containing any of the provided word would be returned. */
+            scenarios_containing?: string | Array<string>;
+            /** If provided, only the decisions created by scenarios, not containing any of the provided word would be returned. */
+            scenarios_not_containing?: string | Array<string>;
         }
     ): Promise<Decisions.GetDecisions.ResponseBody> {
         debug('search(%o)', options);
@@ -206,7 +221,7 @@ export class DecisionsBouncer extends BaseSubObject {
                 await this.http.get<Decisions.GetDecisions.ResponseBody>('/v1/decisions', {
                     params
                 })
-            ).data || []
+            )?.data || []
         ).map((d) => new Decision(d));
     }
 }
