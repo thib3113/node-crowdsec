@@ -46,13 +46,13 @@ importers:
         version: link:../../packages/crowdsec-client
     devDependencies:
       '@types/express':
-        specifier: ^4.17.17
+        specifier: 4.17.17
         version: 4.17.17
       dotenv:
-        specifier: ^16.1.4
+        specifier: 16.1.4
         version: 16.1.4
       source-map-support:
-        specifier: ^0.5.21
+        specifier: 0.5.21
         version: 0.5.21
 
   examples/express-bouncer:
