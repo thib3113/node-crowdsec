@@ -29,7 +29,7 @@ let makeAllPackagesExternalPlugin = {
 };
 
 const globalConfig = {
-    entryPoints: ['src/index.ts', 'src/debug.ts'],
+    entryPoints: ['src/index.ts'],
     bundle: true,
     sourcemap: true,
     minify: false,
