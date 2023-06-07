@@ -1,17 +1,18 @@
 {
-  "name": "example-express-bouncer-cjs",
+  "name": "dev",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "build/index.js",
+  "type": "module",
   "scripts": {
-    "start": "node -r source-map-support/register ./src/index.js"
+    "debug": "npm run build:deps && tsc && node -r source-map-support/register ./build/index.js",
+    "build:deps": "pnpm -F dev... --parallel build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crowdsec-client": "workspace:^",
-    "express": "^4.18.2"
+    "crowdsec-client": "workspace:^"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",

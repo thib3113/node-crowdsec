@@ -1,13 +1,10 @@
 import * as dotenv from 'dotenv';
 import { BouncerClient } from 'crowdsec-client';
-import express from 'express';
 
 dotenv.config();
 
 // create main function to deal with async/await
 const main = async () => {
-    let bannedIps: Array<string> = ['::1'];
-
     if (!process.env.CROWDSEC_URL) {
         throw new Error('need process.env.CROWDSEC_URL');
     }
@@ -27,41 +24,16 @@ const main = async () => {
 
     //listen for added decisions
     stream.on('added', (decision) => {
-        if (!bannedIps.includes(decision.value)) {
-            bannedIps.push(decision.value);
-        }
+        console.log(`added ${decision.value}`);
     });
 
     //listen for deleted decisions
     stream.on('deleted', (decision) => {
-        bannedIps = bannedIps.filter((ip) => ip === decision.value);
+        console.log(`deleted ${decision.value}`);
     });
 
     //start the stream
     stream.resume();
-
-    //now start the express server
-    const app = express();
-    const port = 3000;
-
-    app.use((req, res, next) => {
-        //just a basic check to illustrate
-        if (req.socket.remoteAddress && bannedIps.includes(req.socket.remoteAddress)) {
-            //do something if the ip is banned
-            res.status(401).send('BANNED');
-            return;
-        }
-
-        next();
-    });
-
-    app.get('/', (req, res) => {
-        res.send('Hello World!');
-    });
-
-    app.listen(port, () => {
-        console.log(`Example app listening on port ${port}`);
-    });
 };
 
 //just run the async main, and log error if needed
