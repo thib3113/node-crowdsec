@@ -95,14 +95,14 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.on('resume', () => {
             localDebug('receive resume event');
-            this.getStreamLoop(
+            this.getStreamLoopWrapper<Scopes, Origins>(
                 {
                     ...options,
                     startup: first
                 },
                 decisionStream,
                 interval
-            ).catch((e) => debug('uncatched error from getStreamFn : %o', e));
+            );
             first = false;
         });
 
@@ -116,6 +116,16 @@ export class DecisionsBouncer extends BaseSubObject {
         }
 
         return decisionStream;
+    }
+
+    private getStreamLoopWrapper<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
+        options: Decisions.GetDecisionsStream.RequestQuery,
+        decisionStream: DecisionsStream<Scopes, Origins>,
+        interval: number
+    ) {
+        this.getStreamLoop<Scopes, Origins>(options, decisionStream, interval).catch((e) =>
+            debug('uncatched error from getStreamLoop : %o', e)
+        );
     }
 
     private async getStreamLoop<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
@@ -145,14 +155,14 @@ export class DecisionsBouncer extends BaseSubObject {
 
         localDebug('prepare next loop');
         this.getStreamTimeout = setTimeout(() => {
-            this.getStreamLoop(
+            this.getStreamLoopWrapper(
                 {
                     ...options,
                     startup: false
                 },
                 decisionStream,
                 interval
-            ).catch((e) => debug('uncatched error from setTimeout getStreamFn : %o', e));
+            );
         }, interval);
     }
 

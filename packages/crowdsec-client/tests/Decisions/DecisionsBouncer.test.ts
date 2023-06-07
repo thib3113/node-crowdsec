@@ -26,7 +26,7 @@ const mockDecisionStream = {
     once: mockStreamOnce,
     on: mockStreamOn,
     resume: mockResume
-};
+} as unknown as DecisionsStream;
 const mockDecisionStreamConstructor = jest.fn().mockReturnValue(mockDecisionStream);
 jest.unstable_mockModule('../../src/Decisions/DecisionsStream.js', () => ({
     DecisionsStream: mockDecisionStreamConstructor
@@ -398,6 +398,44 @@ describe('DecisionsBouncer', () => {
             });
         });
     });
+    describe('getStreamLoopWrapper', () => {
+        const mockGetStreamLoop = jest.fn();
+        let getStreamLoopWrapper: DecisionsBouncer['getStreamLoopWrapper'];
+
+        beforeEach(() => {
+            // @ts-ignore
+            bouncer.getStreamLoop = mockGetStreamLoop;
+
+            // @ts-ignore
+            getStreamLoopWrapper = bouncer.getStreamLoopWrapper.bind(bouncer);
+        });
+        afterEach(() => {
+            mockGetStreamLoop.mockClear();
+        });
+
+        it('should generate log an error throw by the loop', async () => {
+            const params = {
+                scopes: 'ip',
+                interval: 2000,
+                origins: 'cscli',
+                scenarios_containing: 'test',
+                scenarios_not_containing: 'test2'
+            };
+
+            const fakeError = new Error('fake');
+
+            await new Promise((resolve) => {
+                mockDebug.mockImplementationOnce(resolve);
+                mockGetStreamLoop.mockImplementationOnce(() => {
+                    return Promise.reject(fakeError);
+                });
+                getStreamLoopWrapper(params, mockDecisionStream, 2);
+            });
+
+            expect(mockDebug).toHaveBeenCalledWith('uncatched error from getStreamLoop : %o', fakeError);
+            expect(mockGetStreamLoop).toHaveBeenCalledWith(params, mockDecisionStream, 2);
+        });
+    });
     describe('getStream', () => {
         const getStreamListeners = (mocks: Array<Mock>): Record<'close' | 'pause' | 'resume' | 'error', Function> => {
             const listeners: Record<string, Function> = {};
@@ -415,10 +453,14 @@ describe('DecisionsBouncer', () => {
 
             return listeners;
         };
-        const mockGetStreamLoop = jest.fn().mockImplementation(() => Promise.resolve());
+        const getStreamLoopWrapper = jest.fn().mockImplementation(() => Promise.resolve());
         beforeEach(() => {
             // @ts-ignore
-            bouncer.getStreamLoop = mockGetStreamLoop;
+            bouncer.getStreamLoopWrapper = getStreamLoopWrapper;
+        });
+
+        afterEach(() => {
+            getStreamLoopWrapper.mockClear();
         });
 
         it('should generate a stream', async () => {
@@ -435,13 +477,13 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     ...params,
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 ...params,
                 startup: false
             });
@@ -461,13 +503,13 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     ...params,
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 ...params,
                 startup: false
             });
@@ -485,12 +527,12 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 startup: false
             });
 
@@ -513,13 +555,13 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     ...params,
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 ...params,
                 startup: false
             });
@@ -544,13 +586,13 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     ...params,
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 ...params,
                 startup: false
             });
@@ -574,12 +616,12 @@ describe('DecisionsBouncer', () => {
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
             expect(
-                mockGetStreamLoop({
+                getStreamLoopWrapper({
                     startup: true
                 })
             );
             resume();
-            mockGetStreamLoop({
+            getStreamLoopWrapper({
                 startup: false
             });
 

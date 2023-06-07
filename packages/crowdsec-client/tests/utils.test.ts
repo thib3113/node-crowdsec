@@ -1,6 +1,7 @@
-import { createDebugger, forceArray, getUrlRepresentation, parseExpiration } from '../src/utils.js';
+import { createDebugger, forceArray, getUrlRepresentation, parseExpiration, setImmediatePromise } from '../src/utils.js';
 import { jest, describe, it, afterEach, beforeEach, expect } from '@jest/globals';
 import { RawAxiosRequestConfig } from 'axios';
+import * as crypto from 'crypto';
 
 describe('utils', () => {
     describe('parseExpiration', () => {
@@ -62,11 +63,34 @@ describe('utils', () => {
             ['https://api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false', true, baseConfiguration],
             ['https://username:password@api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false', false, baseConfiguration],
             ['http://localhost/v1/heartbeat?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, baseURL: '' }],
-            ['https://api-crowdsec.test.lan/?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, url: '' }]
+            ['https://api-crowdsec.test.lan/?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, url: '' }],
+            ['https://api-crowdsec.test.lan/?a=b&b=2&c=&f=true&g=false', true, { ...baseConfiguration, url: undefined }]
         ];
 
         it.each(testsDatas)('should render the url : %s', async (result, hidePassword, configuration) => {
             expect(getUrlRepresentation(configuration, hidePassword)).toBe(result);
+        });
+
+        it('should hidePassword by default', async () => {
+            expect(
+                getUrlRepresentation({
+                    baseURL: 'https://api-crowdsec.test.lan',
+                    url: '/v1/heartbeat',
+                    params: {
+                        a: 'b',
+                        b: 2,
+                        c: '',
+                        d: undefined,
+                        e: null,
+                        f: true,
+                        g: false
+                    },
+                    auth: {
+                        password: 'password',
+                        username: 'username'
+                    }
+                })
+            ).toBe('https://api-crowdsec.test.lan/v1/heartbeat?a=b&b=2&c=&f=true&g=false');
         });
     });
 
@@ -93,6 +117,29 @@ describe('utils', () => {
                 expect(e).toBeInstanceOf(Error);
                 expect((e as Error).message).toBe('name is mandatory');
             }
+        });
+    });
+
+    describe('setImmediatePromise', () => {
+        it('should not block the event loop', async () => {
+            let i = 0;
+            const maxI = 1e4;
+            const res = (async () => {
+                while (++i < maxI) {
+                    //do something
+                    crypto.randomUUID();
+
+                    await setImmediatePromise();
+                }
+            })();
+
+            //this part will be run only if not blocked
+            expect(i).toBeGreaterThan(0);
+            expect(i).toBeLessThan(maxI);
+
+            await res;
+
+            expect(i).toBe(maxI);
         });
     });
 });

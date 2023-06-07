@@ -1,8 +1,8 @@
 import { TypedEventEmitter } from '../EventEmitter.js';
 import { Decision } from './Decision.js';
-import { decisionOrigin, DecisionsStreamResponse } from '../types/index.js';
-import { createDebugger } from '../utils.js';
-import { Debugger } from 'debug';
+import type { decisionOrigin, DecisionsStreamResponse } from '../types/index.js';
+import { createDebugger, setImmediatePromise } from '../utils.js';
+import type { Debugger } from 'debug';
 
 type DecisionsStreamEvents<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = {
     added: (decision: Decision<Scopes, Origins>) => void;
@@ -42,7 +42,7 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         (decisions.new ?? []).forEach((decision) => this.decisions.added.push(new Decision<Scopes, Origins>(decision)));
         (decisions.deleted ?? []).forEach((decision) => this.decisions.deleted.push(new Decision<Scopes, Origins>(decision)));
 
-        this.loop();
+        this.loopWrapper();
     }
 
     private async emitDecisions(eventName: 'added' | 'deleted', decisions: Array<Decision<Scopes, Origins>>) {
@@ -51,15 +51,22 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
             if (decision) {
                 this.emit(eventName, decision);
             }
+
+            // slower, but not blocking event loop
+            await setImmediatePromise();
         }
     }
 
-    private loop() {
+    private loopWrapper() {
+        this.loop().catch((e) => debug('uncatched promise from loop : %o', e));
+    }
+
+    private async loop() {
         if (this.looping || this._paused) {
             return;
         }
         this.looping = true;
-        (async () => {
+        return (async () => {
             try {
                 await Promise.all([
                     this.emitDecisions('deleted', this.decisions.deleted),
@@ -89,7 +96,7 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         this.debug('resumed');
         this._paused = false;
         this.emit('resume');
-        this.loop();
+        this.loopWrapper();
     }
 
     public close(): void {
