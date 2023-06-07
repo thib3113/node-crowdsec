@@ -2,9 +2,9 @@
   "name": "crowdsec-client",
   "version": "0.0.1",
   "description": "",
-  "main": "lib/index.cjs",
-  "module": "lib/index.mjs",
-  "types": "lib/types/index.d.ts",
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.mjs",
+  "types": "./lib/index.d.ts",
   "type": "module",
   "scripts": {
     "prepack": "npm run build",

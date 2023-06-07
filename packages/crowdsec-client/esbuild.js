@@ -76,3 +76,5 @@ fs.writeFileSync(path.join(dist, 'index.mjs'), "export * from './esm/index.mjs';
 
 // an entry file for esm at the root of the bundle
 fs.writeFileSync(path.join(dist, 'index.cjs'), "module.exports = require('./cjs/index.cjs');");
+
+fs.writeFileSync(path.join(dist, 'index.d.ts'), "export * from './types/index.js';");

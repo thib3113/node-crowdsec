@@ -1,4 +1,4 @@
-import { BouncerClient, WatcherClient } from 'crowdsec-client';
+import { BouncerClient, Decision, WatcherClient } from 'crowdsec-client';
 import dotenv from 'dotenv';
 
 dotenv.config({
@@ -35,6 +35,20 @@ const main = async () => {
         strictSSL: false
     });
     await client.login();
+
+    const decisionsStream = client.Decisions.getStream({
+        scopes: 'ip'
+    });
+
+    decisionsStream.on('added', (decision: Decision) => {
+        console.log(`add ${decision.scope} ${decision.value}`);
+    });
+
+    decisionsStream.on('deleted', (decision: Decision) => {
+        console.log(`delete ${decision.scope} ${decision.value}`);
+    });
+
+    decisionsStream.resume();
 };
 
 //just run the async main, and log error if needed

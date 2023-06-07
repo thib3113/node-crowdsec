@@ -1,10 +1,11 @@
 import util from 'util';
 import { AxiosError as BaseAxiosError } from 'axios';
+import * as console from 'console';
 
 //fork of axios-error https://github.com/bottenderjs/messaging-apis/blob/master/packages/axios-error/src/index.ts
 
 function indent(str: string): string {
-    return str
+    return (str || '')
         .split('\n')
         .map((s) => (s ? `  ${s}` : ''))
         .join('\n');
@@ -102,7 +103,7 @@ ${requestData}`;
         let responseMessage = '';
 
         if (this.response) {
-            let responseData;
+            let responseData = '';
 
             if (this.response.data) {
                 responseData = `
