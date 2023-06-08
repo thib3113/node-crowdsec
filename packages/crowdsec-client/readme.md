@@ -1,11 +1,14 @@
-Readme in progress
-
-# node-crowdsec
+# crowdsec-client
+[![NPM version](https://img.shields.io/npm/v/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
 [![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/thib3113/node-crowdsec/branch/main/graph/badge.svg?token=bQdlb31gcU)](https://codecov.io/gh/thib3113/node-crowdsec)
+[![Downloads](https://img.shields.io/npm/dm/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
+[![License](https://img.shields.io/npm/l/crowdsec-client)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
 [![Known Vulnerabilities](https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg)](https://snyk.io/test/github/thib3113/node-crowdsec)
+[![crowdsec-client-snyk](https://snyk.io/advisor/npm-package/crowdsec-client/badge.svg)](https://snyk.io/advisor/npm-package/crowdsec-client)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg?logo=paypal)](https://paypal.me/thib3113)
 [![GitHub stars](https://img.shields.io/github/stars/thib3113/node-crowdsec.svg?style=social&label=Star)](https://github.com/thib3113/node-crowdsec/stargazers/)
+[![Package Quality](https://packagequality.com/shield/crowdsec-client.svg)](https://packagequality.com/#?package=crowdsec-client)
 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=bugs)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=code_smells)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
@@ -22,24 +25,147 @@ Readme in progress
 )
 
 
-
-This repository will host multiples packages, you can found them with examples below
-
-## Packages
-
-### [crowdsec-client](./packages/crowdsec-client)
-
-[![NPM version](https://img.shields.io/npm/v/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
-[![Downloads](https://img.shields.io/npm/dm/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
-[![License](https://img.shields.io/npm/l/crowdsec-client)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
-[![crowdsec-client-snyk](https://snyk.io/advisor/npm-package/crowdsec-client/badge.svg)](https://snyk.io/advisor/npm-package/crowdsec-client)
-[![Package Quality](https://packagequality.com/shield/crowdsec-client.svg)](https://packagequality.com/#?package=crowdsec-client)
 [![NPM](https://nodei.co/npm/crowdsec-client.png)](https://nodei.co/npm/crowdsec-client/)
 
-a client allowing to talk with the crowdsec API, and so to create your bouncers or watchers
-
-## Examples
- - [express-bouncer](./examples/express-bouncer) : an example of use of the [crowdsec-client](./packages/crowdsec-client) to create an express bouncer
- - [express-bouncer-cjs](./examples/express-bouncer-cjs) : the same as [express-bouncer](./examples/express-bouncer), but wrote in (common) js only
-
 This library is a Node.js client to talk with crowdsec rest API .
+## Start
+
+install it
+
+```
+npm i crowdsec-client
+```
+
+## Usage
+### as a Bouncer
+
+First, create a client, pointing to your crowdsec instance . With a bouncer api key ([doc](https://doc.crowdsec.net/docs/user_guides/bouncers_configuration/))
+
+````typescript
+const client = new BouncerClient({
+    url: process.env.CROWDSEC_URL,
+    auth: {
+        apiKey: process.env.CROWDSEC_API_KEY || ''
+    },
+    //use this option if you use a self signed ssl certificate
+    strictSSL: false
+});
+await client.login();
+````
+
+Second, ask for a decision
+
+````typescript
+const stream = client.Decisions.getStream({
+    //the stream will poll the API at the interval . in ms
+    interval: 10000
+});
+
+//or with filters
+const filteredStream = client.Decisions.getStream({
+    //the stream will poll the API at the interval . in ms
+    interval: 10000,
+    scopes: ['ip', 'range'],
+    origins: ['capi'] ,
+    scenarios_containing: ['bruteforce'],
+    scenarios_not_containing: ['slow'],
+});
+````
+
+now, use this stream
+
+````typescript
+import * as stream from "stream";
+
+stream.on('added', (decision) => {
+    //will be emited when a new decision is added
+});
+
+stream.on('deleted', (decision) => {
+    //will be emitted when a decision is deleted
+});
+
+//you can control the stream
+
+//start the stream
+stream.resume();
+
+//pause the stream
+stream.pause()
+
+//check if the stream is paused
+if(stream.paused) {
+
+}
+````
+
+it's also possible to use a callback, but you can't control the stream (I recommend using the stream)
+````typescript
+const stream = client.Decisions.getStream(
+    {
+        //the stream will poll the API at the interval . in ms
+        interval: 10000
+    },
+    (err, {decision, type}) => {
+        if(err) {
+            console.error(err);
+            return;
+        }
+
+        if(type === 'added') {
+            //when a new decision is added
+        }
+
+        if(type === 'deleted') {
+            //when a new decision is added
+        }
+    });
+````
+
+### as a Watcher
+
+First, create a client, pointing to your crowdsec instance . With a machine login/password ([doc](https://doc.crowdsec.net/docs/user_guides/machines_mgmt))
+
+````typescript
+const client = new WatcherClient({
+    url: process.env.CROWDSEC_URL,
+    auth: {
+        machineID: 'nameOfTheMachine',
+        password: 'password',
+        //the crowdsec token is valid for only 1h ... did you want to autorenew it ?
+        autoRenew: true,
+    },
+    //use this option if you use a self signed ssl certificate
+    strictSSL: false
+});
+await client.login();
+````
+
+Search for Alert
+
+```typescript
+//get alerts with an active decision
+const alerts = await client.Alerts.search({
+    has_active_decision: true
+});
+
+//select one alert
+const alert = alerts[0]
+if(!alert.id) {
+    //do something if no id
+}
+
+//delete it ?
+await client.Alerts.deleteById(alert.id);
+
+//or delete all the alerts about an ip
+await client.Alerts.delete({
+    ip: '127.0.0.1'
+});
+```
+
+## Debug
+this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :
+````dotenv
+DEBUG=crowdsec-client:*
+````

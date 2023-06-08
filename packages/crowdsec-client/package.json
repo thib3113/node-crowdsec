@@ -6,8 +6,9 @@
     "module": "./lib/index.mjs",
     "types": "./lib/index.d.ts",
     "type": "module",
+    "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-client#readme",
     "scripts": {
-        "prepack": "npm run build && cp ../../readme.md .",
+        "prepack": "npm run build",
         "ts-types": " tsc --emitDeclarationOnly --outDir lib/types",
         "build": "rimraf lib && node ./esbuild.js --analyze && npm run ts-types",
         "debug": "npm run build && node -r source-map-support/register ./lib/esm/debug.mjs",
@@ -20,7 +21,7 @@
         "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
     },
     "bugs": {
-        "url": "https://github.com/thib3113/node-crowdsec/issues"
+        "url": "https://github.com/thib3113/node-crowdsec/issues?labels=crowdsec-client"
     },
     "author": {
         "email": "thib3113@gmail.com",
@@ -40,7 +41,10 @@
         "axios": "^1.4.0",
         "debug": "^4.3.4"
     },
-    "devDependencies": {
+  "engines": {
+    "node": ">=16"
+  },
+  "devDependencies": {
         "@jest/globals": "29.5.0",
         "@types/debug": "4.1.8",
         "dotenv": "16.1.3",
