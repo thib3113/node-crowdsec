@@ -20,6 +20,9 @@ inputs:
   SONAR_TOKEN:
     description: 'SONAR_TOKEN'
     required: true
+
+on:
+
 runs:
   using: "composite"
   steps:
