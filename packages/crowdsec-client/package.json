@@ -9,7 +9,11 @@
     "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-client#readme",
     "scripts": {
         "prepack": "npm run build",
-        "ts-types": " tsc --emitDeclarationOnly --outDir lib/types",
+        "version": "npm run build",
+        "preversion": "git update-index --really-refresh && git diff-index --quiet HEAD || (echo git is not clean && exit 1)",
+        "postversion": "pnpm run generate-tag",
+        "generate-tag": "git commit -am \"bump version of ${npm_package_name} to v${npm_package_version}\" && git tag -a ${npm_package_name}/v${npm_package_version} -m \"${npm_package_name}/v${npm_package_version}\"",
+        "ts-types": "tsc --emitDeclarationOnly --outDir lib/types",
         "build": "rimraf lib && node ./esbuild.js --analyze && npm run ts-types",
         "debug": "npm run build && node -r source-map-support/register ./lib/esm/debug.mjs",
         "generate-api": "node --loader ts-node/esm generator.ts",
@@ -41,10 +45,10 @@
         "axios": "^1.4.0",
         "debug": "^4.3.4"
     },
-  "engines": {
-    "node": ">=16"
-  },
-  "devDependencies": {
+    "engines": {
+        "node": ">=16"
+    },
+    "devDependencies": {
         "@jest/globals": "29.5.0",
         "@types/debug": "4.1.8",
         "dotenv": "16.1.3",
