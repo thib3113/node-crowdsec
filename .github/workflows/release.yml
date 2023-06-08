@@ -1,0 +1,172 @@
+name: Release
+on:
+  release:
+    types: [created]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/CI.yml
+    secrets: inherit
+
+  prepare:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          run_install: true
+          version: latest
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+  list-packages:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          run_install: true
+          version: latest
+      - id: set-matrix
+        run: |
+          export MATRIX=$(pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c)
+          echo "matrix=${MATRIX}" | tee -a $GITHUB_OUTPUT
+
+  # This workflow contains a single job called "build"
+  build:
+    needs: [ prepare, ci ]
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # do a matrix test with different node versions
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
+
+    steps:
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          run_install: true
+          version: latest
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+        shell: bash
+
+      - name: Compare npm with local (versions)
+        uses: Rober19/compare-npm-versions-ci@master
+        id: package_version
+        with:
+          path: ${{ matrix.package.path }}
+          npm_package_name: ${{ matrix.package.name }}
+
+      - name: publish to NPM
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          pnpm publish ${{ matrix.package.name }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: steps.package_version.outputs.npm_is_greater == 'false'
+
+      - name: publish to GPR
+        run: |
+          npm config set @${{ github.repository_owner }}:registry=https://npm.pkg.github.com
+          npm config set //https://npm.pkg.github.com:_authToken=${NODE_AUTH_TOKEN}
+          npm config set registry https://npm.pkg.github.com
+          npm config set scope ${{ github.repository_owner }}
+
+          npx npe name @${{ github.event.repository.full_name }}
+          pnpm publish ${{ matrix.package.name }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.package_version.outputs.npm_is_greater == 'false'
+
+
+  deploy-npm:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install
+        env:
+          CI: true
+      - run: npm publish --access public
+        name: publish on npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  deploy-GPR:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          registry-url: 'https://npm.pkg.github.com'
+          scope: ${{ github.repository_owner }}
+      - run: npm install
+        env:
+          CI: true
+      - run: npx npe name @${{ github.event.repository.full_name }}
+        name: change scope name
+      - run: npm publish --access public --registry https://npm.pkg.github.com
+        name: publish on GPR
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
