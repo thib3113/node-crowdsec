@@ -1,12 +1,29 @@
 const dotenv = require('dotenv');
-const { BouncerClient } = require('crowdsec-client');
+const { BouncerClient, Decision } = require('crowdsec-client');
 const express = require('express');
 
 dotenv.config();
 
+//enabling this to get banned by the bouncer
+const ENABLE_FAKE_DECISION = true;
+
+// exemple of a decision, you can modify it to test
+const FAKE_DECISION = new Decision({
+    duration: '99h',
+    type: 'ban',
+    value: '127.0.0.1',
+    origin: 'manual',
+    scenario: 'fake_scenario',
+    scope: 'ip'
+});
+
 // create main function to deal with async/await
 const main = async () => {
-    let bannedIps = ['::1'];
+    let decisions = [];
+
+    if (ENABLE_FAKE_DECISION) {
+        decisions.push(FAKE_DECISION);
+    }
 
     if (!process.env.CROWDSEC_URL) {
         throw new Error('need process.env.CROWDSEC_URL');
@@ -27,14 +44,14 @@ const main = async () => {
 
     //listen for added decisions
     stream.on('added', (decision) => {
-        if (!bannedIps.includes(decision.value)) {
-            bannedIps.push(decision.value);
+        if (!decisions.find((d) => d.value === d.value)) {
+            decisions.push(decision);
         }
     });
 
     //listen for deleted decisions
     stream.on('deleted', (decision) => {
-        bannedIps = bannedIps.filter((ip) => ip === decision.value);
+        decisions = decisions.filter(({ value }) => value !== decision.value);
     });
 
     //start the stream
@@ -46,9 +63,10 @@ const main = async () => {
 
     app.use((req, res, next) => {
         //just a basic check to illustrate
-        if (req.socket.remoteAddress && bannedIps.includes(req.socket.remoteAddress)) {
+        const decision = decisions.find(({ value }) => value === req.socket.remoteAddress);
+        if (decision) {
             //do something if the ip is banned
-            res.status(401).send('BANNED');
+            res.status(401).send(`you are rejected because of rule ${decision.scope}:${decision.value} . decision : ${decision.type}`);
             return;
         }
 
@@ -56,10 +74,11 @@ const main = async () => {
     });
 
     app.get('/', (req, res) => {
+        console.log(`receive connection from ${req.socket.remoteAddress}`);
         res.send('Hello World!');
     });
 
-    app.listen(port, () => {
+    app.listen(port, '127.0.0.1', () => {
         console.log(`Example app listening on port ${port}`);
     });
 };
