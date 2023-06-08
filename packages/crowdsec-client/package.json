@@ -1,6 +1,6 @@
 {
     "name": "crowdsec-client",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "A Crowdsec client that allow you to easily create bouncer or watcher",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
