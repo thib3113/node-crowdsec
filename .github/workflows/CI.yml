@@ -86,7 +86,8 @@ jobs:
       - uses: ./.github/workflows/build_and_test
         with:
           node-version: ${{ matrix.node-version }}
-          package: ${{ matrix.package }}
+          package_path: ${{ matrix.package.path }}
+          package_name: ${{ matrix.package.name }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
