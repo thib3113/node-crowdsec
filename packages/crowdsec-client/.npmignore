@@ -8,3 +8,4 @@ tsconfig.json
 generator.ts
 esbuild.js
 jest.config.js
+sonar-project.properties
