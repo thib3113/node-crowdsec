@@ -1,7 +1,5 @@
 import { BaseSubObject } from '../BaseSubObject.js';
-import type { Decisions } from '../types/index.js';
-import { decisionOrigin } from '../types/index.js';
-import { clearTimeout } from 'timers';
+import type { decisionOrigin, Decisions } from '../types/index.js';
 import { createDebugger, forceArray } from '../utils.js';
 import { DecisionsStream } from './DecisionsStream.js';
 import { Decision } from './Decision.js';
@@ -17,7 +15,7 @@ export type CallBack<Scopes extends string = 'ip', Origins extends string = deci
     data?: CallBackParams<Scopes, Origins>
 ) => any;
 
-type commaSeparatedParams = 'scopes' | 'origins' | 'scenarios_containing' | 'scenarios_not_containing';
+export type commaSeparatedParams = 'scopes' | 'origins' | 'scenarios_containing' | 'scenarios_not_containing';
 
 export class DecisionsBouncer extends BaseSubObject {
     private runningStreams: Array<DecisionsStream<any>> = [];

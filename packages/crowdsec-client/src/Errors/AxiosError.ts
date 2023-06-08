@@ -18,7 +18,7 @@ function json(data: unknown): string {
     }
 }
 
-type customPickFromAxiosError = Pick<BaseAxiosError, 'config' | 'request' | 'response'>;
+export type customPickFromAxiosError = Pick<BaseAxiosError, 'config' | 'request' | 'response'>;
 
 export class AxiosError extends Error {
     config: BaseAxiosError['config'];

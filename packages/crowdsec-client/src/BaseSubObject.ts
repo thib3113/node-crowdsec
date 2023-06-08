@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 
-interface IBaseSubObjectOptions {
+export interface IBaseSubObjectOptions {
     httpClient: AxiosInstance;
 }
 

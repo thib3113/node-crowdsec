@@ -4,7 +4,7 @@ import type { decisionOrigin, DecisionsStreamResponse } from '../types/index.js'
 import { createDebugger, setImmediatePromise } from '../utils.js';
 import type { Debugger } from 'debug';
 
-type DecisionsStreamEvents<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = {
+export type DecisionsStreamEvents<Scopes extends string = 'ip', Origins extends string = decisionOrigin> = {
     added: (decision: Decision<Scopes, Origins>) => void;
     deleted: (decision: Decision<Scopes, Origins>) => void;
     error: (error: any) => void;

@@ -1,0 +1,12 @@
+{
+    "entryPoints": ["packages/*"],
+    "entryPointStrategy": "packages",
+    "out": "docs",
+    "includeVersion": true,
+    "name": "Node CrowdSec Client",
+    "useTsLinkResolution": true,
+    "basePath": ".",
+    "cleanOutputDir": true,
+    "githubPages": true,
+    "hideParameterTypesInTitle": true
+}

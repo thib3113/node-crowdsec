@@ -33,7 +33,7 @@ export class WatcherClient extends CrowdSecClient {
             };
         }
 
-        this.scenarios = options.scenarios || [];
+        this.scenarios = options.scenarios ?? [];
         this.heartbeat = options.heartbeat ?? true;
 
         this.Decisions = new DecisionsWatcher({ httpClient: this.http });

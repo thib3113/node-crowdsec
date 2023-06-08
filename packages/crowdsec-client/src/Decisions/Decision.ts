@@ -1,6 +1,9 @@
 import type { Decision as rawDecision, decisionOrigin, decisionType } from '../types/index.js';
 import { parseExpiration } from '../utils.js';
 
+/**
+ * Represent a Decision .
+ */
 export class Decision<Scope extends string = 'ip', Origin extends string = decisionOrigin, Type extends string = decisionType> {
     public id?: number;
     public origin: Origin;

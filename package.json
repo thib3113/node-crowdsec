@@ -5,6 +5,9 @@
     "pnpm": ">=3"
   },
   "license": "UNLICENSED",
+  "scripts": {
+    "generate:documentation": "typedoc"
+  },
   "devDependencies": {
     "@tsconfig/node-lts": "18.12.2",
     "@types/jest": "29.5.2",
@@ -15,6 +18,7 @@
     "eslint-plugin-prettier": "4.2.1",
     "prettier": "2.8.8",
     "ts-node": "10.9.1",
+    "typedoc": "^0.24.8",
     "typescript": "5.1.3"
   }
 }
