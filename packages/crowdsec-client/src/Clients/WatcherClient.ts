@@ -19,6 +19,7 @@ export class WatcherClient extends CrowdSecClient {
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
     private readonly heartbeat: boolean | number;
+    readonly scenarios: Array<string>;
 
     constructor(options: IWatcherClientOptions) {
         super(options);
@@ -32,6 +33,7 @@ export class WatcherClient extends CrowdSecClient {
             };
         }
 
+        this.scenarios = options.scenarios || [];
         this.heartbeat = options.heartbeat ?? true;
 
         this.Decisions = new DecisionsWatcher({ httpClient: this.http });
@@ -42,21 +44,24 @@ export class WatcherClient extends CrowdSecClient {
         const localDebug = debug.extend('_login');
         localDebug('start _login');
 
-        if (!this.#auth) {
-            localDebug('no authentication or TLS authentication setup');
-            return;
-        }
-
         if (this.autoRenewTimeout) {
             clearTimeout(this.autoRenewTimeout);
         }
 
         try {
+            const data: Partial<WatcherAuthRequest> = {
+                scenarios: this.scenarios
+            };
+            if (this.#auth) {
+                data.machine_id = this.#auth.machineID;
+                data.password = this.#auth.password;
+            }
+
             const res = (
-                await this.http.post<WatcherAuthResponse, AxiosResponse<WatcherAuthResponse>, WatcherAuthRequest>('/v1/watchers/login', {
-                    machine_id: this.#auth.machineID,
-                    password: this.#auth.password
-                })
+                await this.http.post<WatcherAuthResponse, AxiosResponse<WatcherAuthResponse>, Partial<WatcherAuthRequest>>(
+                    '/v1/watchers/login',
+                    data
+                )
             ).data;
 
             if (!res.token || !res.expire) {
@@ -67,7 +72,7 @@ export class WatcherClient extends CrowdSecClient {
                 Authorization: `Bearer ${res.token}`
             });
 
-            if (this.#auth.autoRenew) {
+            if (!this.#auth || this.#auth.autoRenew) {
                 // 5m
                 const renewTimeBeforeEnd = 5 * 60 * 1000;
                 const renewInTime = new Date(res.expire).getTime() - renewTimeBeforeEnd - Date.now();

@@ -9,4 +9,8 @@ export interface IWatcherClientOptions extends ICrowdSecClientOptions {
      * pass number to specify ms between call
      */
     heartbeat?: boolean | number;
+    /**
+     * scenarios handled by this watcher
+     */
+    scenarios?: Array<string>;
 }
