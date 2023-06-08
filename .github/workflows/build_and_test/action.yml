@@ -60,6 +60,7 @@ runs:
       run: npm run ci:eslint
       working-directory: ${{ inputs.package.path }}
       continue-on-error: true
+      shell: bash
       env:
         CI: true
       if: ${{ inputs.check == 'true' }}
