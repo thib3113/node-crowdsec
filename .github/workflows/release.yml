@@ -6,7 +6,10 @@ on:
 jobs:
   ci:
     uses: ./.github/workflows/CI.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     permissions:
       checks: write
       actions: read
@@ -68,7 +71,7 @@ jobs:
 
   # This workflow contains a single job called "build"
   build:
-    needs: [ prepare, ci ]
+    needs: [ prepare, ci, list-packages ]
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
