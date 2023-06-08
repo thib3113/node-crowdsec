@@ -7,6 +7,11 @@ jobs:
   ci:
     uses: ./.github/workflows/CI.yml
     secrets: inherit
+    permissions:
+      checks: write
+      actions: read
+      contents: read
+      security-events: write
 
   prepare:
     # The type of runner that the job will run on
