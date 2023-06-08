@@ -23,6 +23,8 @@
 
 This repository will host multiples packages, you can found them with examples below
 
+Technical documentation is available [here](https://thib3113.github.io/node-crowdsec/)
+
 ## Packages
 
 ### [crowdsec-client](./packages/crowdsec-client)
