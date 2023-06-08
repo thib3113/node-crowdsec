@@ -67,7 +67,7 @@ runs:
 
     - uses: mattallty/jest-github-action@v1.0.3
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         CI: true
       with:
         working-directory: ${{ inputs.package.path }}
