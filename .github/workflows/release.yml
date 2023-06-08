@@ -124,7 +124,7 @@ jobs:
       - name: publish to NPM
         run: |
           npm config set //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
-          pnpm publish ${{ matrix.package.name }}
+          pnpm publish ${{ matrix.package.name }} --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         if: steps.package_version.outputs.npm_is_greater == 'false'
@@ -137,7 +137,7 @@ jobs:
           npm config set scope ${{ github.repository_owner }}
 
           npx npe name @${{ github.event.repository.full_name }}
-          pnpm publish ${{ matrix.package.name }}
+          pnpm publish ${{ matrix.package.name }} --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.package_version.outputs.npm_is_greater == 'false'
