@@ -1,0 +1,112 @@
+name: 'Build and Test'
+description: 'Build and test a package'
+inputs:
+  node-version:
+    description: 'The version of node to use'
+    required: true
+  package:
+    description: 'The current package'
+    required: true
+  check:
+    description: 'check the package'
+    required: false
+    default: "false"
+  CODECOV_TOKEN:
+    description: 'CODECOV_TOKEN'
+    required: true
+  GITHUB_TOKEN:
+    description: 'GITHUB_TOKEN'
+    required: true
+  SONAR_TOKEN:
+    description: 'SONAR_TOKEN'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - uses: pnpm/action-setup@v2
+      name: Install pnpm
+      id: pnpm-install
+      with:
+        run_install: true
+        version: latest
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - uses: actions/cache@v3
+      name: Setup pnpm cache
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install
+      shell: bash
+
+    - name: run eslint
+      run: npm run ci:eslint
+      working-directory: ${{ inputs.package.path }}
+      continue-on-error: true
+      env:
+        CI: true
+      if: ${{ inputs.check == 'true' }}
+
+    - uses: mattallty/jest-github-action@v1.0.3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CI: true
+      with:
+        working-directory: ${{ inputs.package.path }}
+        test-command: npm run test:ci:coverage
+        coverage-comment: false
+
+    - name: Test build
+      run: pnpm -F ${{ inputs.package.name }}... build
+      shell: bash
+
+    - name: replace path in coverage files
+      working-directory: ${{ inputs.package.path }}
+      shell: bash
+      run: |
+        find ./coverage -type f -exec sed -i -e "s@$(pwd)@.@g" {} \;
+      if: ${{ inputs.check == 'true' }}
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: |
+          ${{ inputs.package.path }}/coverage/clover.xml
+          ${{ inputs.package.path }}/coverage/coverage-final.json
+          ${{ inputs.package.path }}/coverage/lcov.info
+          ${{ inputs.package.path }}/coverage/junit.xml
+          ${{ inputs.package.path }}/coverage/test-report.xml
+          ${{ inputs.package.path }}/coverage/eslint-report.json
+      if: ${{ inputs.check == 'true' }}
+
+
+    - uses: codecov/codecov-action@v3
+      with:
+        token: ${{ inputs.CODECOV_TOKEN }}
+        name: ${{ inputs.package.name }}
+        verbose: true
+        directory: ${{ inputs.package.path }}/coverage
+      if: ${{ inputs.check == 'true' }}
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
+      with:
+        projectBaseDir: ${{ inputs.package.path }}
+      if: ${{ inputs.check == 'true' }}
