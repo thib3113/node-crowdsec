@@ -99,7 +99,7 @@ export abstract class CrowdSecClient {
                     }
                 }
 
-                return Promise.reject(error);
+                throw error;
             }
         );
 

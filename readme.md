@@ -41,5 +41,6 @@ a client allowing to talk with the crowdsec API, and so to create your bouncers 
 ## Examples
  - [express-bouncer](./examples/express-bouncer) : an example of use of the [crowdsec-client](./packages/crowdsec-client) to create an express bouncer
  - [express-bouncer-cjs](./examples/express-bouncer-cjs) : the same as [express-bouncer](./examples/express-bouncer), but wrote in (common) js only
+ - [express-web-parser](./examples/express-web-parser) : a watcher example that will ban user checking the user-agent
 
 This library is a Node.js client to talk with crowdsec rest API .

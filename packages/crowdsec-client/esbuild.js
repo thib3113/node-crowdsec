@@ -50,7 +50,6 @@ esbuild
     .build({
         ...globalConfig,
         outdir: path.join(dist, 'cjs'),
-        // outfile: path.join(dist, 'cjs', 'index.cjs.js'),
         format: 'cjs',
         outExtension: { '.js': '.cjs' },
         platform: 'node',
@@ -58,23 +57,10 @@ esbuild
     })
     .catch(() => process.exit(1));
 
-// esbuild
-//     .build({
-//         ...globalConfig,
-//         entryPoints: [...globSync('./tests/**/*.test.ts'), ...globSync('./src/**/*.ts')],
-//         outdir: path.join(dist, 'jest'),
-//         // outfile: path.join(dist, 'cjs', 'index.cjs.js'),
-//         format: 'cjs',
-//         platform: 'node',
-//         target: ['node16'],
-//         plugins: []
-//     })
-//     .catch(() => process.exit(1));
-
 // an entry file for cjs at the root of the bundle
 fs.writeFileSync(path.join(dist, 'index.mjs'), "export * from './esm/index.mjs';");
 
 // an entry file for esm at the root of the bundle
 fs.writeFileSync(path.join(dist, 'index.cjs'), "module.exports = require('./cjs/index.cjs');");
 
-fs.writeFileSync(path.join(dist, 'index.d.ts'), "export * from './types/index.js';");
+fs.writeFileSync(path.join(dist, 'index.d.ts'), "export * from './types/index.d.ts';");
