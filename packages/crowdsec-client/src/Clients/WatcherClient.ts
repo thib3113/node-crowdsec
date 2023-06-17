@@ -1,7 +1,7 @@
 import { CrowdSecClient } from './CrowdSecClient.js';
 import { createDebugger } from '../utils.js';
 import { ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
-import { AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
 import { DecisionsWatcher } from '../Decisions/index.js';
 import { Alerts } from '../Alerts/Alerts.js';

@@ -1,7 +1,5 @@
-import { BouncerClient, Decision, WatcherClient } from 'crowdsec-client';
+import { CrowdSecServerError, WatcherClient } from 'crowdsec-client';
 import dotenv from 'dotenv';
-import * as fs from 'fs';
-import path from 'path';
 
 dotenv.config({
     path: '../../.env'
@@ -17,20 +15,53 @@ const main = async () => {
         throw new Error('need process.env.CROWDSEC_URL');
     }
 
-    const watcher = new WatcherClient({
+    const machineID = 'node-watcher';
+    const password = 'myPassword';
+    const watcherClient = new WatcherClient({
         url: process.env.CROWDSEC_URL,
         auth: {
-            cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
-            key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
-            ca: fs.readFileSync(path.join(TLSPath, 'inter.pem'))
+            machineID,
+            password
         },
         strictSSL: false
     });
 
-    await watcher.login();
+    try {
+        await watcherClient.login();
+    } catch (e) {
+        if (e instanceof CrowdSecServerError && e.code === 401) {
+            try {
+                await watcherClient.registerWatcher({
+                    machine_id: machineID,
+                    password
+                });
+            } catch (registerError) {
+                if (registerError instanceof CrowdSecServerError && registerError.code === 403) {
+                    throw new Error('watcher seems already register');
+                }
 
-    const res = await watcher.Alerts.search({ has_active_decision: true, origin: 'cscli' });
-    console.log(res);
+                console.error(`unknown error when registering a watcher : `, registerError);
+                throw registerError;
+            }
+        } else {
+            console.error(`unknown error when login`, e);
+        }
+    }
+
+    // const watcher = new WatcherClient({
+    //     url: process.env.CROWDSEC_URL,
+    //     auth: {
+    //         cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
+    //         key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
+    //         ca: fs.readFileSync(path.join(TLSPath, 'inter.pem'))
+    //     },
+    //     strictSSL: false
+    // });
+
+    // await watcher.login();
+    //
+    // const res = await watcher.Alerts.search({ has_active_decision: true, origin: 'cscli' });
+    // console.log(res);
 
     // const client = new BouncerClient({
     //     url: process.env.CROWDSEC_URL,

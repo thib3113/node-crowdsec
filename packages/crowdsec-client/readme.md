@@ -36,7 +36,7 @@ install it
 npm i crowdsec-client
 ```
 
-and then read the documentation in the [wiki](/wiki)
+and then read the documentation in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
 
 ## Usage
 ### as a Bouncer
@@ -143,7 +143,7 @@ await client.Alerts.delete({
 });
 ```
 
-More authentications options (like TLS) are documented in the [wiki](/wiki)
+More authentications options (like TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
 
 ## Debug
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :
