@@ -36,6 +36,8 @@ install it
 npm i crowdsec-client
 ```
 
+and then read the documentation in the [wiki](/wiki)
+
 ## Usage
 ### as a Bouncer
 
@@ -99,29 +101,6 @@ if(stream.paused) {
 }
 ````
 
-it's also possible to use a callback, but you can't control the stream (I recommend using the stream)
-````typescript
-const stream = client.Decisions.getStream(
-    {
-        //the stream will poll the API at the interval . in ms
-        interval: 10000
-    },
-    (err, {decision, type}) => {
-        if(err) {
-            console.error(err);
-            return;
-        }
-
-        if(type === 'added') {
-            //when a new decision is added
-        }
-
-        if(type === 'deleted') {
-            //when a new decision is added
-        }
-    });
-````
-
 ### as a Watcher
 
 First, create a client, pointing to your crowdsec instance . With a machine login/password ([doc](https://doc.crowdsec.net/docs/user_guides/machines_mgmt))
@@ -163,6 +142,8 @@ await client.Alerts.delete({
     ip: '127.0.0.1'
 });
 ```
+
+More authentications options (like TLS) are documented in the [wiki](/wiki)
 
 ## Debug
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :
