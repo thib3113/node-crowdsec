@@ -476,12 +476,10 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    ...params,
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                ...params,
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 ...params,
@@ -502,12 +500,10 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    ...params,
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                ...params,
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 ...params,
@@ -526,11 +522,9 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 startup: false
@@ -554,12 +548,10 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    ...params,
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                ...params,
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 ...params,
@@ -585,12 +577,10 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    ...params,
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                ...params,
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 ...params,
@@ -615,11 +605,9 @@ describe('DecisionsBouncer', () => {
 
             const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
             resume();
-            expect(
-                getStreamLoopWrapper({
-                    startup: true
-                })
-            );
+            getStreamLoopWrapper({
+                startup: true
+            });
             resume();
             getStreamLoopWrapper({
                 startup: false
