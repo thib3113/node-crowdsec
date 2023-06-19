@@ -78,7 +78,7 @@ export abstract class CrowdSecClient {
                     }${durationStr}`
                 );
                 axiosDebugVerbose('headers : %O', response?.headers);
-                axiosDebugVerbose(`payload : %O `, response?.data);
+                axiosDebugVerbose(`payload : %O`, response?.data);
                 return response;
             },
             (error) => {
@@ -107,9 +107,6 @@ export abstract class CrowdSecClient {
         instance.interceptors.response.use(
             (response) => response,
             (error) => {
-                if (error?.response?.config?.isRetry) {
-                    return Promise.resolve();
-                }
                 if (error?.response) {
                     const message =
                         (error.response.data as ErrorResponse)?.message ??
@@ -120,7 +117,7 @@ export abstract class CrowdSecClient {
                     error = new CrowdSecServerError(message, error.response.status, error.response?.data?.errors, new AxiosError(error));
                 }
 
-                return Promise.reject(error);
+                throw error;
             }
         );
 
