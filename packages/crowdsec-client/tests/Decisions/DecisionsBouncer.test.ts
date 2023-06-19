@@ -653,7 +653,7 @@ describe('DecisionsBouncer', () => {
                 // @ts-ignore
                 expect(bouncer.runningStreams.length).toBe(1);
 
-                expect(listeners.close());
+                listeners.close();
 
                 expect(mockTimeoutCleared).toHaveBeenCalled();
 
@@ -671,7 +671,7 @@ describe('DecisionsBouncer', () => {
                 // @ts-ignore
                 expect(bouncer.runningStreams.length).toBe(1);
 
-                expect(listeners.pause());
+                listeners.pause();
 
                 expect(mockTimeoutCleared).toHaveBeenCalled();
 
@@ -682,7 +682,7 @@ describe('DecisionsBouncer', () => {
 
             it('should handle the error listener', async () => {
                 const fakeError = new Error('tutu');
-                expect(listeners.error(fakeError));
+                listeners.error(fakeError);
 
                 expect(mockDebug).toHaveBeenCalledWith('stream emit error : %o', fakeError);
             });
