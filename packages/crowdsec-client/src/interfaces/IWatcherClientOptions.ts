@@ -3,7 +3,7 @@ import { ITLSAuthentication } from './ITLSAuthentication.js';
 import { IWatcherAuthentication } from './IWatcherAuthentication.js';
 
 export interface IWatcherClientOptions extends ICrowdSecClientOptions {
-    auth: IWatcherAuthentication | ITLSAuthentication;
+    auth?: IWatcherAuthentication | ITLSAuthentication;
     /**
      * send heartbeat periodically
      * pass number to specify ms between call

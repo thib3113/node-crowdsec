@@ -1,4 +1,4 @@
-import type { ICrowdSecClientOptions, ITLSAuthentication } from '../interfaces/index.js';
+import type { ICrowdSecClientOptions, IHTTPOptions, ITLSAuthentication } from '../interfaces/index.js';
 import { pkg } from '../pkg.js';
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
@@ -10,7 +10,7 @@ const debug = createDebugger('client');
 const axiosDebug = createDebugger('axios');
 const axiosDebugVerbose = axiosDebug.extend('verbose');
 
-const defaultsOptions: Required<Omit<ICrowdSecClientOptions, 'url'>> = {
+const defaultsHTTPOptions: Required<Required<Omit<ICrowdSecClientOptions, 'url'>>> = {
     timeout: 2000,
     userAgent: `node-${pkg.name}/v${pkg.version}`,
     strictSSL: true
@@ -26,23 +26,32 @@ export abstract class CrowdSecClient {
 
     private readonly _http: AxiosInstance;
     protected constructor(options: ICrowdSecClientOptions) {
-        this.options = {
-            ...defaultsOptions,
+        this.options = options;
+        this._http = CrowdSecClient.getHTTPClient(this.options);
+    }
+
+    protected static getHTTPClient(options: IHTTPOptions): AxiosInstance {
+        const axiosOptions = {
+            ...defaultsHTTPOptions,
             ...options
         };
 
-        const baseURL = this.options.url.endsWith('/') ? this.options.url.slice(0, -1) : this.options.url;
+        if (!options?.url) {
+            throw new CrowdsecClientError('options.url is needed to create a crowdsec client');
+        }
 
-        this._http = this.addAxiosDebugInterceptors(
+        const baseURL = options.url.endsWith('/') ? options.url.slice(0, -1) : options.url;
+
+        return this.addAxiosDebugInterceptors(
             axios.create({
                 baseURL,
-                timeout: this.options.timeout,
-                httpsAgent: !this.options.strictSSL
+                timeout: axiosOptions.timeout,
+                httpsAgent: !axiosOptions.strictSSL
                     ? new https.Agent({
                           rejectUnauthorized: false
                       })
                     : undefined,
-                headers: { 'User-Agent': this.options.userAgent }
+                headers: { 'User-Agent': axiosOptions.userAgent }
             })
         );
     }
@@ -56,7 +65,7 @@ export abstract class CrowdSecClient {
         });
     }
 
-    private addAxiosDebugInterceptors(instance: AxiosInstance): AxiosInstance {
+    private static addAxiosDebugInterceptors(instance: AxiosInstance): AxiosInstance {
         instance.interceptors.request.use((config) => {
             // @ts-ignore
             config.metadata = { startTime: new Date() };

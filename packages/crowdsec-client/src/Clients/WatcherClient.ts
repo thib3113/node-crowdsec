@@ -1,6 +1,6 @@
 import { CrowdSecClient } from './CrowdSecClient.js';
 import { createDebugger } from '../utils.js';
-import { ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
+import { IHTTPOptions, ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
 import type { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
 import { DecisionsWatcher } from '../Decisions/index.js';
@@ -24,9 +24,13 @@ export class WatcherClient extends CrowdSecClient {
     constructor(options: IWatcherClientOptions) {
         super(options);
 
+        if (!options?.auth) {
+            throw new CrowdsecClientError('options.auth is needed when creating a watcher client');
+        }
+
         if (Validate.implementsTKeys<ITLSAuthentication>(options.auth, ['key', 'cert', 'ca'])) {
             this.setAuthenticationByTLS(options.auth);
-        } else {
+        } else if (options.auth) {
             this.#auth = {
                 autoRenew: true,
                 ...options.auth
@@ -130,6 +134,17 @@ export class WatcherClient extends CrowdSecClient {
      */
     public async registerWatcher(options: WatcherRegistrationRequest) {
         return (await this.http.post<null, AxiosResponse<null>, WatcherRegistrationRequest>('/v1/watchers', options)).data;
+    }
+
+    public static async registerWatcher(options: WatcherRegistrationRequest & IHTTPOptions) {
+        const httpClient = CrowdSecClient.getHTTPClient({
+            url: options.url,
+            userAgent: options.userAgent,
+            timeout: options.timeout,
+            strictSSL: options.strictSSL
+        });
+
+        return (await httpClient.post<null, AxiosResponse<null>, WatcherRegistrationRequest>('/v1/watchers', options)).data;
     }
 
     public async stop() {
