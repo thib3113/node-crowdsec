@@ -1,6 +1,25 @@
-import { beforeEach, describe, expect, jest, it, afterEach } from '@jest/globals';
+import { beforeEach, describe, expect, jest, it } from '@jest/globals';
 import type { WatcherClient as WatcherClientType } from '../../src/Clients/WatcherClient.js';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
+
+const mockDebug = jest.fn();
+const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
+const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
+
+// @ts-ignore
+mockDebug.extend = mockDebugExtend;
+jest.unstable_mockModule('../../src/utils.js', () => ({
+    createDebugger: createDebuggerMock
+}));
+
+const mockDecisionsWatcher = jest.fn();
+jest.unstable_mockModule('../../src/Decisions/DecisionsWatcher.js', () => ({
+    DecisionsWatcher: mockDecisionsWatcher
+}));
+const mockAlerts = jest.fn();
+jest.unstable_mockModule('../../src/Alerts/Alerts.js', () => ({
+    Alerts: mockAlerts
+}));
 
 const mockCrowdSecClientConstructor = jest.fn();
 class FakeClient {
@@ -16,11 +35,6 @@ class FakeClient {
 
 jest.unstable_mockModule('../../src/Clients/CrowdSecClient.js', () => ({
     CrowdSecClient: FakeClient
-}));
-
-const mockDecisionsBouncer = jest.fn();
-jest.unstable_mockModule('../../src/Decisions/DecisionsBouncer.js', () => ({
-    DecisionsBouncer: mockDecisionsBouncer
 }));
 
 const { WatcherClient } = await import('../../src/Clients/WatcherClient.js');
@@ -101,16 +115,44 @@ describe('WatcherClient.test.ts', () => {
         describe('login', () => {
             const mockTestConnection = jest.fn();
             const mockLogin = jest.fn();
-            const mockHeartbeatLoop = jest.fn();
-            afterEach(() => {});
-            it('should call the testConnection', async () => {
+            const mockHeartbeatLoop = jest.fn<() => Promise<void>>().mockResolvedValue();
+            beforeEach(() => {
                 // @ts-ignore
                 watcher.testConnection = mockTestConnection;
                 // @ts-ignore
                 watcher._login = mockLogin;
-
+                // @ts-ignore
+                watcher.heartbeatLoop = mockHeartbeatLoop;
+            });
+            it('should call login', async () => {
+                mockLogin.mockImplementationOnce(() => Promise.resolve());
                 await watcher.login();
 
+                expect(mockLogin).toHaveBeenCalledWith();
+                expect(mockHeartbeatLoop).toHaveBeenCalledWith();
+                expect(mockTestConnection).toHaveBeenCalledWith();
+            });
+            it('should call skip heartLoop if disabled', async () => {
+                mockLogin.mockImplementationOnce(() => Promise.resolve());
+                // @ts-ignore
+                watcher.heartbeat = false;
+                await watcher.login();
+
+                expect(mockHeartbeatLoop).not.toHaveBeenCalled();
+
+                expect(mockLogin).toHaveBeenCalledWith();
+                expect(mockTestConnection).toHaveBeenCalledWith();
+            });
+            it('should handle heartLoop crashed', async () => {
+                mockLogin.mockImplementationOnce(() => {});
+                mockHeartbeatLoop.mockImplementationOnce(() => Promise.reject('heartLoop crash'));
+                await watcher.login();
+
+                expect(mockDebug).toHaveBeenCalledWith('uncatched error from starting heartbeatLoop : %o', 'heartLoop crash');
+
+                expect(mockHeartbeatLoop).toHaveBeenCalled();
+
+                expect(mockLogin).toHaveBeenCalledWith();
                 expect(mockTestConnection).toHaveBeenCalledWith();
             });
         });

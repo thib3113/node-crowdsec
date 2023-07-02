@@ -75,8 +75,6 @@ afterEach(() => {
     };
 });
 
-//TODO unit test getHTTPClient
-
 describe('CrowdSecClient.ts', () => {
     class FakeClient extends CrowdSecClient {
         public constructor(options: ICrowdSecClientOptions) {
