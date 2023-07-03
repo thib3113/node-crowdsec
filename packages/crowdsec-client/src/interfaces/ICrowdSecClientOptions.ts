@@ -1,6 +1,5 @@
-export interface ICrowdSecClientOptions {
+import { IHTTPOptions } from './IHTTPOptions.js';
+
+export interface ICrowdSecClientOptions extends IHTTPOptions {
     url: string;
-    userAgent?: string;
-    timeout?: number;
-    strictSSL?: boolean;
 }

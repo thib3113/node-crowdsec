@@ -1,9 +1,9 @@
 import { CrowdSecClient } from './CrowdSecClient.js';
 import { createDebugger } from '../utils.js';
-import { ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
+import type { IHTTPOptions, ITLSAuthentication, IWatcherAuthentication, IWatcherClientOptions } from '../interfaces/index.js';
 import type { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
-import { DecisionsWatcher } from '../Decisions/index.js';
+import { DecisionsWatcher } from '../Decisions/DecisionsWatcher.js';
 import { Alerts } from '../Alerts/Alerts.js';
 import { CrowdsecClientError, EErrorsCodes } from '../Errors/index.js';
 import Validate from '../Validate.js';
@@ -14,7 +14,8 @@ export class WatcherClient extends CrowdSecClient {
     private autoRenewTimeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
 
-    readonly #auth?: IWatcherAuthentication;
+    private readonly auth?: Omit<IWatcherAuthentication, 'password'>;
+    readonly #password?: string;
 
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
@@ -24,12 +25,17 @@ export class WatcherClient extends CrowdSecClient {
     constructor(options: IWatcherClientOptions) {
         super(options);
 
+        if (!options?.auth) {
+            throw new CrowdsecClientError('options.auth is needed when creating a watcher client');
+        }
+
         if (Validate.implementsTKeys<ITLSAuthentication>(options.auth, ['key', 'cert', 'ca'])) {
             this.setAuthenticationByTLS(options.auth);
-        } else {
-            this.#auth = {
-                autoRenew: true,
-                ...options.auth
+        } else if (options.auth) {
+            this.#password = options.auth.password;
+            this.auth = {
+                autoRenew: options.auth.autoRenew ?? true,
+                machineID: options.auth.machineID
             };
         }
 
@@ -52,9 +58,9 @@ export class WatcherClient extends CrowdSecClient {
             const data: Partial<WatcherAuthRequest> = {
                 scenarios: this.scenarios
             };
-            if (this.#auth) {
-                data.machine_id = this.#auth.machineID;
-                data.password = this.#auth.password;
+            if (this.auth) {
+                data.machine_id = this.auth.machineID;
+                data.password = this.#password;
             }
 
             const res = (
@@ -72,7 +78,7 @@ export class WatcherClient extends CrowdSecClient {
                 Authorization: `Bearer ${res.token}`
             });
 
-            if (!this.#auth || this.#auth.autoRenew) {
+            if (!this.auth || this.auth.autoRenew) {
                 // 5m
                 const renewTimeBeforeEnd = 5 * 60 * 1000;
                 const renewInTime = new Date(res.expire).getTime() - renewTimeBeforeEnd - Date.now();
@@ -130,6 +136,22 @@ export class WatcherClient extends CrowdSecClient {
      */
     public async registerWatcher(options: WatcherRegistrationRequest) {
         return (await this.http.post<null, AxiosResponse<null>, WatcherRegistrationRequest>('/v1/watchers', options)).data;
+    }
+
+    public static async registerWatcher(options: WatcherRegistrationRequest & IHTTPOptions) {
+        const httpClient = CrowdSecClient.getHTTPClient({
+            url: options.url,
+            userAgent: options.userAgent,
+            timeout: options.timeout,
+            strictSSL: options.strictSSL
+        });
+
+        return (
+            await httpClient.post<null, AxiosResponse<null>, WatcherRegistrationRequest>('/v1/watchers', {
+                password: options.password,
+                machine_id: options.machine_id
+            })
+        ).data;
     }
 
     public async stop() {

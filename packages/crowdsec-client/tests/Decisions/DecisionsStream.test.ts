@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, jest, it } from '@jest/globals';
 import type { DecisionsStream } from '../../src/Decisions/DecisionsStream.js';
 import type { Decision } from '../../src/Decisions/Decision.js';
 
