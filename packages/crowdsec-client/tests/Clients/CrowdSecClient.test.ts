@@ -130,37 +130,10 @@ describe('CrowdSecClient.ts', () => {
         });
     });
 
-    //TODO
-    // describe('getHTTP', () => {
-    //     it('should remove trailing slash on url', async () => {
-    //         new FakeClient({
-    //             url: 'https://crowdsec.lan/'
-    //         });
-    //
-    //         expect(mockGetHTTPClient).toHaveBeenCalledWith(
-    //             expect.objectContaining({
-    //                 url: 'https://crowdsec.lan'
-    //             })
-    //         );
-    //     });
-    //     it('should pass custom https agent if strictSSL is disabled', async () => {
-    //         new FakeClient({
-    //             url: 'https://crowdsec.lan/',
-    //             strictSSL: false
-    //         });
-    //
-    //         expect(mockGetHTTPClient).toHaveBeenCalledWith(
-    //             expect.objectContaining({
-    //                 httpsAgent: expect.any(https.Agent)
-    //             })
-    //         );
-    //     });
-    //
-
-    // });
-
     describe('addAxiosDebugInterceptors', () => {
-        describe('function', () => {});
+        describe('function', () => {
+            //TODO
+        });
         describe('interceptors', () => {
             describe('logger', () => {
                 it('should log the request', async () => {
