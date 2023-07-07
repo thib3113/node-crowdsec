@@ -1,4 +1,7 @@
-import { CrowdSecServerError, WatcherClient } from 'crowdsec-client';
+import { IncomingMessage, ServerResponse } from 'http';
+import * as http from 'http';
+import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
+import { CrowdSecServerError, Decision, WatcherClient } from 'crowdsec-client';
 import dotenv from 'dotenv';
 
 dotenv.config({
@@ -15,77 +18,45 @@ const main = async () => {
         throw new Error('need process.env.CROWDSEC_URL');
     }
 
-    const machineID = 'node-watcher';
-    const password = 'myPassword';
-    const watcherClient = new WatcherClient({
-        url: process.env.CROWDSEC_URL,
-        auth: {
-            machineID,
-            password
+    const middleware = new CrowdSecHTTPMiddleware({
+        url: process.env.CROWDSEC_URL || '',
+        watcher: {
+            machineID: process.env.CROWDSEC_MACHINE_ID || '',
+            password: process.env.CROWDSEC_PASSWORD || '',
+            scenariosOptions: {
+                'x-forwarded-for': {
+                    trustedProxies: ['127.0.0.1', '::1', '192.168.0.0/16', '10.10.10.10']
+                }
+            }
         },
-        strictSSL: false
+        bouncer: {
+            apiKey: process.env.CROWDSEC_API_KEY || ''
+        }
+        // getCurrentIp: (req: IncomingMessage) => req.socket.remoteAddress || '1.1.1.1'
     });
 
-    try {
-        await watcherClient.login();
-    } catch (e) {
-        if (e instanceof CrowdSecServerError && e.code === 401) {
-            try {
-                await watcherClient.registerWatcher({
-                    machine_id: machineID,
-                    password
-                });
-            } catch (registerError) {
-                if (registerError instanceof CrowdSecServerError && registerError.code === 403) {
-                    throw new Error('watcher seems already register');
-                }
+    await middleware.start();
 
-                console.error(`unknown error when registering a watcher : `, registerError);
-                throw registerError;
-            }
-        } else {
-            console.error(`unknown error when login`, e);
-        }
-    }
+    const midFn = middleware.getMiddleware();
 
-    // const watcher = new WatcherClient({
-    //     url: process.env.CROWDSEC_URL,
-    //     auth: {
-    //         cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
-    //         key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
-    //         ca: fs.readFileSync(path.join(TLSPath, 'inter.pem'))
-    //     },
-    //     strictSSL: false
-    // });
+    const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
+        console.log('get http request', req.method, req.url);
+        console.time('middleware');
+        midFn(req, res);
+        console.timeEnd('middleware');
 
-    // await watcher.login();
-    //
-    // const res = await watcher.Alerts.search({ has_active_decision: true, origin: 'cscli' });
-    // console.log(res);
+        console.log('ip :', req.ip);
+        console.log('decision :', req.decision);
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Hello, World!');
+    });
 
-    // const client = new BouncerClient({
-    //     url: process.env.CROWDSEC_URL,
-    //     auth: {
-    //         apiKey: process.env.CROWDSEC_API_KEY || ''
-    //     },
-    //     strictSSL: false
-    // });
-    // await client.login();
-    //
-    // const decisionsStream = client.Decisions.getStream({
-    //     scopes: 'ip'
-    // });
-    //
-    // decisionsStream.on('added', (decision: Decision) => {
-    //     console.log(`add ${decision.scope} ${decision.value}`);
-    // });
-    //
-    // decisionsStream.on('deleted', (decision: Decision) => {
-    //     console.log(`delete ${decision.scope} ${decision.value}`);
-    // });
-    //
-    // decisionsStream.resume();
+    const port: number = 3000;
+    server.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}/`);
+    });
 };
 
-//just run the async main, and log error if needed
+// //just run the async main, and log error if needed
 main().catch((e) => console.error(e));

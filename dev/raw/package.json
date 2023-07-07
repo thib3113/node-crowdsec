@@ -6,14 +6,16 @@
   "type": "module",
   "scripts": {
     "debug": "npm run build:deps && tsc && node -r source-map-support/register ./build/index.js",
-    "build:deps": "pnpm -F dev... --parallel build"
+    "build:deps": "pnpm -F dev... build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/node": "20.3.3",
-    "crowdsec-client": "workspace:^"
+    "crowdsec-client": "workspace:^",
+    "crowdsec-client-scenarios": "workspace:^",
+    "crowdsec-http-middleware": "workspace:^"
   },
   "devDependencies": {
     "@types/express": "4.17.17",

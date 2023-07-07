@@ -33,6 +33,7 @@ const globalConfig = {
     bundle: true,
     sourcemap: true,
     minify: false,
+    external: ['crowdsec-client-scenarios'],
     plugins: [makeAllPackagesExternalPlugin]
 };
 
