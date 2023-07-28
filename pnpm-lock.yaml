@@ -169,12 +169,12 @@ importers:
 
   packages/crowdsec-client-scenarios:
     dependencies:
+      '@laverdet/beaugunderson-ip-address':
+        specifier: ^8.1.0
+        version: 8.1.0
       debug:
         specifier: ^4.3.4
         version: 4.3.4
-      ip-address:
-        specifier: ^8.1.0
-        version: 8.1.0
       lru-cache:
         specifier: ^10.0.0
         version: 10.0.0
@@ -221,15 +221,15 @@ importers:
 
   packages/crowdsec-http-middleware:
     dependencies:
+      '@laverdet/beaugunderson-ip-address':
+        specifier: ^8.1.0
+        version: 8.1.0
       crowdsec-client:
         specifier: workspace:^
         version: link:../crowdsec-client
       debug:
         specifier: ^4.3.4
         version: 4.3.4
-      ip-address:
-        specifier: ^8.1.0
-        version: 8.1.0
       lru-cache:
         specifier: ^10.0.0
         version: 10.0.0
@@ -1168,6 +1168,14 @@ packages:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
+
+  /@laverdet/beaugunderson-ip-address@8.1.0:
+    resolution: {integrity: sha512-xHX4Um01frUi4sizxYxdHDhP+48X1rRB7PyWBXbgGU9ciJmlgPxLCaRt9aQJoR1kOv7G+SgfjBc5ZlZeyAZhSQ==}
+    engines: {node: '>= 12'}
+    dependencies:
+      jsbn: 1.1.0
+      sprintf-js: 1.1.2
+    dev: false
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -2651,14 +2659,6 @@ packages:
 
   /inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
-
-  /ip-address@8.1.0:
-    resolution: {integrity: sha512-Wz91gZKpNKoXtqvY8ScarKYwhXoK4r/b5QuT+uywe/azv0/nUCo7Bh0IRRI7F9DHR06kJNWtzMGLIbXavngbKA==}
-    engines: {node: '>= 12'}
-    dependencies:
-      jsbn: 1.1.0
-      sprintf-js: 1.1.2
-    dev: false
 
   /ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}

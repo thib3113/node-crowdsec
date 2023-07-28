@@ -21,7 +21,6 @@ export class InternalCityEnricher extends InternalBaseEnricher<CityResponse> {
         const { latitude, longitude } = result.location || {};
 
         const meta: Record<string, string | undefined> = {
-            SourceRange: `${ip}/${prefix}`,
             cn: result.country?.iso_code,
             latitude: latitude?.toString(),
             longitude: longitude?.toString(),

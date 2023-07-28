@@ -86,7 +86,7 @@ export class CrowdSecHTTPMiddleware {
 
         if (!currentIp.addressMinusSuffix) {
             // checking the code of the lib, it seems that this will never happen
-            // https://github.com/beaugunderson/ip-address/issues/143
+            // https://github.com/beaugunderson/@laverdet/beaugunderson-ip-address/issues/143
             throw new Error('fail to get address without suffix');
         }
 

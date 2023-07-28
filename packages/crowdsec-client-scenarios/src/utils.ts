@@ -1,6 +1,6 @@
 import createDebug, { Debugger } from 'debug';
 import { pkg } from './pkg.js';
-import { Address4, Address6 } from 'ip-address';
+import { Address4, Address6 } from '@laverdet/beaugunderson-ip-address';
 import { APITypes } from 'crowdsec-client';
 
 const debug = createDebug(pkg.name);

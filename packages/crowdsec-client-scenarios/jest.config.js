@@ -4,7 +4,7 @@
 export default {
     clearMocks: true,
     coverageDirectory: '<rootDir>/coverage',
-    collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/types/generated/**/*', '!<rootDir>/src/debug.ts'],
+    collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/debug.ts'],
     coveragePathIgnorePatterns: ['\\\\node_modules\\\\', 'tests'],
     moduleFileExtensions: ['ts', 'tsx', 'js'],
     testMatch: ['<rootDir>/tests/**/*.(test|tests|spec|specs).+(ts|tsx|js)'],
@@ -24,8 +24,6 @@ export default {
         '^(\\.{1,2}/.*)\\.js$': '$1'
     },
     transform: {
-        // '^.+\\.[tj]sx?$' to process js/ts with `ts-jest`
-        // '^.+\\.m?[tj]sx?$' to process js/ts/mjs/mts with `ts-jest`
         '^.+\\.tsx?$': [
             'ts-jest',
             {

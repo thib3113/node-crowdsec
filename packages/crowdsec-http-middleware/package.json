@@ -56,7 +56,7 @@
     "dependencies": {
         "crowdsec-client": "workspace:^",
         "debug": "^4.3.4",
-        "ip-address": "^8.1.0",
+        "@laverdet/beaugunderson-ip-address": "^8.1.0",
         "lru-cache": "^10.0.0"
     },
     "engines": {
