@@ -69,7 +69,7 @@ runs:
       if: ${{ inputs.check == 'true' }}
 
     - name: build dependencies
-      run:  pnpm -F ..../ build
+      run:  pnpm -F ..../ build -r
       working-directory: ${{ inputs.package_path }}
       shell: bash
 
