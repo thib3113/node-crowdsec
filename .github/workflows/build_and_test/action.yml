@@ -70,6 +70,7 @@ runs:
 
     - name: build dependencies
       run:  pnpm -F ..../ build
+      working-directory: ${{ inputs.package_path }}
       shell: bash
 
     - uses: mattallty/jest-github-action@v1.0.3
