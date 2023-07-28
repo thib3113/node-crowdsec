@@ -123,7 +123,7 @@ jobs:
           npm_package_name: ${{ matrix.package.name }}
 
       - name: build dependencies
-        run: pnpm -F ${{ matrix.package_name }}... build
+        run: pnpm -F ${{ matrix.package.name }}... build
         working-directory: ${{ matrix.package.path }}
 
       - name: publish to NPM
