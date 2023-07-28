@@ -41,11 +41,6 @@ export class __Error implements Error {
     }
 
     public toString = (): string => {
-        const obj = Object(this);
-        if (obj !== this) {
-            throw new TypeError();
-        }
-
         const name = this.name || 'Error';
 
         const message = String(this._message) || '';
