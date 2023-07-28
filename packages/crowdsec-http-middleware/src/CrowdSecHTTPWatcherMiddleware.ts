@@ -3,7 +3,7 @@ import Validate from './Validate.js';
 import { APITypes, Decision, ICrowdSecClientOptions, ITLSAuthentication, IWatcherAuthentication, WatcherClient } from 'crowdsec-client';
 import { createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
-import { IncomingMessage, ServerResponse } from 'http';
+import { IncomingMessage } from 'http';
 import { BaseScenario, IIpExtractionResult, IScenario, IScenarioConstructor, MAX_CONFIDENCE } from 'crowdsec-client-scenarios';
 
 const SCENARIOS_PACKAGE_NAME = 'crowdsec-client-scenarios';
@@ -40,7 +40,7 @@ export class CrowdSecHTTPWatcherMiddleware {
             auth
         });
 
-        this.ipObjectCache = cache || new IpObjectsCacher(options.maxIpCache);
+        this.ipObjectCache = cache ?? new IpObjectsCacher(options.maxIpCache);
     }
 
     private getWatcherAuthentication(
@@ -181,7 +181,7 @@ export class CrowdSecHTTPWatcherMiddleware {
 
         if (!ip && othersIpsFound.length > 0) {
             localDebug('no ip found with max confidence, check with less confidence');
-            return othersIpsFound.sort((a, b) => b.confidence - a.confidence)[0]?.ip;
+            return [...othersIpsFound].sort((a, b) => b.confidence - a.confidence)[0]?.ip;
         }
         localDebug('ip found');
         return ip;

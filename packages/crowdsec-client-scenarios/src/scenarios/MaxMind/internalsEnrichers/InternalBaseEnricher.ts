@@ -1,6 +1,6 @@
 import { APITypes } from 'crowdsec-client';
 import type { Response } from 'mmdb-lib';
-import maxmind, { Reader } from 'maxmind';
+import maxmind, { OpenOpts, Reader } from 'maxmind';
 import * as fs from 'fs';
 import { createDebugger } from '../../../utils.js';
 
@@ -11,7 +11,7 @@ export abstract class InternalBaseEnricher<T extends Response> implements IInter
     protected databasePath: string;
     protected debug = debug;
 
-    public constructor(databasePath: string) {
+    public constructor(databasePath: string, maxmindOpts: OpenOpts) {
         this.databasePath = databasePath;
 
         if (!fs.existsSync(this.databasePath)) {

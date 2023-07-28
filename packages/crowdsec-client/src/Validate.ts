@@ -105,7 +105,7 @@ export class Validate {
      * @return {boolean}
      */
     public static stringToBoolean(str?: string, strict = false): boolean | null {
-        return stringToBooleanMap.get((str || '').toLowerCase()) ?? (strict ? null : false);
+        return stringToBooleanMap.get((str ?? '').toLowerCase()) ?? (strict ? null : false);
     }
 }
 

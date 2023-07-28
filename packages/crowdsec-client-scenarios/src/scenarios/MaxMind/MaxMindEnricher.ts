@@ -4,6 +4,7 @@ import { IScenarioOptions } from '../IScenarioOptions.js';
 import { IInternalEnricher } from './internalsEnrichers/InternalBaseEnricher.js';
 import { InternalCityEnricher } from './internalsEnrichers/InternalCityEnricher.js';
 import { InternalASNEnricher } from './internalsEnrichers/InternalASNEnricher.js';
+import { OpenOpts } from 'maxmind';
 
 interface ASNOption {
     ASN: string;
@@ -50,12 +51,24 @@ export class MaxMindEnricher extends BaseScenario {
 
         const internalEnrichers: Array<IInternalEnricher> = [];
 
+        const maxmindCache: OpenOpts['cache'] = options?.maxIpCache ? { max: options.maxIpCache } : undefined;
+
         if (paths.city) {
-            internalEnrichers.push(new InternalCityEnricher(paths.city));
+            internalEnrichers.push(
+                new InternalCityEnricher(paths.city, {
+                    watchForUpdates,
+                    cache: maxmindCache
+                })
+            );
         }
 
         if (paths.ASN) {
-            internalEnrichers.push(new InternalASNEnricher(paths.ASN));
+            internalEnrichers.push(
+                new InternalASNEnricher(paths.ASN, {
+                    watchForUpdates,
+                    cache: maxmindCache
+                })
+            );
         }
         this.internalEnrichers = internalEnrichers;
     }

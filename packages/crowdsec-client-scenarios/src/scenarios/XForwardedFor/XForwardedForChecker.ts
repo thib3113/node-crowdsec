@@ -1,4 +1,4 @@
-import { BaseScenario, IIpExtractionResult, MAX_CONFIDENCE } from '../../baseScenarios/index.js';
+import { IIpExtractionResult, MAX_CONFIDENCE } from '../../baseScenarios/index.js';
 import { APITypes } from 'crowdsec-client';
 import { AddressObject, createDebugger } from '../../utils.js';
 import { IScenarioOptions } from '../IScenarioOptions.js';
@@ -44,7 +44,7 @@ export class XForwardedForChecker extends CheckerScenario {
             alertOnNotTrustedIps: true,
             ...currentOptions
         };
-        this.reverseProxiesRange = (currentOptions?.trustedProxies || []).map((cidr) => this.getAddressObjectWithCache(cidr));
+        this.reverseProxiesRange = (currentOptions?.trustedProxies ?? []).map((cidr) => this.getAddressObjectWithCache(cidr));
     }
 
     private generateAlert(
@@ -80,7 +80,7 @@ export class XForwardedForChecker extends CheckerScenario {
         const alerts: Array<APITypes.Alert> = [];
         const ipResult = this.extractIps(req);
 
-        const ipStr = ip.addressMinusSuffix || '';
+        const ipStr = ip.addressMinusSuffix ?? '';
         if (ipResult.findIndex((i) => !i.trustedProxy) < ipResult.length) {
             localDebug('untrusted "proxy" pass header, send alert ? %o', alertOnNotTrustedIps);
             if (alertOnNotTrustedIps) {
@@ -127,7 +127,7 @@ export class XForwardedForChecker extends CheckerScenario {
                 //flat multiple  headers
                 .flat()
                 //split x-forwarded-for
-                .map((header) => (header || '').replace(/\s*/g, '').split(','))
+                .map((header) => (header ?? '').replace(/\s*/g, '').split(','))
                 //flat all ips
                 .flat()
                 //try to parse ips
@@ -207,7 +207,7 @@ export class XForwardedForChecker extends CheckerScenario {
 
             localDebug('%o is not a reverse proxy', ipResult.ip);
             return ipResult;
-        }) as Array<IExtractedIP>;
+        });
     }
 
     public extractIp = (req: IncomingMessage): IIpExtractionResult | undefined => {
@@ -226,7 +226,7 @@ export class XForwardedForChecker extends CheckerScenario {
             return !value?.trustedProxy;
         });
 
-        if (!lastIp || !lastIp.valid) {
+        if (!lastIp?.valid) {
             debug('fail to extract ip');
             const previousIp = lastProxy;
             if (previousIp && previousIp.valid && previousIp.trustedProxy) {

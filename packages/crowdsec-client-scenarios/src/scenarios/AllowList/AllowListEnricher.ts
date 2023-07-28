@@ -23,12 +23,12 @@ export class AllowListEnricher extends EnricherScenario {
 
         const currentOptions = options['allow-list'];
 
-        this.allowed = (currentOptions?.allowed || defaultAllowed).map((ip) => getIpObject(ip));
+        this.allowed = (currentOptions?.allowed ?? defaultAllowed).map((ip) => getIpObject(ip));
     }
 
     enrich(alert: APITypes.Alert): APITypes.Alert | undefined {
         debug('enrich alert');
-        const sourceIp = alert.source.ip || alert.source.range;
+        const sourceIp = alert.source.ip ?? alert.source.range;
 
         if (!sourceIp) {
             debug('not in allow list');

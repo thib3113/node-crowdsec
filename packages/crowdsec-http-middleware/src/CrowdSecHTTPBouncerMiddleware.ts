@@ -29,7 +29,7 @@ export class CrowdSecHTTPBouncerMiddleware {
             auth
         });
 
-        this.ipObjectCache = cache || new IpObjectsCacher(options.maxIpCache);
+        this.ipObjectCache = cache ?? new IpObjectsCacher(options.maxIpCache);
     }
 
     private getBouncerAuthentication(bouncerOptions: ICrowdSecHTTPMiddlewareOptions['bouncer']) {
@@ -55,7 +55,7 @@ export class CrowdSecHTTPBouncerMiddleware {
         await this.client.login();
 
         const stream = this.client.Decisions.getStream({
-            interval: this.options?.pollingInterval || undefined,
+            interval: this.options?.pollingInterval,
             scopes: ['ip', 'range']
         });
 
@@ -92,15 +92,6 @@ export class CrowdSecHTTPBouncerMiddleware {
             const decisionId = ipObject.parsedAddress[0];
             this.decisions[decisionId] = (this.decisions[decisionId] || []).filter(({ decision: d }) => !this.isSameDecision(d, decision));
             localDebug('end');
-
-            //TODO
-            if (stopTimeout) {
-                clearTimeout(stopTimeout);
-            }
-            stopTimeout = setTimeout(() => {
-                const mostFirstIpWithDecisions = Object.entries(this.decisions).sort((a, b) => b[1].length - a[1].length)[0];
-                console.log(`decision first level "${mostFirstIpWithDecisions[0]}" has ${mostFirstIpWithDecisions[1].length} decisions`);
-            }, 500);
         });
 
         stream.resume();

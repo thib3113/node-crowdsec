@@ -18,13 +18,13 @@ export class InternalCityEnricher extends InternalBaseEnricher<CityResponse> {
             return event;
         }
 
-        const { latitude, longitude } = result.location || {};
+        const { latitude, longitude } = result.location ?? {};
 
         const meta: Record<string, string | undefined> = {
             cn: result.country?.iso_code,
             latitude: latitude?.toString(),
             longitude: longitude?.toString(),
-            IsInEU: (result.registered_country?.is_in_european_union || false).toString()
+            IsInEU: (result.registered_country?.is_in_european_union ?? false).toString()
         };
 
         event.meta = mergeMetas(event.meta, meta);
