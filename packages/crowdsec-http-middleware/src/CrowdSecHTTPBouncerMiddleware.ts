@@ -10,7 +10,7 @@ type decisionType = Decision<'ip' | 'range'>;
 const debug = createDebugger('CrowdSecHTTPBouncerMiddleware');
 export class CrowdSecHTTPBouncerMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
-    private readonly bouncer: BouncerClient;
+    public readonly client: BouncerClient;
     private decisions: Record<string, Array<{ selector: AddressObject; decision: decisionType }>> = {};
     private options: ICrowdSecHTTPBouncerMiddlewareOptions;
     private ipObjectCache: IpObjectsCacher;
@@ -21,7 +21,7 @@ export class CrowdSecHTTPBouncerMiddleware {
         this.clientOptions = clientOptions;
 
         const auth = this.getBouncerAuthentication(options);
-        this.bouncer = new BouncerClient({
+        this.client = new BouncerClient({
             url: this.clientOptions.url,
             userAgent: this.clientOptions.userAgent,
             timeout: this.clientOptions.timeout,
@@ -48,22 +48,24 @@ export class CrowdSecHTTPBouncerMiddleware {
             } as IBouncerAuthentication;
         }
 
-        throw new Error('bad bouncer configuration');
+        throw new Error('bad client configuration');
     }
 
     public async start() {
-        await this.bouncer.login();
+        await this.client.login();
 
-        const stream = this.bouncer.Decisions.getStream({
+        const stream = this.client.Decisions.getStream({
             interval: this.options?.pollingInterval || undefined,
             scopes: ['ip', 'range']
         });
 
         stream.on('error', (e) => {
-            debug('bouncer stream error : %o', e);
+            debug('client stream error : %o', e);
         });
 
         stream.on('added', (decision) => {
+            const localDebug = debug.extend('decisionAdded');
+            localDebug('start');
             try {
                 // TODO this method doesn't support range including multiple top level group
                 const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
@@ -79,12 +81,26 @@ export class CrowdSecHTTPBouncerMiddleware {
             } catch (e) {
                 debug('fail to add decision %o : ', decision, e);
             }
+            localDebug('end');
         });
 
+        let stopTimeout: NodeJS.Timeout | undefined;
         stream.on('deleted', (decision) => {
+            const localDebug = debug.extend('decisionDeleted');
+            localDebug('start');
             const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
             const decisionId = ipObject.parsedAddress[0];
-            this.decisions[decisionId] = this.decisions[decisionId].filter(({ decision: d }) => !this.isSameDecision(d, decision));
+            this.decisions[decisionId] = (this.decisions[decisionId] || []).filter(({ decision: d }) => !this.isSameDecision(d, decision));
+            localDebug('end');
+
+            //TODO
+            if (stopTimeout) {
+                clearTimeout(stopTimeout);
+            }
+            stopTimeout = setTimeout(() => {
+                const mostFirstIpWithDecisions = Object.entries(this.decisions).sort((a, b) => b[1].length - a[1].length)[0];
+                console.log(`decision first level "${mostFirstIpWithDecisions[0]}" has ${mostFirstIpWithDecisions[1].length} decisions`);
+            }, 500);
         });
 
         stream.resume();
@@ -96,24 +112,26 @@ export class CrowdSecHTTPBouncerMiddleware {
 
     public async stop() {
         debug('stop');
-        return this.bouncer.stop();
+        return this.client.stop();
     }
 
     public middleware(ip: string, req: IncomingMessage & { decision?: Decision<any> }) {
-        console.time('bouncerMiddleware');
+        const localDebug = debug.extend('bouncerMiddleware');
+        localDebug('start');
+
         const currentAddress = this.ipObjectCache.getIpObjectWithCache(ip);
 
-        debug('bouncerMiddleware receive request from %s', currentAddress.addressMinusSuffix);
-        console.time('bouncerMiddleware.loop');
+        localDebug('bouncerMiddleware receive request from %s', currentAddress.addressMinusSuffix);
+        localDebug('start decision loop');
         const decision = (this.decisions[currentAddress.parsedAddress[0]] || []).find(({ selector }) =>
             currentAddress.isInSubnet(selector)
         );
-        console.timeEnd('bouncerMiddleware.loop');
+        localDebug('end decision loop');
 
         if (decision) {
             req.decision = decision.decision;
         }
-        console.timeEnd('bouncerMiddleware');
+        localDebug('end');
     }
 
     public getMiddleware(getIpFromRequest: getCurrentIpFn) {

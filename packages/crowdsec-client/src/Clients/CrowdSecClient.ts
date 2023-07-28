@@ -17,6 +17,8 @@ const defaultsHTTPOptions: Required<Required<Omit<ICrowdSecClientOptions, 'url'>
 };
 
 export abstract class CrowdSecClient {
+    protected debug = debug;
+
     get http(): AxiosInstance {
         return this._http;
     }
@@ -147,7 +149,7 @@ export abstract class CrowdSecClient {
     public abstract testConnection(): Promise<void>;
 
     protected async _testConnection(url: string): Promise<void> {
-        const localDebug = debug.extend('testConnection');
+        const localDebug = this.debug.extend('testConnection');
 
         try {
             localDebug('call crowdsec');

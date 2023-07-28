@@ -1,9 +1,9 @@
 import { IncomingMessage } from 'http';
 import { APITypes } from 'crowdsec-client';
-import { IScenario } from './IScenario.js';
+import { IIpExtractionResult, IScenario } from './IScenario.js';
 import { AddressObject, getIpObject } from '../utils.js';
 import { LRUCache } from 'lru-cache';
-import { IScenarioOptions } from '../scenarios/index.js';
+import { IScenarioOptions } from '../scenarios/IScenarioOptions.js';
 
 export abstract class BaseScenario implements IScenario {
     static ipObjectCache: LRUCache<string, AddressObject, unknown>;
@@ -16,7 +16,7 @@ export abstract class BaseScenario implements IScenario {
         throw new Error('NOT YET IMPLEMENTED');
     }
 
-    protected constructor(options?: IScenarioOptions) {
+    public constructor(options?: IScenarioOptions) {
         if (!BaseScenario.ipObjectCache) {
             BaseScenario.ipObjectCache = new LRUCache<string, AddressObject>({
                 max: options?.maxIpCache ?? 50000
@@ -26,7 +26,6 @@ export abstract class BaseScenario implements IScenario {
 
     protected getAddressObjectWithCache(address?: string): AddressObject {
         if (!address) {
-            6;
             throw new Error('no address passed');
         }
         const cachedIp = this.ipObjectCache.get(address);
@@ -48,13 +47,23 @@ export abstract class BaseScenario implements IScenario {
      *
      * @param req
      */
-    public extractIp?: (req: IncomingMessage) => string | undefined;
+    public extractIp?: (req: IncomingMessage) => IIpExtractionResult | undefined;
 
-    check(ip: AddressObject, req: IncomingMessage): APITypes.Alert | undefined {
+    /**
+     * Implement this function in your scenario to use bucket and black-hole functionality
+     * @param ip
+     * @param req
+     */
+    protected _check(ip: AddressObject, req: IncomingMessage): Array<APITypes.Alert> | APITypes.Alert | undefined {
         return;
     }
 
-    enrich(alert: APITypes.Alert): APITypes.Alert | undefined {
+    public check(ip: AddressObject, req: IncomingMessage): Array<APITypes.Alert> | APITypes.Alert | undefined {
+        //todo handle overflow and blackholes
+        return this._check(ip, req);
+    }
+
+    public enrich(alert: APITypes.Alert, req: IncomingMessage): APITypes.Alert | undefined {
         return alert;
     }
 }

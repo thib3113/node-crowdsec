@@ -4,7 +4,7 @@ import { APITypes, Decision, ICrowdSecClientOptions, ITLSAuthentication, IWatche
 import { createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage, ServerResponse } from 'http';
-import { BaseScenario, IScenario, IScenarioConstructor } from 'crowdsec-client-scenarios';
+import { BaseScenario, IIpExtractionResult, IScenario, IScenarioConstructor, MAX_CONFIDENCE } from 'crowdsec-client-scenarios';
 
 const SCENARIOS_PACKAGE_NAME = 'crowdsec-client-scenarios';
 
@@ -18,7 +18,7 @@ const debug = createDebugger('CrowdSecHTTPWatcherMiddleware');
 
 export class CrowdSecHTTPWatcherMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
-    private readonly watcher: WatcherClient;
+    public readonly client: WatcherClient;
     private scenarios: Array<IScenario> = [];
     private defaultScenarios: Array<IScenarioConstructor> = [];
     private options: ICrowdSecHTTPWatcherMiddlewareOptions;
@@ -31,7 +31,7 @@ export class CrowdSecHTTPWatcherMiddleware {
 
         const auth = this.getWatcherAuthentication(options);
 
-        this.watcher = new WatcherClient({
+        this.client = new WatcherClient({
             url: this.clientOptions.url,
             userAgent: this.clientOptions.userAgent,
             timeout: this.clientOptions.timeout,
@@ -62,17 +62,18 @@ export class CrowdSecHTTPWatcherMiddleware {
             } as IWatcherAuthentication;
         }
 
-        throw new Error('bad watcher configuration');
+        throw new Error('bad client configuration');
     }
 
     public async start() {
         debug('start');
 
-        debug('login');
-        await this.watcher.login();
-
         await this.loadDefaultsScenarios(true);
-        if (!this.options.scenarios) {
+        if (this.options.scenarios) {
+            this.options.scenarios.forEach((scenario) =>
+                this.addScenario(typeof scenario === 'string' ? scenario : this.initScenario(scenario))
+            );
+        } else {
             debug('add (%d) default scenarios', this.defaultScenarios.length);
             this.defaultScenarios.forEach((scenario) => this.addScenario(this.initScenario(scenario)));
         }
@@ -81,6 +82,9 @@ export class CrowdSecHTTPWatcherMiddleware {
             debug('start to load %d scenarios', this.scenarios.length);
             await Promise.all(this.scenarios.map((s) => (s.loaded === false && s.load ? s.load() : Promise.resolve())));
         }
+
+        debug('login');
+        await this.client.login();
     }
 
     public async loadDefaultsScenarios(allowFail = false) {
@@ -106,11 +110,13 @@ export class CrowdSecHTTPWatcherMiddleware {
 
     private _addScenario(scenario: IScenario) {
         debug('_addScenario(%s)', scenario.name);
-        if (!this.watcher) {
-            throw new Error('watcher need to be configured to register scenario');
+        if (!this.client) {
+            throw new Error('client need to be configured to register scenario');
         }
         this.scenarios.push(scenario);
-        this.watcher.scenarios.push(scenario.name);
+        if (scenario.announceToLAPI) {
+            this.client.scenarios.push(scenario.name);
+        }
     }
 
     public addScenario(scenario: IScenario | string) {
@@ -118,7 +124,7 @@ export class CrowdSecHTTPWatcherMiddleware {
             throw new Error('scenario is needed');
         }
 
-        debug('add scenario %s', typeof scenario === 'string' ? scenario : scenario.name);
+        debug('add scenario "%s"', typeof scenario === 'string' ? scenario : scenario.name);
 
         let currentScenario: IScenario;
         if (typeof scenario === 'string') {
@@ -146,53 +152,94 @@ export class CrowdSecHTTPWatcherMiddleware {
 
     public async stop() {
         debug('stop');
-        return this.watcher.stop();
+        return this.client.stop();
     }
 
     public extractIp(req: IncomingMessage): string | undefined {
-        return this.scenarios.reduce((currentIp: string | undefined, currentScenario) => {
+        const localDebug = debug.extend('extractIp');
+        localDebug('start extracting ip from request');
+
+        const othersIpsFound: Array<IIpExtractionResult> = [];
+        const ip = this.scenarios.reduce((currentIp: string | undefined, currentScenario) => {
             if (currentIp || !currentScenario.extractIp) {
                 return currentIp;
             }
 
-            return currentScenario.extractIp(req);
+            const ipExtracted = currentScenario.extractIp(req);
+
+            // confidence = 10 => we are sure of the ip
+            if (ipExtracted?.confidence === MAX_CONFIDENCE) {
+                return ipExtracted.ip;
+            }
+
+            if (ipExtracted) {
+                othersIpsFound.push(ipExtracted);
+            }
+
+            return undefined;
         }, undefined);
+
+        if (!ip && othersIpsFound.length > 0) {
+            localDebug('no ip found with max confidence, check with less confidence');
+            return othersIpsFound.sort((a, b) => b.confidence - a.confidence)[0]?.ip;
+        }
+        localDebug('ip found');
+        return ip;
     }
 
-    // TODO
     public middleware(ip: string, req: IncomingMessage & { decision?: Decision<any> }) {
+        const localDebug = debug.extend('watcherMiddleware');
+        localDebug('start');
         try {
-            console.time('watcherMiddleware');
-            let alert: APITypes.Alert | undefined;
-
             const currentAddress = this.ipObjectCache.getIpObjectWithCache(ip);
-            debug('watcherMiddleware receive request from %s', currentAddress.addressMinusSuffix);
-            this.scenarios.find((s) => (alert = s.check?.(currentAddress, req)));
+            localDebug('watcherMiddleware receive request from %s', currentAddress.addressMinusSuffix);
+            localDebug('start check');
+            const alerts = this.scenarios
+                .map((scenario) => {
+                    const alerts = scenario.check?.(currentAddress, req);
+                    if (!alerts) {
+                        return undefined;
+                    }
 
-            if (!alert) {
+                    return Array.isArray(alerts) ? alerts : [alerts];
+                })
+                .flat()
+                .filter((v) => !!v) as Array<APITypes.Alert>;
+
+            localDebug('end check');
+
+            if (alerts.length === 0) {
                 return;
             }
 
-            alert = this.scenarios.reduce((previousValue: APITypes.Alert | undefined, scenario: IScenario) => {
-                if (!scenario.enrich || !previousValue) {
-                    return previousValue;
-                }
+            localDebug('start enrich');
+            const enrichedAlerts = alerts
+                .map((alert) => {
+                    return this.scenarios.reduce((previousValue: APITypes.Alert | undefined, scenario: IScenario) => {
+                        if (!scenario.enrich || !previousValue) {
+                            return previousValue;
+                        }
 
-                return scenario.enrich(previousValue);
-            }, alert);
+                        return scenario.enrich(previousValue, req);
+                    }, alert);
+                })
+                .filter((v) => !!v) as Array<APITypes.Alert>;
+            localDebug('end enrich');
 
-            if (!alert) {
+            if (enrichedAlerts.length === 0) {
                 return;
             }
 
-            this.watcher.Alerts.pushAlerts([alert]).catch((e) => console.error('fail to push alert', e));
+            this.client.Alerts.pushAlerts(enrichedAlerts)
+                .then((res) => console.log(res))
+                .catch((e) => console.error('fail to push alert', e));
         } finally {
-            console.timeEnd('watcherMiddleware');
+            localDebug('end');
         }
     }
 
     public getMiddleware(getIpFromRequest: getCurrentIpFn) {
-        return (req: IncomingMessage, res: ServerResponse) => {
+        return (req: IncomingMessage) => {
             const ip = getIpFromRequest(req);
 
             this.middleware(ip, req);

@@ -55,7 +55,7 @@ importers:
         version: link:../../packages/crowdsec-client-scenarios
       crowdsec-http-middleware:
         specifier: workspace:^
-        version: link:../../packages/crowdsec-http-server-middleware
+        version: link:../../packages/crowdsec-http-middleware
     devDependencies:
       '@types/express':
         specifier: 4.17.17
@@ -203,6 +203,9 @@ importers:
       jest-sonar:
         specifier: 0.2.16
         version: 0.2.16
+      mmdb-lib:
+        specifier: ^2.0.2
+        version: 2.0.2
       rimraf:
         specifier: 5.0.1
         version: 5.0.1
@@ -216,7 +219,7 @@ importers:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.3.3)(typescript@5.1.6)
 
-  packages/crowdsec-http-server-middleware:
+  packages/crowdsec-http-middleware:
     dependencies:
       crowdsec-client:
         specifier: workspace:^
@@ -3417,7 +3420,6 @@ packages:
   /mmdb-lib@2.0.2:
     resolution: {integrity: sha512-shi1I+fCPQonhTi7qyb6hr7hi87R7YS69FlfJiMFuJ12+grx0JyL56gLNzGTYXPU7EhAPkMLliGeyHer0K+AVA==}
     engines: {node: '>=10', npm: '>=6'}
-    dev: false
 
   /ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}

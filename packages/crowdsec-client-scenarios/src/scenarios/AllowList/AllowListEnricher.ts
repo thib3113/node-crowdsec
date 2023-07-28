@@ -1,9 +1,9 @@
-import { BaseScenario } from '../baseScenarios/index.js';
-import { IScenarioOptions } from './IScenarioOptions.js';
-import { AddressObject, createDebugger, getIpObject } from '../utils.js';
+import { IScenarioOptions } from '../IScenarioOptions.js';
+import { AddressObject, createDebugger, getIpObject } from '../../utils.js';
 import { APITypes } from 'crowdsec-client';
+import { EnricherScenario } from '../../baseScenarios/EnricherScenario.js';
 
-declare module './IScenarioOptions.js' {
+declare module '../IScenarioOptions.js' {
     interface IScenarioOptions {
         'allow-list'?: {
             allowed?: Array<string>;
@@ -13,9 +13,9 @@ declare module './IScenarioOptions.js' {
 
 const defaultAllowed = ['127.0.0.1', '::1', '192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12'];
 
-const debug = createDebugger('AllowListEnrich');
-export class AllowListEnrich extends BaseScenario {
-    static scenarioName: 'allow-list';
+const debug = createDebugger('AllowListEnricher');
+export class AllowListEnricher extends EnricherScenario {
+    static scenarioName = 'allow-list';
     private allowed: Array<AddressObject>;
     constructor(options: IScenarioOptions) {
         debug('construct');

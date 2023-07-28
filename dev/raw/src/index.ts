@@ -1,8 +1,10 @@
-import { IncomingMessage, ServerResponse } from 'http';
 import * as http from 'http';
+import { IncomingMessage, ServerResponse } from 'http';
 import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
-import { CrowdSecServerError, Decision, WatcherClient } from 'crowdsec-client';
+import { Decision, WatcherClient } from 'crowdsec-client';
 import dotenv from 'dotenv';
+import path from 'path';
+import { AllowListEnricher, HTTPEnricher, MaxMindEnricher, XForwardedForChecker } from 'crowdsec-client-scenarios';
 
 dotenv.config({
     path: '../../.env'
@@ -10,7 +12,9 @@ dotenv.config({
 
 dotenv.config();
 
-const TLSPath = '../../tls/gen';
+const TLSPath = '../../statics/tls/gen';
+
+const maxMindPath = '../../statics';
 
 // create main function to deal with async/await
 const main = async () => {
@@ -19,15 +23,31 @@ const main = async () => {
     }
 
     const middleware = new CrowdSecHTTPMiddleware({
-        url: process.env.CROWDSEC_URL || '',
+        url: process.env.CROWDSEC_URL,
+        clientOptions: {
+            strictSSL: false
+        },
         watcher: {
+            // cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
+            // key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
+            // ca: fs.readFileSync(path.join(TLSPath, 'inter.pem')),
             machineID: process.env.CROWDSEC_MACHINE_ID || '',
             password: process.env.CROWDSEC_PASSWORD || '',
             scenariosOptions: {
                 'x-forwarded-for': {
                     trustedProxies: ['127.0.0.1', '::1', '192.168.0.0/16', '10.10.10.10']
+                },
+                'allow-list': {
+                    allowed: ['1.2.3.4']
+                },
+                maxmind: {
+                    paths: {
+                        ASN: path.join(maxMindPath, 'GeoLite2-ASN.mmdb'),
+                        city: path.join(maxMindPath, 'GeoLite2-City.mmdb')
+                    }
                 }
-            }
+            },
+            scenarios: [AllowListEnricher, XForwardedForChecker, HTTPEnricher, MaxMindEnricher]
         },
         bouncer: {
             apiKey: process.env.CROWDSEC_API_KEY || ''
@@ -42,14 +62,26 @@ const main = async () => {
     const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
         console.log('get http request', req.method, req.url);
         console.time('middleware');
-        midFn(req, res);
+        try {
+            midFn(req, res);
+        } catch (e) {
+            console.error('middleware error', e);
+        }
         console.timeEnd('middleware');
 
         console.log('ip :', req.ip);
         console.log('decision :', req.decision);
-        res.statusCode = 200;
+
+        if (!req.decision) {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/plain');
+            res.end('Hello, World!');
+            return;
+        }
+
+        res.statusCode = 403;
         res.setHeader('Content-Type', 'text/plain');
-        res.end('Hello, World!');
+        res.end(`You can't access this api, because you are : ${req.decision?.type}`);
     });
 
     const port: number = 3000;

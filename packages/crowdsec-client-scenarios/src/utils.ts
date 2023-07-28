@@ -1,6 +1,7 @@
 import createDebug, { Debugger } from 'debug';
 import { pkg } from './pkg.js';
 import { Address4, Address6 } from 'ip-address';
+import { APITypes } from 'crowdsec-client';
 
 const debug = createDebug(pkg.name);
 
@@ -30,4 +31,15 @@ export const getIpObject = (ip: string): AddressObject => {
             throw e;
         }
     }
+};
+
+export const mergeMetas = (originalMetas: APITypes.Meta = [], meta: Record<string, string | undefined> = {}): APITypes.Meta => {
+    return Object.entries(meta || {}).reduce((values, [key, value]) => {
+        if (!value || values.find((value) => key === value.key)) {
+            return values;
+        }
+
+        values.push({ key, value });
+        return values;
+    }, originalMetas);
 };

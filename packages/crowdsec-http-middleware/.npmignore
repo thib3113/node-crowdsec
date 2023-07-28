@@ -1,11 +1,9 @@
 src
-_OATemplates
 coverage
 tests
 *.tgz
 tsconfig.json
 .env
-generator.ts
 esbuild.js
 jest.config.js
 sonar-project.properties

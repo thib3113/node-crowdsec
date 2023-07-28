@@ -1,11 +1,7 @@
 import type { IBouncerAuthentication, ITLSAuthentication, IWatcherAuthentication } from 'crowdsec-client';
 import { ICrowdSecClientOptions } from 'crowdsec-client';
 import { IncomingMessage } from 'http';
-import { IScenario, IScenarioOptions } from 'crowdsec-client-scenarios';
-
-export interface ICrowdSecHTTPMiddlewareInternalOptions {
-    skipTestConnections?: boolean;
-}
+import { IScenarioConstructor, IScenarioOptions } from 'crowdsec-client-scenarios';
 
 export interface ICommonOptions {
     /**
@@ -20,17 +16,18 @@ export type ICrowdSecHTTPBouncerMiddlewareOptions = (IBouncerAuthentication | IT
 } & ICommonOptions;
 export type ICrowdSecHTTPWatcherMiddlewareOptions = (IWatcherAuthentication | ITLSAuthentication) & {
     heartbeat?: boolean;
-    scenarios?: Array<IScenario | string>;
+    scenarios?: Array<IScenarioConstructor | string>;
     scenariosOptions?: IScenarioOptions;
 } & ICommonOptions;
 
 export type getCurrentIpFn = (req: IncomingMessage) => string;
 
-export interface ICrowdSecHTTPMiddlewareOptions extends ICrowdSecHTTPMiddlewareInternalOptions, ICommonOptions {
+export interface ICrowdSecHTTPMiddlewareOptions extends ICommonOptions {
     url: ICrowdSecClientOptions['url'];
     bouncer?: ICrowdSecHTTPBouncerMiddlewareOptions;
     watcher?: ICrowdSecHTTPWatcherMiddlewareOptions;
     clientOptions?: Omit<ICrowdSecClientOptions, 'url'>;
 
     getCurrentIp?: getCurrentIpFn;
+    protectedByHeader?: boolean;
 }

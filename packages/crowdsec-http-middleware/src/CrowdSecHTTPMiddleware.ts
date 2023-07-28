@@ -16,13 +16,14 @@ export class CrowdSecHTTPMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
     private options: ICrowdSecHTTPMiddlewareOptions;
 
-    private readonly watcher?: CrowdSecHTTPWatcherMiddleware;
-    private readonly bouncer?: CrowdSecHTTPBouncerMiddleware;
+    public readonly watcher?: CrowdSecHTTPWatcherMiddleware;
+    public readonly bouncer?: CrowdSecHTTPBouncerMiddleware;
     private ipObjectCache: IpObjectsCacher;
 
     constructor(options: ICrowdSecHTTPMiddlewareOptions) {
         debug('construct');
         this.options = {
+            protectedByHeader: true,
             ...options
         };
         this.clientOptions = {
@@ -92,6 +93,10 @@ export class CrowdSecHTTPMiddleware {
         this.bouncer?.middleware(currentIp.addressMinusSuffix, req);
 
         this.watcher?.middleware(currentIp.addressMinusSuffix, req);
+
+        if (this.options.protectedByHeader) {
+            res.appendHeader('X-Protected-By', 'CrowdSec');
+        }
     };
 
     public getMiddleware() {
