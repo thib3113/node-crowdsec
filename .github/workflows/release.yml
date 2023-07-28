@@ -117,6 +117,7 @@ jobs:
       - name: Compare npm with local (versions)
         uses: Rober19/compare-npm-versions-ci@master
         id: package_version
+        continue-on-error: true
         with:
           path: ${{ matrix.package.path }}
           npm_package_name: ${{ matrix.package.name }}
@@ -128,7 +129,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ${{ matrix.package.path }}
-        if: steps.package_version.outputs.npm_is_greater == 'false'
+        if: steps.package_version.outputs.npm_is_greater != 'true'
 
       - name: publish to GPR
         run: |
@@ -143,4 +144,4 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ matrix.package.path }}
-        if: steps.package_version.outputs.npm_is_greater == 'false'
+        if: steps.package_version.outputs.npm_is_greater != 'true'
