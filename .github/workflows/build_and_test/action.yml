@@ -116,5 +116,6 @@ runs:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
       with:
+        args: -Dsonar.projectName="${{ inputs.package_name }}"
         projectBaseDir: ${{ inputs.package_path }}
       if: ${{ inputs.check == 'true' }}
