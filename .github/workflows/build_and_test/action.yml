@@ -69,7 +69,7 @@ runs:
       if: ${{ inputs.check == 'true' }}
 
     - name: build dependencies
-      run:  p -F ..../ build
+      run:  pnpm -F ..../ build
       shell: bash
 
     - uses: mattallty/jest-github-action@v1.0.3
