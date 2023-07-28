@@ -68,6 +68,10 @@ runs:
         CI: true
       if: ${{ inputs.check == 'true' }}
 
+    - name: build dependencies
+      run:  p -F ..../ build
+      shell: bash
+
     - uses: mattallty/jest-github-action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
