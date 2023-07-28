@@ -1,1 +1,1 @@
-export const pkg = { name: 'crowdsec-client-scenarios', version: '0.0.4' };
+export const pkg = { name: 'crowdsec-client-scenarios', version: '0.0.5' };
