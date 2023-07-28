@@ -68,9 +68,8 @@ runs:
         CI: true
       if: ${{ inputs.check == 'true' }}
 
-    - name: build dependencies
-      run:  pnpm -F ./... build -r
-      working-directory: ${{ inputs.package_path }}
+    - name: Test build
+      run: pnpm -F ${{ inputs.package_name }}... build
       shell: bash
 
     - uses: mattallty/jest-github-action@v1.0.3
@@ -81,10 +80,6 @@ runs:
         working-directory: ${{ inputs.package_path }}
         test-command: npm run test:ci:coverage
         coverage-comment: false
-
-    - name: Test build
-      run: pnpm -F ${{ inputs.package_name }}... build
-      shell: bash
 
     - name: replace path in coverage files
       working-directory: ${{ inputs.package_path }}
