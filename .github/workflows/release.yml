@@ -122,6 +122,10 @@ jobs:
           path: ${{ matrix.package.path }}
           npm_package_name: ${{ matrix.package.name }}
 
+      - name: build dependencies
+        run: pnpm -F ${{ inputs.package_name }}... build
+        working-directory: ${{ matrix.package.path }}
+
       - name: publish to NPM
         run: |
           npm config set //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
