@@ -8,9 +8,9 @@ import { Alerts } from '../Alerts/Alerts.js';
 import { CrowdsecClientError, EErrorsCodes } from '../Errors/index.js';
 import Validate from '../Validate.js';
 
-const debug = createDebugger('WatcherClient');
-
 export class WatcherClient extends CrowdSecClient {
+    protected debug = createDebugger('WatcherClient');
+
     private autoRenewTimeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
 
@@ -47,7 +47,7 @@ export class WatcherClient extends CrowdSecClient {
     }
 
     private async _login() {
-        const localDebug = debug.extend('_login');
+        const localDebug = this.debug.extend('_login');
         localDebug('start _login');
 
         if (this.autoRenewTimeout) {
@@ -98,7 +98,7 @@ export class WatcherClient extends CrowdSecClient {
         await this._login();
         const connectionResult = await this.testConnection();
         if (this.heartbeat) {
-            this.heartbeatLoop().catch((e) => debug('uncatched error from starting heartbeatLoop : %o', e));
+            this.heartbeatLoop().catch((e) => this.debug('uncatched error from starting heartbeatLoop : %o', e));
         }
         return connectionResult;
     }
@@ -108,7 +108,7 @@ export class WatcherClient extends CrowdSecClient {
     }
 
     private async heartbeatLoop() {
-        const localDebug = debug.extend('heartbeatLoop');
+        const localDebug = this.debug.extend('heartbeatLoop');
         if (this.heartbeatTimeout) {
             clearTimeout(this.heartbeatTimeout);
         }
@@ -124,7 +124,7 @@ export class WatcherClient extends CrowdSecClient {
             const timer = typeof this.heartbeat === 'number' ? this.heartbeat : 30000;
             localDebug('next heartbeat will be send at %o', new Date(Date.now() + timer));
             setTimeout(() => {
-                this.heartbeatLoop().catch((e) => debug('uncatched error from heartbeatLoop : %o', e));
+                this.heartbeatLoop().catch((e) => this.debug('uncatched error from heartbeatLoop : %o', e));
             }, timer);
         }
     }

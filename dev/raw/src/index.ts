@@ -1,5 +1,10 @@
-import { CrowdSecServerError, WatcherClient } from 'crowdsec-client';
+import * as http from 'http';
+import { IncomingMessage, ServerResponse } from 'http';
+import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
+import { Decision, WatcherClient } from 'crowdsec-client';
 import dotenv from 'dotenv';
+import path from 'path';
+import { AllowListEnricher, HTTPEnricher, MaxMindEnricher, XForwardedForChecker } from 'crowdsec-client-scenarios';
 
 dotenv.config({
     path: '../../.env'
@@ -7,7 +12,9 @@ dotenv.config({
 
 dotenv.config();
 
-const TLSPath = '../../tls/gen';
+const TLSPath = '../../statics/tls/gen';
+
+const maxMindPath = '../../statics';
 
 // create main function to deal with async/await
 const main = async () => {
@@ -15,77 +22,73 @@ const main = async () => {
         throw new Error('need process.env.CROWDSEC_URL');
     }
 
-    const machineID = 'node-watcher';
-    const password = 'myPassword';
-    const watcherClient = new WatcherClient({
+    const middleware = new CrowdSecHTTPMiddleware({
         url: process.env.CROWDSEC_URL,
-        auth: {
-            machineID,
-            password
+        clientOptions: {
+            strictSSL: false
         },
-        strictSSL: false
+        watcher: {
+            // cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
+            // key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
+            // ca: fs.readFileSync(path.join(TLSPath, 'inter.pem')),
+            machineID: process.env.CROWDSEC_MACHINE_ID || '',
+            password: process.env.CROWDSEC_PASSWORD || '',
+            scenariosOptions: {
+                'x-forwarded-for': {
+                    trustedProxies: ['127.0.0.1', '::1', '192.168.0.0/16', '10.10.10.10']
+                },
+                'allow-list': {
+                    allowed: ['1.2.3.4']
+                },
+                maxmind: {
+                    paths: {
+                        ASN: path.join(maxMindPath, 'GeoLite2-ASN.mmdb'),
+                        city: path.join(maxMindPath, 'GeoLite2-City.mmdb')
+                    }
+                }
+            },
+            scenarios: [AllowListEnricher, XForwardedForChecker, HTTPEnricher, MaxMindEnricher]
+        },
+        bouncer: {
+            apiKey: process.env.CROWDSEC_API_KEY || ''
+        }
+        // getCurrentIp: (req: IncomingMessage) => req.socket.remoteAddress || '1.1.1.1'
     });
 
-    try {
-        await watcherClient.login();
-    } catch (e) {
-        if (e instanceof CrowdSecServerError && e.code === 401) {
-            try {
-                await watcherClient.registerWatcher({
-                    machine_id: machineID,
-                    password
-                });
-            } catch (registerError) {
-                if (registerError instanceof CrowdSecServerError && registerError.code === 403) {
-                    throw new Error('watcher seems already register');
-                }
+    await middleware.start();
 
-                console.error(`unknown error when registering a watcher : `, registerError);
-                throw registerError;
-            }
-        } else {
-            console.error(`unknown error when login`, e);
+    const midFn = middleware.getMiddleware();
+
+    const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
+        console.log('get http request', req.method, req.url);
+        console.time('middleware');
+        try {
+            midFn(req, res);
+        } catch (e) {
+            console.error('middleware error', e);
         }
-    }
+        console.timeEnd('middleware');
 
-    // const watcher = new WatcherClient({
-    //     url: process.env.CROWDSEC_URL,
-    //     auth: {
-    //         cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
-    //         key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
-    //         ca: fs.readFileSync(path.join(TLSPath, 'inter.pem'))
-    //     },
-    //     strictSSL: false
-    // });
+        console.log('ip :', req.ip);
+        console.log('decision :', req.decision);
 
-    // await watcher.login();
-    //
-    // const res = await watcher.Alerts.search({ has_active_decision: true, origin: 'cscli' });
-    // console.log(res);
+        if (!req.decision) {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/plain');
+            res.end('Hello, World!');
+            return;
+        }
 
-    // const client = new BouncerClient({
-    //     url: process.env.CROWDSEC_URL,
-    //     auth: {
-    //         apiKey: process.env.CROWDSEC_API_KEY || ''
-    //     },
-    //     strictSSL: false
-    // });
-    // await client.login();
-    //
-    // const decisionsStream = client.Decisions.getStream({
-    //     scopes: 'ip'
-    // });
-    //
-    // decisionsStream.on('added', (decision: Decision) => {
-    //     console.log(`add ${decision.scope} ${decision.value}`);
-    // });
-    //
-    // decisionsStream.on('deleted', (decision: Decision) => {
-    //     console.log(`delete ${decision.scope} ${decision.value}`);
-    // });
-    //
-    // decisionsStream.resume();
+        res.statusCode = 403;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end(`You can't access this api, because you are : ${req.decision?.type}`);
+    });
+
+    const port: number = 3000;
+    server.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}/`);
+    });
 };
 
-//just run the async main, and log error if needed
+// //just run the async main, and log error if needed
 main().catch((e) => console.error(e));

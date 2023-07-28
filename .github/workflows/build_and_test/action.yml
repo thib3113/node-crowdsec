@@ -68,6 +68,10 @@ runs:
         CI: true
       if: ${{ inputs.check == 'true' }}
 
+    - name: Test build
+      run: pnpm -F ${{ inputs.package_name }}... build
+      shell: bash
+
     - uses: mattallty/jest-github-action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
@@ -76,10 +80,6 @@ runs:
         working-directory: ${{ inputs.package_path }}
         test-command: npm run test:ci:coverage
         coverage-comment: false
-
-    - name: Test build
-      run: pnpm -F ${{ inputs.package_name }}... build
-      shell: bash
 
     - name: replace path in coverage files
       working-directory: ${{ inputs.package_path }}
@@ -104,6 +104,7 @@ runs:
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ inputs.CODECOV_TOKEN }}
+        flags: ${{ inputs.package_name }}
         name: ${{ inputs.package_name }}
         verbose: true
         directory: ${{ inputs.package_path }}/coverage
@@ -115,5 +116,6 @@ runs:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
       with:
+        args: -Dsonar.projectName="${{ inputs.package_name }}"
         projectBaseDir: ${{ inputs.package_path }}
       if: ${{ inputs.check == 'true' }}

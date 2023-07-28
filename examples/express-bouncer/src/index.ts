@@ -44,7 +44,7 @@ const main = async () => {
 
     //listen for added decisions
     stream.on('added', (decision) => {
-        if (!decisions.find((d) => d.value === d.value)) {
+        if (!decisions.find((d) => d.value === decision.value)) {
             decisions.push(decision);
         }
     });

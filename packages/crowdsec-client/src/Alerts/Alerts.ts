@@ -17,7 +17,7 @@ export class Alerts extends BaseSubObject {
         ).data;
     }
 
-    public async search(options: AlertsTypes.SearchAlerts.RequestQuery): Promise<AlertsTypes.SearchAlerts.ResponseBody> {
+    public async search(options?: AlertsTypes.SearchAlerts.RequestQuery): Promise<AlertsTypes.SearchAlerts.ResponseBody> {
         return (
             await this.http.get<
                 AlertsTypes.SearchAlerts.ResponseBody,

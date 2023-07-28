@@ -1,6 +1,6 @@
 {
     "name": "crowdsec-client",
-    "version": "0.0.14",
+    "version": "0.1.0",
     "description": "A Crowdsec client that allow you to easily create bouncer or watcher",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
@@ -23,6 +23,19 @@
         "lint": "eslint -f unix \"src/**\"",
         "lint:fix": "npm lint -- --fix",
         "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
+    },
+    "exports": {
+        ".": {
+            "default": "./lib/index.cjs",
+            "import": {
+                "types": "./lib/index.d.ts",
+                "default": "./lib/index.mjs"
+            },
+            "require": {
+                "types": "./lib/index.d.cts",
+                "default": "./lib/index.cjs"
+            }
+        }
     },
     "bugs": {
         "url": "https://github.com/thib3113/node-crowdsec/issues?labels=crowdsec-client"

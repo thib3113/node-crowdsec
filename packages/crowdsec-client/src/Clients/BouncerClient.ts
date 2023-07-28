@@ -5,9 +5,9 @@ import { DecisionsBouncer } from '../Decisions/DecisionsBouncer.js';
 import Validate from '../Validate.js';
 import { CrowdsecClientError } from '../Errors/CrowdsecClientError.js';
 
-const debug = createDebugger('bouncerClient');
-
 export class BouncerClient extends CrowdSecClient {
+    protected debug = createDebugger('bouncerClient');
+
     public Decisions: DecisionsBouncer;
 
     #auth?: IBouncerAuthentication;

@@ -50,6 +50,12 @@ importers:
       crowdsec-client:
         specifier: workspace:^
         version: link:../../packages/crowdsec-client
+      crowdsec-client-scenarios:
+        specifier: workspace:^
+        version: link:../../packages/crowdsec-client-scenarios
+      crowdsec-http-middleware:
+        specifier: workspace:^
+        version: link:../../packages/crowdsec-http-middleware
     devDependencies:
       '@types/express':
         specifier: 4.17.17
@@ -154,6 +160,107 @@ importers:
       swagger-typescript-api:
         specifier: 12.0.4
         version: 12.0.4
+      ts-jest:
+        specifier: 29.1.1
+        version: 29.1.1(@babel/core@7.22.1)(esbuild@0.18.11)(jest@29.5.0)(typescript@5.1.6)
+      ts-node:
+        specifier: 10.9.1
+        version: 10.9.1(@types/node@20.3.3)(typescript@5.1.6)
+
+  packages/crowdsec-client-scenarios:
+    dependencies:
+      '@laverdet/beaugunderson-ip-address':
+        specifier: ^8.1.0
+        version: 8.1.0
+      debug:
+        specifier: ^4.3.4
+        version: 4.3.4
+      lru-cache:
+        specifier: ^10.0.0
+        version: 10.0.0
+      maxmind:
+        specifier: ^4.3.11
+        version: 4.3.11
+    devDependencies:
+      '@jest/globals':
+        specifier: 29.5.0
+        version: 29.5.0
+      '@types/debug':
+        specifier: 4.1.8
+        version: 4.1.8
+      crowdsec-client:
+        specifier: workspace:^
+        version: link:../crowdsec-client
+      dotenv:
+        specifier: 16.3.1
+        version: 16.3.1
+      esbuild:
+        specifier: 0.18.11
+        version: 0.18.11
+      jest:
+        specifier: 29.5.0
+        version: 29.5.0(@types/node@20.3.3)(ts-node@10.9.1)
+      jest-sonar:
+        specifier: 0.2.16
+        version: 0.2.16
+      mmdb-lib:
+        specifier: ^2.0.2
+        version: 2.0.2
+      rimraf:
+        specifier: 5.0.1
+        version: 5.0.1
+      source-map-support:
+        specifier: 0.5.21
+        version: 0.5.21
+      ts-jest:
+        specifier: 29.1.1
+        version: 29.1.1(@babel/core@7.22.1)(esbuild@0.18.11)(jest@29.5.0)(typescript@5.1.6)
+      ts-node:
+        specifier: 10.9.1
+        version: 10.9.1(@types/node@20.3.3)(typescript@5.1.6)
+
+  packages/crowdsec-http-middleware:
+    dependencies:
+      '@laverdet/beaugunderson-ip-address':
+        specifier: ^8.1.0
+        version: 8.1.0
+      crowdsec-client:
+        specifier: workspace:^
+        version: link:../crowdsec-client
+      debug:
+        specifier: ^4.3.4
+        version: 4.3.4
+      lru-cache:
+        specifier: ^10.0.0
+        version: 10.0.0
+    devDependencies:
+      '@jest/globals':
+        specifier: 29.5.0
+        version: 29.5.0
+      '@types/debug':
+        specifier: 4.1.8
+        version: 4.1.8
+      crowdsec-client-scenarios:
+        specifier: workspace:^
+        version: link:../crowdsec-client-scenarios
+      dotenv:
+        specifier: 16.3.1
+        version: 16.3.1
+      esbuild:
+        specifier: 0.18.11
+        version: 0.18.11
+      jest:
+        specifier: 29.5.0
+        version: 29.5.0(@types/node@20.3.3)(ts-node@10.9.1)
+      jest-sonar:
+        specifier: 0.2.16
+        version: 0.2.16
+      rimraf:
+        specifier: 5.0.1
+        version: 5.0.1
+      source-map-support:
+        specifier: 0.5.21
+        version: 0.5.21
       ts-jest:
         specifier: 29.1.1
         version: 29.1.1(@babel/core@7.22.1)(esbuild@0.18.11)(jest@29.5.0)(typescript@5.1.6)
@@ -1062,6 +1169,14 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
+  /@laverdet/beaugunderson-ip-address@8.1.0:
+    resolution: {integrity: sha512-xHX4Um01frUi4sizxYxdHDhP+48X1rRB7PyWBXbgGU9ciJmlgPxLCaRt9aQJoR1kOv7G+SgfjBc5ZlZeyAZhSQ==}
+    engines: {node: '>= 12'}
+    dependencies:
+      jsbn: 1.1.0
+      sprintf-js: 1.1.2
+    dev: false
+
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -1102,6 +1217,7 @@ packages:
 
   /@sinonjs/fake-timers@10.2.0:
     resolution: {integrity: sha512-OPwQlEdg40HAj5KNF8WW6q2KG4Z+cBCZb3m4ninfTZKaBmbIJodviQsDBoYMPHkOyJJMHnOJo5j2+LKDOhOACg==}
+    deprecated: Use version 10.1.0. Version 10.2.0 has potential breaking issues
     dependencies:
       '@sinonjs/commons': 3.0.0
     dev: true
@@ -1365,12 +1481,6 @@ packages:
   /acorn-walk@8.2.0:
     resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}
     engines: {node: '>=0.4.0'}
-    dev: true
-
-  /acorn@8.8.2:
-    resolution: {integrity: sha512-xjIYgE8HBrkpd/sJqOGNspf8uHG+NOHGOw6a/Urj8taM2EXfdNAH2oFcPeIFfsv3+kz/mJrS5VuMqbNLjCa2vw==}
-    engines: {node: '>=0.4.0'}
-    hasBin: true
     dev: true
 
   /acorn@8.9.0:
@@ -3097,6 +3207,10 @@ packages:
       argparse: 2.0.1
     dev: true
 
+  /jsbn@1.1.0:
+    resolution: {integrity: sha512-4bYVV3aAMtDTTu4+xsDYa6sy9GyJ69/amsu9sYF2zqjiEoZA5xJi3BrfX3uY+/IekIu7MwdObdbDWpoZdBv3/A==}
+    dev: false
+
   /jsesc@2.5.2:
     resolution: {integrity: sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==}
     engines: {node: '>=4'}
@@ -3173,6 +3287,11 @@ packages:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
     dev: true
 
+  /lru-cache@10.0.0:
+    resolution: {integrity: sha512-svTf/fzsKHffP42sujkO/Rjs37BCIsQVRCeNYIm9WN8rgT7ffoUnRtZCqU+6BqcSBdv8gwJeTz8knJpgACeQMw==}
+    engines: {node: 14 || >=16.14}
+    dev: false
+
   /lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
     dependencies:
@@ -3217,6 +3336,14 @@ packages:
     engines: {node: '>= 12'}
     hasBin: true
     dev: true
+
+  /maxmind@4.3.11:
+    resolution: {integrity: sha512-tJDrKbUzN6PSA88tWgg0L2R4Ln00XwecYQJPFI+RvlF2k1sx6VQYtuQ1SVxm8+bw5tF7GWV4xyb+3/KyzEpPUw==}
+    engines: {node: '>=12', npm: '>=6'}
+    dependencies:
+      mmdb-lib: 2.0.2
+      tiny-lru: 11.0.1
+    dev: false
 
   /media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
@@ -3289,6 +3416,10 @@ packages:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
     dev: true
+
+  /mmdb-lib@2.0.2:
+    resolution: {integrity: sha512-shi1I+fCPQonhTi7qyb6hr7hi87R7YS69FlfJiMFuJ12+grx0JyL56gLNzGTYXPU7EhAPkMLliGeyHer0K+AVA==}
+    engines: {node: '>=10', npm: '>=6'}
 
   /ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -3895,6 +4026,10 @@ packages:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
     dev: true
 
+  /sprintf-js@1.1.2:
+    resolution: {integrity: sha512-VE0SOVEHCk7Qc8ulkWw3ntAzXuqf7S2lvwQaDLRnUeIEaKNQJzV6BwmLKhOqT61aGhfUMrXeaBk+oDGCzvhcug==}
+    dev: false
+
   /stack-utils@2.0.6:
     resolution: {integrity: sha512-XlkWvfIm6RmsWtNJx+uqtKLS8eqFbxUg0ZzLXqY0caEy9l7hruX8IpiDnjsLavoBgqCCR71TqWO8MaXYheJ3RQ==}
     engines: {node: '>=10'}
@@ -4046,6 +4181,11 @@ packages:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
     dev: true
 
+  /tiny-lru@11.0.1:
+    resolution: {integrity: sha512-iNgFugVuQgBKrqeO/mpiTTgmBsTP0WL6yeuLfLs/Ctf0pI/ixGqIRm8sDCwMcXGe9WWvt2sGXI5mNqZbValmJg==}
+    engines: {node: '>=12'}
+    dev: false
+
   /tmpl@1.0.5:
     resolution: {integrity: sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==}
     dev: true
@@ -4126,7 +4266,7 @@ packages:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 20.3.3
-      acorn: 8.8.2
+      acorn: 8.9.0
       acorn-walk: 8.2.0
       arg: 4.1.3
       create-require: 1.1.1
