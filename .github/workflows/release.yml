@@ -81,6 +81,9 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
 
+    permissions:
+      id-token: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
