@@ -31,11 +31,37 @@ Technical documentation is available [here](https://thib3113.github.io/node-crow
 [![NPM version](https://img.shields.io/npm/v/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
 [![Downloads](https://img.shields.io/npm/dm/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
 [![License](https://img.shields.io/npm/l/crowdsec-client)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
-[![crowdsec-client-snyk](https://snyk.io/advisor/npm-package/crowdsec-client/badge.svg)](https://snyk.io/advisor/npm-package/crowdsec-client)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=coverage)](https://sonarcloud.io/summary/new_code?id=thib3113_node-crowdsec)
 [![Package Quality](https://packagequality.com/shield/crowdsec-client.svg)](https://packagequality.com/#?package=crowdsec-client)
-[![NPM](https://nodei.co/npm/crowdsec-client.png)](https://nodei.co/npm/crowdsec-client/)
 
-a client allowing to talk with the crowdsec API, and so to create your bouncers or watchers
+[//]: # ([![crowdsec-client-snyk]&#40;https://snyk.io/advisor/npm-package/crowdsec-client/badge.svg&#41;]&#40;https://snyk.io/advisor/npm-package/crowdsec-client&#41;)
+[![NPM](https://nodei.co/npm/crowdsec-client.png?months=3&height=1)](https://nodei.co/npm/crowdsec-client/)
+
+### [crowdsec-http-middleware](./packages/crowdsec-http-middleware)
+
+[![NPM version](https://img.shields.io/npm/v/crowdsec-http-middleware.svg)](https://www.npmjs.com/package/crowdsec-http-middleware)
+[![Downloads](https://img.shields.io/npm/dm/crowdsec-http-middleware.svg)](https://www.npmjs.com/package/crowdsec-http-middleware)
+[![License](https://img.shields.io/npm/l/crowdsec-http-middleware)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=thib3113_crowdsec-http-middleware&metric=coverage)](https://sonarcloud.io/summary/new_code?id=thib3113_node-crowdsec)
+[![Package Quality](https://packagequality.com/shield/crowdsec-http-middleware.svg)](https://packagequality.com/#?package=crowdsec-http-middleware)
+
+[//]: # ([![crowdsec-http-middleware-snyk]&#40;https://snyk.io/advisor/npm-package/crowdsec-http-middleware/badge.svg&#41;]&#40;https://snyk.io/advisor/npm-package/crowdsec-http-middleware&#41;)
+[![NPM](https://nodei.co/npm/crowdsec-http-middleware.png?months=3&height=1)](https://nodei.co/npm/crowdsec-http-middleware/)
+
+an alpha http middleware that allow to include CrowdSec to protect your http serveur
+
+### [crowdsec-client-scenarios](./packages/crowdsec-client-scenarios)
+
+[![NPM version](https://img.shields.io/npm/v/crowdsec-client-scenarios.svg)](https://www.npmjs.com/package/crowdsec-client-scenarios)
+[![Downloads](https://img.shields.io/npm/dm/crowdsec-client-scenarios.svg)](https://www.npmjs.com/package/crowdsec-client-scenarios)
+[![License](https://img.shields.io/npm/l/crowdsec-client-scenarios)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=thib3113_crowdsec-client-scenarios&metric=coverage)](https://sonarcloud.io/summary/new_code?id=thib3113_node-crowdsec)
+[![Package Quality](https://packagequality.com/shield/crowdsec-client-scenarios.svg)](https://packagequality.com/#?package=crowdsec-client-scenarios)
+
+[//]: # ([![crowdsec-client-scenarios-snyk]&#40;https://snyk.io/advisor/npm-package/crowdsec-client-scenarios/badge.svg&#41;]&#40;https://snyk.io/advisor/npm-package/crowdsec-client-scenarios&#41;)
+[![NPM](https://nodei.co/npm/crowdsec-client-scenarios.png?months=3&height=1)](https://nodei.co/npm/crowdsec-client-scenarios/)
+
+Here are some optionals scenarios available to use with the middleware
 
 ## Examples
  - [express-bouncer](./examples/express-bouncer) : an example of use of the [crowdsec-client](./packages/crowdsec-client) to create an express bouncer

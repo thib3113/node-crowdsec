@@ -43,7 +43,7 @@ export class __Error implements Error {
     public toString = (): string => {
         const name = this.name || 'Error';
 
-        const message = String(this._message) || '';
+        const message = String(this._message || '');
 
         const strComponents: Array<string> = [];
 
