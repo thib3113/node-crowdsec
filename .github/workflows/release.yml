@@ -140,14 +140,14 @@ jobs:
 
       - name: publish to GPR
         run: |
-          npx npe name @${{ github.event.repository.full_name }}
+          npx npe name @${{ github.repository_owner }}/${{ matrix.package.name }}
 
           npm config set @${{ github.repository_owner }}:registry=https://npm.pkg.github.com
           npm config set //https://npm.pkg.github.com:_authToken=${NODE_AUTH_TOKEN}
           npm config set registry https://npm.pkg.github.com
           npm config set scope ${{ github.repository_owner }}
 
-          pnpm publish --filter ${{ matrix.package.name }} --no-git-checks
+          pnpm publish --filter @${{ github.repository_owner }}/${{ matrix.package.name }} --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: ${{ matrix.package.path }}
