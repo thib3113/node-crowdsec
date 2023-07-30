@@ -1,5 +1,3 @@
-//TODO
-
 # crowdsec-http-middleware
 [![NPM version](https://img.shields.io/npm/v/crowdsec-http-middleware.svg)](https://www.npmjs.com/package/crowdsec-http-middleware)
 [![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
@@ -7,7 +5,8 @@
 [![Downloads](https://img.shields.io/npm/dm/crowdsec-http-middleware.svg)](https://www.npmjs.com/package/crowdsec-http-middleware)
 [![License](https://img.shields.io/npm/l/crowdsec-http-middleware)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
 [![Known Vulnerabilities](https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg)](https://snyk.io/test/github/thib3113/node-crowdsec)
-[![crowdsec-http-middleware-snyk](https://snyk.io/advisor/npm-package/crowdsec-http-middleware/badge.svg)](https://snyk.io/advisor/npm-package/crowdsec-http-middleware)
+
+[//]: # ([![crowdsec-http-middleware-snyk]&#40;https://snyk.io/advisor/npm-package/crowdsec-http-middleware/badge.svg&#41;]&#40;https://snyk.io/advisor/npm-package/crowdsec-http-middleware&#41;)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg?logo=paypal)](https://paypal.me/thib3113)
 [![GitHub stars](https://img.shields.io/github/stars/thib3113/node-crowdsec.svg?style=social&label=Star)](https://github.com/thib3113/node-crowdsec/stargazers/)
 [![Package Quality](https://packagequality.com/shield/crowdsec-http-middleware.svg)](https://packagequality.com/#?package=crowdsec-http-middleware)
@@ -40,11 +39,111 @@ npm i crowdsec-http-middleware
 
 and then read the documentation in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
 
+
+This package, support a default setup, with default scenarios .
+You can use the default mode by installing crowdsec-http-middleware and crowdsec-client-scenarios, and passing an empty `scenarios` configuration
+
+```
+npm i crowdsec-http-middleware crowdsec-client-scenarios
+```
+
+you can read what are the default scenarios enabled in [crowdsec-client-scenarios](../crowdsec-client-scenarios#defaults-scenarios)
+
 ## Usage
-#todo
 
+This package, is a base package to create HTTP Middleware for HTTP Servers
 
-More authentications options (like TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
+You can use it like :
+````typescript
+import * as http from 'http';
+import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
+
+// init the middleware (we will see the options later)
+const middleware = new CrowdSecHTTPMiddleware(middlewareOptions);
+//wait async stuff like connection to crowdsec LAPI
+await middleware.start();
+
+const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
+    try {
+        middleware.getMiddleware()(req, res);
+    } catch (e) {
+        console.error('middleware error', e);
+    }
+
+    if (!req.decision) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Hello, World!');
+        return;
+    }
+
+    res.statusCode = 403;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end(`You can't access this api, because you are : ${req.decision?.type}`);
+});
+
+const port: number = 3000;
+server.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}/`);
+});
+````
+
+### options
+
+options are described here : [technical documentation](https://thib3113.github.io/node-crowdsec/interfaces/crowdsec_http_middleware.ICrowdSecHTTPMiddlewareOptions.html)
+
+First the global options
+````typescript
+const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
+    // this is the url of the crowdsec instances
+    url: process.env.CROWDSEC_URL,
+    // options to pass to the crowdsec-client
+    clientOptions: {
+        // for example, to disable ssl certificate verification
+        strictSSL: false
+    },
+    // here, an optional function to extract Ip from request
+    // you can also use a scenario with "extractIp" capability
+    getCurrentIp: (req: IncomingMessage) => req.socket.remoteAddress || '0.0.0.0',
+    //we will see this configurations later
+    watcher: watcherOptions,
+    bouncer: bouncerOptions
+}
+````
+
+#### Watcher options
+the watcher options allow you to setup an optional watcher .
+The watcher, will connect with crowdsec LAPI, and run scenarios to send alerts when analyzing requests
+
+you need to remember, that crowdSec is an [IDS](https://en.wikipedia.org/wiki/Intrusion_detection_system), it will detect the alert and block it __the next time__
+
+about authentication, you can also use TLS certificates . Check the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications)
+````typescript
+const watcherOptions = {
+    machineID: 'myMachine',
+    password: 'myPassword',
+    // send heartbeat to LAPI ? it allow the LAPI to see the watcher "online"
+    heartbeat: true,
+    // a list of scenarios constructors that will be used
+    scenarios: [],
+    // options passed to the scenarions
+    scenariosOptions: {}
+}
+````
+
+you can read more about scenarios and scenarioOptions in [the crowdsec-client-scenario package](../crowdsec-client-scenarios)
+
+#### Bouncer options
+bouncer, will check if a decision is associated with the current IP .
+
+about authentication, you can also use TLS certificates . Check the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications)
+````typescript
+const bouncerOptions = {
+    apiKey: process.env.CROWDSEC_API_KEY || ''
+}
+````
+
+When a decision is found by the bouncer, `req.decision` will contain the decision
 
 ## Debug
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :

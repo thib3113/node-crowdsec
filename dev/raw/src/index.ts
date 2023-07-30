@@ -28,9 +28,6 @@ const main = async () => {
             strictSSL: false
         },
         watcher: {
-            // cert: fs.readFileSync(path.join(TLSPath, 'agent.pem')),
-            // key: fs.readFileSync(path.join(TLSPath, 'agent-key.pem')),
-            // ca: fs.readFileSync(path.join(TLSPath, 'inter.pem')),
             machineID: process.env.CROWDSEC_MACHINE_ID || '',
             password: process.env.CROWDSEC_PASSWORD || '',
             scenariosOptions: {
