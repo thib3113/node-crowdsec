@@ -204,7 +204,7 @@ importers:
         specifier: 0.2.16
         version: 0.2.16
       mmdb-lib:
-        specifier: ^2.0.2
+        specifier: 2.0.2
         version: 2.0.2
       rimraf:
         specifier: 5.0.1
