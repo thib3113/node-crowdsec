@@ -14,7 +14,7 @@
         "postversion": "pnpm run generate-tag",
         "generate-tag": "git commit -am \"bump version of ${npm_package_name} to v${npm_package_version}\" && git tag -a ${npm_package_name}/v${npm_package_version} -m \"${npm_package_name}/v${npm_package_version}\"",
         "ts-types": "tsc --emitDeclarationOnly --outDir lib/types",
-        "build": "rimraf lib && node ./esbuild.js --analyze && npm run ts-types",
+        "build": "rimraf lib && node ./esbuild.js && npm run ts-types",
         "debug": "npm run build && node -r source-map-support/register ./lib/esm/debug.mjs",
         "generate-api": "node --loader ts-node/esm generator.ts",
         "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
