@@ -1,7 +1,5 @@
 import { __Error, EErrorsCodes } from '../../src/Errors/index.js';
 import { expect, jest } from '@jest/globals';
-import { util } from 'prettier';
-import isNextLineEmpty = util.isNextLineEmpty;
 
 describe('Errors', () => {
     describe('__Error', () => {
