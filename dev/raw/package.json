@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "20.3.3",
+    "@types/node": "20.4.5",
     "crowdsec-client": "workspace:^",
     "crowdsec-client-scenarios": "workspace:^",
     "crowdsec-http-middleware": "workspace:^"
