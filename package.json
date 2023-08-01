@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@tsconfig/node-lts": "18.12.3",
-    "@types/jest": "29.5.2",
+    "@types/jest": "29.5.3",
     "@types/node": "20.3.3",
     "@typescript-eslint/parser": "5.61.0",
     "eslint": "8.44.0",
