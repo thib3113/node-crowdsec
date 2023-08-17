@@ -1,4 +1,12 @@
-import { createDebugger, forceArray, getUrlRepresentation, parseExpiration, setImmediatePromise } from '../src/utils.js';
+import {
+    createDebugger,
+    forceArray,
+    getUrlRepresentation,
+    nonBlockingFn,
+    nonBlockingLoop,
+    parseExpiration,
+    setImmediatePromise
+} from '../src/utils.js';
 import { jest, describe, it, afterEach, beforeEach, expect } from '@jest/globals';
 import { RawAxiosRequestConfig } from 'axios';
 import * as crypto from 'crypto';
@@ -140,6 +148,44 @@ describe('utils', () => {
             await res;
 
             expect(i).toBe(maxI);
+        });
+    });
+    describe('nonBlockingLoop', () => {
+        it('should perform no operations if the array is empty', async () => {
+            const mockFn = jest.fn();
+            await nonBlockingLoop([], mockFn);
+            expect(mockFn).not.toHaveBeenCalled();
+        });
+
+        it('should call the provided function on each element of the array', async () => {
+            const mockFn = jest.fn((x: number) => x * 2);
+            const arr = [1, 2, 3];
+            await nonBlockingLoop(arr, mockFn);
+            expect(mockFn).toHaveBeenCalledTimes(arr.length);
+        });
+
+        it('should stop executing if the stop function is called', async () => {
+            const mockFn = jest.fn((x: number, stop: () => void) => {
+                if (x > 2) {
+                    stop();
+                }
+                return x * 2;
+            });
+            const arr = [1, 2, 3, 4, 5];
+            await nonBlockingLoop(arr, mockFn);
+            expect(mockFn).toHaveBeenCalledTimes(3);
+        });
+
+        it('should break execution every breakCounter operations', async () => {
+            const mockFn = jest.fn((x: number, stop) => x * 2);
+            const arr = Array(200).fill(1);
+            const res = nonBlockingLoop(arr, mockFn, 50);
+
+            expect(mockFn).toHaveBeenCalledTimes(1);
+            await setImmediatePromise();
+            expect(mockFn).toHaveBeenCalledTimes(51);
+
+            await res;
         });
     });
 });

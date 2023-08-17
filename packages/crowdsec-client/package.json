@@ -26,7 +26,6 @@
     },
     "exports": {
         ".": {
-            "default": "./lib/index.cjs",
             "import": {
                 "types": "./lib/index.d.ts",
                 "default": "./lib/index.mjs"
@@ -34,7 +33,8 @@
             "require": {
                 "types": "./lib/index.d.cts",
                 "default": "./lib/index.cjs"
-            }
+            },
+            "default": "./lib/index.cjs"
         }
     },
     "bugs": {
