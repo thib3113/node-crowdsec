@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, jest, it } from '@jest/globals';
 import type { DecisionsStream } from '../../src/Decisions/DecisionsStream.js';
 import type { Decision } from '../../src/Decisions/Decision.js';
+import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
+import type { nonBlockingFn } from '../../src/utils.js';
 
 const mockDebug = jest.fn();
 const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
@@ -8,13 +10,16 @@ const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
 // @ts-ignore
 mockDebug.extend = mockDebugExtend;
 
+const mockNonBlockingLoop = jest.fn<any>();
+
 jest.unstable_mockModule('../../src/utils.js', () => ({
     createDebugger: createDebuggerMock,
     setImmediatePromise: async () => {
         return new Promise<void>((resolve) => {
             setImmediate(() => resolve());
         });
-    }
+    },
+    nonBlockingLoop: mockNonBlockingLoop
 }));
 
 const mockDecisionObject = jest.fn();
@@ -137,7 +142,9 @@ describe('DecisionsStream', () => {
             mockLoopWrapper.mockClear();
         });
 
-        it('should push new decision', async () => {
+        it('should call nonBlockingLoop with new decisions', async () => {
+            mockNonBlockingLoop.mockResolvedValueOnce(undefined);
+            mockNonBlockingLoop.mockResolvedValueOnce(undefined);
             const decision = {
                 id: 1,
                 origin: 'Origin',
@@ -149,25 +156,30 @@ describe('DecisionsStream', () => {
                 scenario: 'Scenario',
                 simulated: true
             };
-
-            // @ts-ignore
-            expect(stream.decisions.added.length).toBe(0);
-            // @ts-ignore
-            expect(stream.decisions.deleted.length).toBe(0);
-
-            stream.push({
+            const getDecisionsResponse = {
                 new: [decision]
-            });
+            };
 
             // @ts-ignore
-            expect(stream.decisions.added.length).toBe(1);
+            expect(stream.decisions.added.length).toBe(0);
             // @ts-ignore
             expect(stream.decisions.deleted.length).toBe(0);
 
+            stream.push(getDecisionsResponse);
+
+            expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(1, getDecisionsResponse.new, expect.any(Function));
+
             expect(mockLoopWrapper).toHaveBeenCalled();
-            expect(mockDecisionObject).toHaveBeenCalledWith(decision);
         });
-        it('should push new decisions', async () => {
+
+        it('should handle Error in addedPromise', async () => {
+            const mockHandleError = jest.fn();
+            // @ts-ignore
+            stream.handleError = mockHandleError;
+
+            const fakeError = new Error('tutu');
+            mockNonBlockingLoop.mockRejectedValueOnce(fakeError);
+            mockNonBlockingLoop.mockResolvedValueOnce(undefined);
             const decision = {
                 id: 1,
                 origin: 'Origin',
@@ -179,25 +191,40 @@ describe('DecisionsStream', () => {
                 scenario: 'Scenario',
                 simulated: true
             };
+            const getDecisionsResponse = {
+                new: [decision]
+            };
 
             // @ts-ignore
             expect(stream.decisions.added.length).toBe(0);
             // @ts-ignore
             expect(stream.decisions.deleted.length).toBe(0);
 
-            stream.push({
-                new: [decision, decision]
+            const error = await new Promise((resolve, reject) => {
+                mockHandleError.mockImplementationOnce((e) => {
+                    resolve(e);
+                });
+
+                stream.push(getDecisionsResponse);
             });
 
-            // @ts-ignore
-            expect(stream.decisions.added.length).toBe(2);
-            // @ts-ignore
-            expect(stream.decisions.deleted.length).toBe(0);
+            expect(error).toBeInstanceOf(CrowdsecClientError);
+            const err = error as CrowdsecClientError;
+            expect(err.message).toBe('fail to parse received decisions');
+            expect(err.exception).toBe(fakeError);
+
+            expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(1, getDecisionsResponse.new, expect.any(Function));
 
             expect(mockLoopWrapper).toHaveBeenCalled();
-            expect(mockDecisionObject).toHaveBeenCalledTimes(2);
         });
-        it('should push deleted decision', async () => {
+        it('should handle Error in deletedPromise', async () => {
+            const mockHandleError = jest.fn();
+            // @ts-ignore
+            stream.handleError = mockHandleError;
+
+            const fakeError = new Error('tutu');
+            mockNonBlockingLoop.mockResolvedValueOnce(undefined);
+            mockNonBlockingLoop.mockRejectedValueOnce(fakeError);
             const decision = {
                 id: 1,
                 origin: 'Origin',
@@ -209,53 +236,163 @@ describe('DecisionsStream', () => {
                 scenario: 'Scenario',
                 simulated: true
             };
+            const getDecisionsResponse = {
+                new: [decision]
+            };
 
             // @ts-ignore
             expect(stream.decisions.added.length).toBe(0);
             // @ts-ignore
             expect(stream.decisions.deleted.length).toBe(0);
 
-            stream.push({
+            const error = await new Promise((resolve, reject) => {
+                mockHandleError.mockImplementationOnce((e) => {
+                    resolve(e);
+                });
+
+                stream.push(getDecisionsResponse);
+            });
+
+            expect(error).toBeInstanceOf(CrowdsecClientError);
+            const err = error as CrowdsecClientError;
+            expect(err.message).toBe('fail to parse received decisions');
+            expect(err.exception).toBe(fakeError);
+
+            expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(1, getDecisionsResponse.new, expect.any(Function));
+
+            expect(mockLoopWrapper).toHaveBeenCalled();
+        });
+        describe('nonBlocking', () => {
+            const mockEmit = jest.fn();
+            const decision = {
+                id: 1,
+                origin: 'Origin',
+                type: 'type',
+                scope: 'Scope',
+                value: 'value',
+                duration: '1h54m',
+                until: 'until',
+                scenario: 'Scenario',
+                simulated: true
+            };
+            const getDecisionsResponse = {
+                new: [decision],
                 deleted: [decision]
-            });
-
-            // @ts-ignore
-            expect(stream.decisions.added.length).toBe(0);
-            // @ts-ignore
-            expect(stream.decisions.deleted.length).toBe(1);
-
-            expect(mockLoopWrapper).toHaveBeenCalled();
-            expect(mockDecisionObject).toHaveBeenCalledWith(decision);
-        });
-        it('should push deleted decisions', async () => {
-            const decision = {
-                id: 1,
-                origin: 'Origin',
-                type: 'type',
-                scope: 'Scope',
-                value: 'value',
-                duration: '1h54m',
-                until: 'until',
-                scenario: 'Scenario',
-                simulated: true
             };
+            beforeEach(() => {
+                mockNonBlockingLoop.mockResolvedValueOnce(undefined);
+                mockNonBlockingLoop.mockResolvedValueOnce(undefined);
 
-            // @ts-ignore
-            expect(stream.decisions.added.length).toBe(0);
-            // @ts-ignore
-            expect(stream.decisions.deleted.length).toBe(0);
-
-            stream.push({
-                deleted: [decision, decision]
+                // @ts-ignore
+                stream.emit = mockEmit;
             });
+            it.each<'added' | 'deleted' | 'both'>(['deleted', 'added', 'both'])(
+                'should use the function NonBlocking to avoid blocking event loop, with definition %s',
+                (type) => {
+                    const responseTypes: { [key: string]: any } = {
+                        deleted: { deleted: getDecisionsResponse.deleted },
+                        added: { new: getDecisionsResponse.new },
+                        both: {
+                            new: getDecisionsResponse.new,
+                            deleted: getDecisionsResponse.deleted
+                        }
+                    };
 
-            // @ts-ignore
-            expect(stream.decisions.added.length).toBe(0);
-            // @ts-ignore
-            expect(stream.decisions.deleted.length).toBe(2);
+                    stream.push(responseTypes[type]);
 
-            expect(mockLoopWrapper).toHaveBeenCalled();
-            expect(mockDecisionObject).toHaveBeenCalledTimes(2);
+                    if (type != 'deleted') {
+                        expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(1, getDecisionsResponse.new, expect.any(Function));
+                    }
+
+                    if (type != 'added') {
+                        expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(2, getDecisionsResponse.deleted, expect.any(Function));
+                    }
+
+                    // get the function passed in to the nonBlockingLoop and then test it using a fake Decision function and receivedDecisions object
+                    const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as (d: any) => void;
+                    const functionPassedToDelete = mockNonBlockingLoop.mock.calls[1][1] as (d: any) => void;
+
+                    mockDecisionObject.mockReturnValueOnce({ decision: 'added' });
+                    mockDecisionObject.mockReturnValueOnce({ decision: 'deleted' });
+
+                    // @ts-ignore
+                    stream.decisions = {
+                        added: [],
+                        deleted: []
+                    };
+
+                    // call the function passed in
+                    functionPassedToAdd(decision);
+                    functionPassedToDelete(decision);
+
+                    expect(mockDecisionObject).toHaveBeenCalledTimes(2);
+
+                    // @ts-ignore
+                    expect(stream.decisions.added).toStrictEqual([{ decision: 'added' }]);
+                    // @ts-ignore
+                    expect(stream.decisions.deleted).toStrictEqual([{ decision: 'deleted' }]);
+                }
+            );
+            it('should test the function passed to NonBlocking', async () => {
+                const added = [{ definition: 'added' }];
+                const deleted = [{ definition: 'deleted' }];
+                mockNonBlockingLoop.mockResolvedValueOnce(added);
+                mockNonBlockingLoop.mockResolvedValueOnce(deleted);
+
+                const decision = {
+                    id: 1,
+                    origin: 'Origin',
+                    type: 'type',
+                    scope: 'Scope',
+                    value: 'value',
+                    duration: '1h54m',
+                    until: 'until',
+                    scenario: 'Scenario',
+                    simulated: true
+                };
+                const getDecisionsResponse = {
+                    new: [decision]
+                };
+
+                const mockEmit = jest.fn();
+                // @ts-ignore
+                stream.emit = mockEmit;
+
+                // @ts-ignore
+                expect(stream.decisions.added.length).toBe(0);
+                // @ts-ignore
+                expect(stream.decisions.deleted.length).toBe(0);
+
+                stream.push(getDecisionsResponse);
+
+                expect(mockNonBlockingLoop).toHaveBeenNthCalledWith(1, getDecisionsResponse.new, expect.any(Function));
+
+                // get the function passed in to the nonBlockingLoop and then test it using a fake Decision function and receivedDecisions object
+                const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as (d: any) => void;
+                const functionPassedToDelete = mockNonBlockingLoop.mock.calls[1][1] as (d: any) => void;
+
+                mockDecisionObject.mockReturnValueOnce({ decision: 'added' });
+                mockDecisionObject.mockReturnValueOnce({ decision: 'deleted' });
+
+                // @ts-ignore
+                stream.decisions = {
+                    added: [],
+                    deleted: []
+                };
+
+                // call the function passed in
+                functionPassedToAdd(decision);
+                functionPassedToDelete(decision);
+
+                expect(mockEmit).toHaveBeenNthCalledWith(1, 'raw', getDecisionsResponse);
+
+                expect(mockDecisionObject).toHaveBeenCalledTimes(2);
+
+                // @ts-ignore
+                expect(stream.decisions.added).toStrictEqual([{ decision: 'added' }]);
+                // @ts-ignore
+                expect(stream.decisions.deleted).toStrictEqual([{ decision: 'deleted' }]);
+            });
         });
     });
 
@@ -280,13 +417,17 @@ describe('DecisionsStream', () => {
 
         it('should handle loop errors', async () => {
             const fakeError = new Error();
+            const mockHandleError = jest.fn();
+            // @ts-ignore
+            stream.handleError = mockHandleError;
+
             await new Promise((resolve) => {
                 mockDebug.mockImplementationOnce(resolve);
                 mockLoop.mockImplementationOnce(() => Promise.reject(fakeError));
                 loopWrapper();
             });
 
-            expect(mockDebug).toHaveBeenCalledWith('uncatched promise from loop : %o', fakeError);
+            expect(mockHandleError).toHaveBeenCalledWith(expect.any(CrowdsecClientError));
             expect(mockLoop).toHaveBeenCalledWith();
         });
     });
@@ -313,8 +454,14 @@ describe('DecisionsStream', () => {
             const decisionsArray = [fakeDecision];
             await emitDecisions('added', decisionsArray);
 
+            expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
+            const fakeStopFn = jest.fn();
+            const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
+
+            //should return undefined to remove from array
+            expect(await functionPassedToAdd(fakeDecision, fakeStopFn)).toBeUndefined();
+
             expect(mockEmit).toHaveBeenCalledWith('added', fakeDecision);
-            expect(decisionsArray.length).toBe(0);
         });
 
         it('should emit decision with the type deleted', async () => {
@@ -325,8 +472,15 @@ describe('DecisionsStream', () => {
             const decisionsArray = [fakeDecision];
             await emitDecisions('deleted', decisionsArray);
 
+            expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
+
+            const fakeStopFn = jest.fn();
+            const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
+
+            //should return undefined to remove from array
+            expect(await functionPassedToAdd(fakeDecision, fakeStopFn)).toBeUndefined();
+
             expect(mockEmit).toHaveBeenCalledWith('deleted', fakeDecision);
-            expect(decisionsArray.length).toBe(0);
         });
 
         it("shouldn't emit decision", async () => {
@@ -334,6 +488,8 @@ describe('DecisionsStream', () => {
             stream._paused = false;
 
             await emitDecisions('deleted', []);
+
+            expect(mockNonBlockingLoop).toHaveBeenCalledWith([], expect.any(Function));
 
             expect(mockEmit).not.toHaveBeenCalled();
         });
@@ -348,7 +504,7 @@ describe('DecisionsStream', () => {
             const decisionsArray = [...new Array(times)].map(() => fakeDecision);
             const res = await emitDecisions('added', decisionsArray);
 
-            expect(mockEmit).toHaveBeenCalledTimes(times);
+            expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
         });
 
         it('should pause if paused change in the loop', async () => {
@@ -357,13 +513,43 @@ describe('DecisionsStream', () => {
 
             const fakeDecision = { type: 'decision' } as unknown as Decision;
             const decisionsArray = [...new Array(1e6)].map(() => fakeDecision);
-            const res = emitDecisions('added', decisionsArray);
+            await emitDecisions('added', decisionsArray);
+
+            const fakeStopFn = jest.fn();
+            const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
+            expect(await functionPassedToAdd(fakeDecision, fakeStopFn)).toBe(undefined);
+            expect(fakeStopFn).not.toHaveBeenCalled();
 
             // @ts-ignore
             stream._paused = true;
 
-            await res;
-            expect(decisionsArray.length).toBeGreaterThan(0);
+            expect(await functionPassedToAdd(fakeDecision, fakeStopFn)).toBe(fakeDecision);
+            expect(fakeStopFn).toHaveBeenCalled();
+        });
+
+        it('should clear the emitted decisions', async () => {
+            // @ts-ignore
+            stream._paused = false;
+
+            const fakeDecision = { type: 'decision' } as unknown as Decision;
+            const originalLength = 10;
+            const decisionsArray = [...new Array(originalLength)].map(() => fakeDecision);
+
+            mockNonBlockingLoop.mockImplementationOnce(() => {
+                //replace one item on two by undefined ... like if the decision was emitted
+                decisionsArray.forEach((item, index) => {
+                    if (index % 2 !== 0) {
+                        decisionsArray.splice(index, 1, undefined as unknown as Decision);
+                    }
+                });
+            });
+
+            await emitDecisions('deleted', decisionsArray);
+
+            expect(decisionsArray.length).toBe(Math.floor(originalLength / 2));
+            expect(decisionsArray).not.toContain(undefined);
+
+            expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
         });
     });
     describe('loop', () => {
@@ -439,7 +625,13 @@ describe('DecisionsStream', () => {
 
             await loop();
 
-            expect(mockEmit).toHaveBeenCalledWith('error', fakeError);
+            expect(mockEmit).toHaveBeenCalledWith(
+                'error',
+                expect.objectContaining({
+                    message: 'loop error',
+                    __proto__: CrowdsecClientError.prototype
+                })
+            );
 
             expect(mockEmitDecisions).toHaveBeenCalledWith('deleted', decisionsArray);
             // @ts-ignore

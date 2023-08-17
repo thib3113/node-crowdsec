@@ -1,19 +1,36 @@
 import { getCurrentIpFn, ICrowdSecHTTPBouncerMiddlewareOptions, ICrowdSecHTTPMiddlewareOptions } from './ICrowdSecHTTPMiddlewareOptions.js';
 import Validate from './Validate.js';
-import { BouncerClient, Decision, IBouncerAuthentication, ICrowdSecClientOptions, ITLSAuthentication } from 'crowdsec-client';
+import {
+    BouncerClient,
+    Decision,
+    DecisionsStream,
+    IBouncerAuthentication,
+    ICrowdSecClientOptions,
+    ITLSAuthentication
+} from 'crowdsec-client';
 import { AddressObject, createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage, ServerResponse } from 'http';
 
-type decisionType = Decision<'ip' | 'range'>;
+type decisionScope = 'ip' | 'range';
+type decisionType = Decision<decisionScope>;
 
 const debug = createDebugger('CrowdSecHTTPBouncerMiddleware');
+
 export class CrowdSecHTTPBouncerMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
     public readonly client: BouncerClient;
     private decisions: Record<string, Array<{ selector: AddressObject; decision: decisionType }>> = {};
     private options: ICrowdSecHTTPBouncerMiddlewareOptions;
     private ipObjectCache: IpObjectsCacher;
+
+    /**
+     * allow to listen to decision events
+     */
+    get decisionStream(): DecisionsStream<decisionScope> | undefined {
+        return this._decisionStream;
+    }
+    private _decisionStream?: DecisionsStream<decisionScope>;
 
     constructor(options: ICrowdSecHTTPBouncerMiddlewareOptions, clientOptions: ICrowdSecClientOptions, cache?: IpObjectsCacher) {
         debug('construct');
@@ -54,16 +71,17 @@ export class CrowdSecHTTPBouncerMiddleware {
     public async start() {
         await this.client.login();
 
-        const stream = this.client.Decisions.getStream({
+        this._decisionStream = this.client.Decisions.getStream({
             interval: this.options?.pollingInterval,
             scopes: ['ip', 'range']
         });
 
-        stream.on('error', (e) => {
+        this._decisionStream.on('error', (e) => {
             debug('client stream error : %o', e);
         });
 
-        stream.on('added', (decision) => {
+        let timeout: NodeJS.Timeout | undefined;
+        this._decisionStream.on('added', (decision) => {
             const localDebug = debug.extend('decisionAdded');
             localDebug('start');
             try {
@@ -84,8 +102,7 @@ export class CrowdSecHTTPBouncerMiddleware {
             localDebug('end');
         });
 
-        let stopTimeout: NodeJS.Timeout | undefined;
-        stream.on('deleted', (decision) => {
+        this._decisionStream.on('deleted', (decision) => {
             const localDebug = debug.extend('decisionDeleted');
             localDebug('start');
             const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
@@ -94,7 +111,7 @@ export class CrowdSecHTTPBouncerMiddleware {
             localDebug('end');
         });
 
-        stream.resume();
+        this._decisionStream.resume();
     }
 
     private isSameDecision(d1: Decision<any>, d2: Decision<any>) {

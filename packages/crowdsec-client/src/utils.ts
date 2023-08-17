@@ -80,8 +80,29 @@ export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isA
  * the job of this function, is to unblock the loop when running a long while
  * ( else the event loop is blocked, waiting for the loop to end )
  */
-export const setImmediatePromise = async () => {
+export const setImmediatePromise = () => {
     return new Promise<void>((resolve) => {
         setImmediate(() => resolve());
     });
 };
+
+/**
+ * return false to stop the loop
+ */
+export type nonBlockingFn<T> = (element: T, stopFunction: () => void) => any;
+
+export async function nonBlockingLoop<T>(elements: Array<T>, fn: nonBlockingFn<T>, breakCounter: number = 100): Promise<void> {
+    let lastResultAskStop = false;
+    const stopFunction = () => {
+        lastResultAskStop = true;
+    };
+
+    for (let i = 0; i < elements.length && !lastResultAskStop; i++) {
+        elements[i] = fn(elements[i], stopFunction);
+
+        // slower, but not blocking event loop
+        if (i % breakCounter === 0) {
+            await setImmediatePromise();
+        }
+    }
+}

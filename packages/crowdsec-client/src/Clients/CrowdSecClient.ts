@@ -84,9 +84,9 @@ export abstract class CrowdSecClient {
                 const duration = (new Date() - response?.config?.metadata?.startTime) / 1000 || null;
                 const durationStr = duration ? ` in ${duration} seconds` : '';
                 axiosDebug(
-                    `Response from ${response?.config?.method} ${getUrlRepresentation(response?.config)} with code ${response?.status} ${
-                        response?.statusText
-                    }${durationStr}`
+                    `Response from ${response?.config?.method} ${getUrlRepresentation(
+                        response?.config
+                    )} with code ${response?.status} ${response?.statusText}${durationStr}`
                 );
                 axiosDebugVerbose('headers : %O', response?.headers);
                 axiosDebugVerbose(`payload : %O`, response?.data);
