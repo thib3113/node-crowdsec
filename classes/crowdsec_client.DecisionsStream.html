@@ -30,7 +30,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">DecisionsStream</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L18">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:18</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L21">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:21</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -64,6 +64,7 @@
 <a href="crowdsec_client.DecisionsStream.html#emitDecisions" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>emit<wbr/>Decisions</span></a>
 <a href="crowdsec_client.DecisionsStream.html#eventNames" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>event<wbr/>Names</span></a>
 <a href="crowdsec_client.DecisionsStream.html#getMaxListeners" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Max<wbr/>Listeners</span></a>
+<a href="crowdsec_client.DecisionsStream.html#handleError" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>handle<wbr/>Error</span></a>
 <a href="crowdsec_client.DecisionsStream.html#listenerCount" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listener<wbr/>Count</span></a>
 <a href="crowdsec_client.DecisionsStream.html#listeners" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listeners</span></a>
 <a href="crowdsec_client.DecisionsStream.html#loop" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>loop</span></a>
@@ -81,6 +82,7 @@
 <a href="crowdsec_client.DecisionsStream.html#resume" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>resume</span></a>
 <a href="crowdsec_client.DecisionsStream.html#setMaxListeners" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>set<wbr/>Max<wbr/>Listeners</span></a>
 <a href="crowdsec_client.DecisionsStream.html#start" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>start</span></a>
+<a href="crowdsec_client.DecisionsStream.html#addAbortListener" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>add<wbr/>Abort<wbr/>Listener</span></a>
 <a href="crowdsec_client.DecisionsStream.html#getEventListeners" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Event<wbr/>Listeners</span></a>
 <a href="crowdsec_client.DecisionsStream.html#getMaxListeners-2" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Max<wbr/>Listeners</span></a>
 <a href="crowdsec_client.DecisionsStream.html#listenerCount-2" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listener<wbr/>Count</span></a>
@@ -112,19 +114,19 @@
     DecisionsStreamEvents&lt;Scopes, Origins&gt;
 &gt;.constructor</p>
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L35">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:35</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L38">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:38</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Properties</h2>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_paused" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_paused</span><a href="#_paused" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_paused</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = true</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L28">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:28</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L31">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:31</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="debug" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <code class="tsd-tag ts-flagReadonly">Readonly</code> <span>debug</span><a href="#debug" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">debug</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Debugger</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L23">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:23</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L26">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:26</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="decisions" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>decisions</span><a href="#decisions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">decisions</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span><br/><span>    </span><span class="tsd-kind-property">added</span><span class="tsd-signature-symbol">: </span><a href="crowdsec_client.Decision.html" class="tsd-signature-type tsd-kind-class">Decision</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Scopes</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Origins</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">; </span><br/><span>    </span><span class="tsd-kind-property">deleted</span><span class="tsd-signature-symbol">: </span><a href="crowdsec_client.Decision.html" class="tsd-signature-type tsd-kind-class">Decision</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Scopes</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Origins</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol"> = ...</span></div>
@@ -136,17 +138,17 @@
 <li class="tsd-parameter">
 <h5><span class="tsd-kind-property">deleted</span><span class="tsd-signature-symbol">: </span><a href="crowdsec_client.Decision.html" class="tsd-signature-type tsd-kind-class">Decision</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Scopes</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Origins</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></h5></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L30">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:30</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L33">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:33</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="looping" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>looping</span><a href="#looping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">looping</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L21">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:21</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L24">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:24</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="name" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagReadonly">Readonly</code> <span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L35">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:35</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L38">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:38</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="captureRejectionSymbol" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <code class="tsd-tag ts-flagReadonly">Readonly</code> <span>capture<wbr/>Rejection<wbr/>Symbol</span><a href="#captureRejectionSymbol" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">capture<wbr/>Rejection<wbr/>Symbol</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">typeof </span><a href="crowdsec_client.DecisionsStream.html#captureRejectionSymbol" class="tsd-signature-type tsd-kind-property">captureRejectionSymbol</a></div>
@@ -158,7 +160,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.captureRejectionSymbol</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:355</li></ul></aside></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:390</li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="captureRejections" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>capture<wbr/>Rejections</span><a href="#captureRejections" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">capture<wbr/>Rejections</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -170,7 +172,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.captureRejections</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:362</li></ul></aside></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:397</li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="defaultMaxListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>default<wbr/>Max<wbr/>Listeners</span><a href="#defaultMaxListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">default<wbr/>Max<wbr/>Listeners</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
@@ -201,7 +203,7 @@ Its <code>name</code> property is set to <code>&#39;MaxListenersExceededWarning&
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.defaultMaxListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:399</li></ul></aside></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:434</li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="errorMonitor" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <code class="tsd-tag ts-flagReadonly">Readonly</code> <span>error<wbr/>Monitor</span><a href="#errorMonitor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">error<wbr/>Monitor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">typeof </span><a href="crowdsec_client.DecisionsStream.html#errorMonitor" class="tsd-signature-type tsd-kind-property">errorMonitor</a></div>
@@ -214,7 +216,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.errorMonitor</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:348</li></ul></aside></section></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:383</li></ul></aside></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Accessors</h2>
 <section class="tsd-panel tsd-member"><a id="paused" class="tsd-anchor"></a>
@@ -224,7 +226,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L25">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:25</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L28">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:28</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="addListener" class="tsd-anchor"></a>
@@ -258,7 +260,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.addListener</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:419</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:454</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="close" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>close</span><a href="#close" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -266,7 +268,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L102">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:102</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L150">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:150</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="emit" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>emit</span><a href="#emit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -287,7 +289,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.emit</p>
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/EventEmitter.ts#L8">packages/crowdsec-client/src/EventEmitter.ts:8</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/EventEmitter.ts#L8">packages/crowdsec-client/src/EventEmitter.ts:8</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="emitDecisions" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>emit<wbr/>Decisions</span><a href="#emitDecisions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-private">
@@ -302,7 +304,7 @@ regular <code>&#39;error&#39;</code> listener is installed.</p>
 <h5><span class="tsd-kind-parameter">decisions</span>: <a href="crowdsec_client.Decision.html" class="tsd-signature-type tsd-kind-class">Decision</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Scopes</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Origins</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L48">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:48</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L79">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:79</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="eventNames" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>event<wbr/>Names</span><a href="#eventNames" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -319,7 +321,7 @@ listeners. The values in the array are strings or <code>Symbol</code>s.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.eventNames</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:744</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:779</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="getMaxListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Max<wbr/>Listeners</span><a href="#getMaxListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -334,7 +336,20 @@ set by <code>emitter.setMaxListeners(n)</code> or defaults to <a href="crowdsec_
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.getMaxListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:596</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:631</li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="handleError" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>handle<wbr/>Error</span><a href="#handleError" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-private">
+<li class="tsd-signature tsd-anchor-link" id="handleError.handleError-1"><span class="tsd-kind-call-signature">handle<wbr/>Error</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">error</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#handleError.handleError-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li>
+<h5><span class="tsd-kind-parameter">error</span>: <a href="crowdsec_client.CrowdsecClientError.html" class="tsd-signature-type tsd-kind-class">CrowdsecClientError</a></h5></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L107">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:107</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="listenerCount" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>listener<wbr/>Count</span><a href="#listenerCount" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -363,7 +378,7 @@ in the list of the listeners of the event.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.listenerCount</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:690</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:725</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="listeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>listeners</span><a href="#listeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -384,7 +399,7 @@ in the list of the listeners of the event.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.listeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:609</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:644</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="loop" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>loop</span><a href="#loop" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-private">
@@ -392,7 +407,7 @@ in the list of the listeners of the event.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L64">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:64</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L112">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:112</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="loopWrapper" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>loop<wbr/>Wrapper</span><a href="#loopWrapper" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-private">
@@ -400,7 +415,7 @@ in the list of the listeners of the event.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L60">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:60</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L102">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:102</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="off" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>off</span><a href="#off" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -432,7 +447,7 @@ in the list of the listeners of the event.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.off</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:569</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:604</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="on" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>on</span><a href="#on" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -453,7 +468,7 @@ in the list of the listeners of the event.</p>
 <h4 class="tsd-returns-title">Returns <a href="crowdsec_client.DecisionsStream.html" class="tsd-signature-type tsd-kind-class">DecisionsStream</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Scopes</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Origins</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.on</p>
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/EventEmitter.ts#L6">packages/crowdsec-client/src/EventEmitter.ts:6</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/EventEmitter.ts#L6">packages/crowdsec-client/src/EventEmitter.ts:6</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="once" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>once</span><a href="#once" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -499,7 +514,7 @@ event listener to the beginning of the listeners array.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.once</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:481</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:516</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="pause" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>pause</span><a href="#pause" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -507,7 +522,7 @@ event listener to the beginning of the listeners array.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L83">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:83</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L131">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:131</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="prependListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>prepend<wbr/>Listener</span><a href="#prependListener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -551,7 +566,7 @@ times.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.prependListener</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:708</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:743</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="prependOnceListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>prepend<wbr/>Once<wbr/>Listener</span><a href="#prependOnceListener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -593,20 +608,20 @@ listener is removed, and then invoked.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.prependOnceListener</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:724</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:759</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="push" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>push</span><a href="#push" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
-<li class="tsd-signature tsd-anchor-link" id="push.push-1"><span class="tsd-kind-call-signature">push</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">decisions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#push.push-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="push.push-1"><span class="tsd-kind-call-signature">push</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">rawDecisions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#push.push-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5><span class="tsd-kind-parameter">decisions</span>: <a href="../interfaces/crowdsec_client.APITypes.DecisionsStreamResponse.html" class="tsd-signature-type tsd-kind-interface">DecisionsStreamResponse</a></h5></li></ul></div>
+<h5><span class="tsd-kind-parameter">rawDecisions</span>: <a href="../interfaces/crowdsec_client.APITypes.DecisionsStreamResponse.html" class="tsd-signature-type tsd-kind-interface">DecisionsStreamResponse</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L41">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:41</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L44">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:44</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="rawListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>raw<wbr/>Listeners</span><a href="#rawListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -628,7 +643,7 @@ including any wrappers (such as those created by <code>.once()</code>).</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.rawListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:640</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:675</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="removeAllListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>remove<wbr/>All<wbr/>Listeners</span><a href="#removeAllListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -651,7 +666,7 @@ component or module (e.g. sockets or file streams).</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.removeAllListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:580</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:615</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="removeListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>remove<wbr/>Listener</span><a href="#removeListener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -705,7 +720,7 @@ recently added instance. In the example the <code>once(&#39;ping&#39;)</code>lis
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.removeListener</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:564</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:599</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="resume" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>resume</span><a href="#resume" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -713,7 +728,7 @@ recently added instance. In the example the <code>once(&#39;ping&#39;)</code>lis
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L95">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:95</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L143">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:143</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="setMaxListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>set<wbr/>Max<wbr/>Listeners</span><a href="#setMaxListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -736,7 +751,7 @@ modified for this specific <code>EventEmitter</code> instance. The value can be 
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.setMaxListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:590</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:625</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="start" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -747,7 +762,51 @@ modified for this specific <code>EventEmitter</code> instance. The value can be 
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 <div class="tsd-comment tsd-typography"></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/0fbabb4/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L92">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:92</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/fc60ef0/packages/crowdsec-client/src/Decisions/DecisionsStream.ts#L140">packages/crowdsec-client/src/Decisions/DecisionsStream.ts:140</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="addAbortListener" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>add<wbr/>Abort<wbr/>Listener</span><a href="#addAbortListener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-inherited tsd-is-external">
+<li class="tsd-signature tsd-anchor-link" id="addAbortListener.addAbortListener-1"><span class="tsd-kind-call-signature">add<wbr/>Abort<wbr/>Listener</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">signal</span>, <span class="tsd-kind-parameter">resource</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type ">Disposable</span><a href="#addAbortListener.addAbortListener-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></li>
+<li class="tsd-description"><code class="tsd-tag ts-flagExperimental">Experimental</code> 
+<div class="tsd-comment tsd-typography"><p>Listens once to the <code>abort</code> event on the provided <code>signal</code>.</p>
+<p>Listening to the <code>abort</code> event on abort signals is unsafe and may
+lead to resource leaks since another third party with the signal can
+call <code>e.stopImmediatePropagation()</code>. Unfortunately Node.js cannot change
+this since it would violate the web standard. Additionally, the original
+API makes it easy to forget to remove listeners.</p>
+<p>This API allows safely using <code>AbortSignal</code>s in Node.js APIs by solving these
+two issues by listening to the event such that <code>stopImmediatePropagation</code> does
+not prevent the listener from running.</p>
+<p>Returns a disposable so that it may be unsubscribed from more easily.</p>
+<pre><code class="language-js"><span class="hl-7">import</span><span class="hl-1"> { </span><span class="hl-0">addAbortListener</span><span class="hl-1"> } </span><span class="hl-7">from</span><span class="hl-1"> </span><span class="hl-5">&#39;node:events&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-2">function</span><span class="hl-1"> </span><span class="hl-4">example</span><span class="hl-1">(</span><span class="hl-0">signal</span><span class="hl-1">) {</span><br/><span class="hl-1">  </span><span class="hl-2">let</span><span class="hl-1"> </span><span class="hl-0">disposable</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-7">try</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">signal</span><span class="hl-1">.</span><span class="hl-4">addEventListener</span><span class="hl-1">(</span><span class="hl-5">&#39;abort&#39;</span><span class="hl-1">, (</span><span class="hl-0">e</span><span class="hl-1">) </span><span class="hl-2">=&gt;</span><span class="hl-1"> </span><span class="hl-0">e</span><span class="hl-1">.</span><span class="hl-4">stopImmediatePropagation</span><span class="hl-1">());</span><br/><span class="hl-1">    </span><span class="hl-0">disposable</span><span class="hl-1"> = </span><span class="hl-4">addAbortListener</span><span class="hl-1">(</span><span class="hl-0">signal</span><span class="hl-1">, (</span><span class="hl-0">e</span><span class="hl-1">) </span><span class="hl-2">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">      </span><span class="hl-6">// Do something when signal is aborted.</span><br/><span class="hl-1">    });</span><br/><span class="hl-1">  } </span><span class="hl-7">finally</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">disposable</span><span class="hl-1">?.[</span><span class="hl-0">Symbol</span><span class="hl-1">.</span><span class="hl-0">dispose</span><span class="hl-1">]();</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span>
+</code><button>Copy</button></pre>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li>
+<h5><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type ">AbortSignal</span></h5></li>
+<li>
+<h5><span class="tsd-kind-parameter">resource</span>: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">event</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></h5>
+<ul class="tsd-parameters">
+<li class="tsd-parameter-signature">
+<ul class="tsd-signatures tsd-is-external">
+<li class="tsd-signature"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">event</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+<li class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li>
+<h5><span class="tsd-kind-parameter">event</span>: <span class="tsd-signature-type ">Event</span></h5></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Disposable</span></h4><p>that removes the <code>abort</code> listener.</p>
+
+<div class="tsd-comment tsd-typography">
+<h4>Since</h4><p>v20.5.0</p>
+</div><aside class="tsd-sources">
+<p>Inherited from TypedEventEmitter.addAbortListener</p>
+<ul>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:375</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="getEventListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Event<wbr/>Listeners</span><a href="#getEventListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -774,7 +833,7 @@ event target. This is useful for debugging and diagnostic purposes.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.getEventListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:296</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:296</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="getMaxListeners-2" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Max<wbr/>Listeners</span><a href="#getMaxListeners-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -800,7 +859,7 @@ the max set, the EventTarget will print a warning.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.getMaxListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:325</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:325</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="listenerCount-2" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>listener<wbr/>Count</span><a href="#listenerCount-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -831,7 +890,7 @@ the max set, the EventTarget will print a warning.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.listenerCount</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:268</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:268</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="on-2" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>on</span><a href="#on-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -866,7 +925,7 @@ composed of the emitted event arguments.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.on</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:250</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:250</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="once-2" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>once</span><a href="#once-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -904,7 +963,7 @@ special handling:</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.once</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:189</li></ul></aside></li>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:189</li></ul></aside></li>
 <li class="tsd-signature tsd-anchor-link" id="once-2.once-4"><span class="tsd-kind-call-signature">once</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">emitter</span>, <span class="tsd-kind-parameter">eventName</span>, <span class="tsd-kind-parameter">options</span><span class="tsd-signature-symbol">?</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type ">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><a href="#once-2.once-4" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
@@ -919,7 +978,7 @@ special handling:</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.once</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:190</li></ul></aside></li></ul></section>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:190</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="setMaxListeners-2" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>set<wbr/>Max<wbr/>Listeners</span><a href="#setMaxListeners-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -944,7 +1003,7 @@ special handling:</p>
 </div><aside class="tsd-sources">
 <p>Inherited from TypedEventEmitter.setMaxListeners</p>
 <ul>
-<li>Defined in node_modules/.pnpm/@types+node@20.4.7/node_modules/@types/node/events.d.ts:340</li></ul></aside></li></ul></section></section></div>
+<li>Defined in node_modules/.pnpm/@types+node@20.5.0/node_modules/@types/node/events.d.ts:340</li></ul></aside></li></ul></section></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -981,6 +1040,7 @@ special handling:</p>
 <li><a href="#emitDecisions" class="tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>emit<wbr/>Decisions</span></a></li>
 <li><a href="#eventNames" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>event<wbr/>Names</span></a></li>
 <li><a href="#getMaxListeners" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Max<wbr/>Listeners</span></a></li>
+<li><a href="#handleError" class="tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>handle<wbr/>Error</span></a></li>
 <li><a href="#listenerCount" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listener<wbr/>Count</span></a></li>
 <li><a href="#listeners" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listeners</span></a></li>
 <li><a href="#loop" class="tsd-is-private"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>loop</span></a></li>
@@ -998,6 +1058,7 @@ special handling:</p>
 <li><a href="#resume" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>resume</span></a></li>
 <li><a href="#setMaxListeners" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>set<wbr/>Max<wbr/>Listeners</span></a></li>
 <li><a href="#start" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>start</span></a></li>
+<li><a href="#addAbortListener" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>add<wbr/>Abort<wbr/>Listener</span></a></li>
 <li><a href="#getEventListeners" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Event<wbr/>Listeners</span></a></li>
 <li><a href="#getMaxListeners-2" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>get<wbr/>Max<wbr/>Listeners</span></a></li>
 <li><a href="#listenerCount-2" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2048"></use></svg><span>listener<wbr/>Count</span></a></li>
