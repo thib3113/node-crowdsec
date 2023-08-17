@@ -1,1 +1,1 @@
-export const pkg = { name: 'crowdsec-http-middleware', version: '0.0.3' };
+export const pkg = { name: 'crowdsec-http-middleware', version: '0.0.4' };
