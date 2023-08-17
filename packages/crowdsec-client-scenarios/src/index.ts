@@ -1,6 +1,6 @@
 import { pkg } from './pkg.js';
 import { IScenario } from './baseScenarios/IScenario.js';
-import { XForwardedForChecker, AllowListEnricher, HTTPEnricher } from './scenarios/index.js';
+import { AllowListEnricher, HTTPEnricher, XForwardedForChecker } from './scenarios/index.js';
 
 export * from './baseScenarios/index.js';
 export * from './scenarios/index.js';

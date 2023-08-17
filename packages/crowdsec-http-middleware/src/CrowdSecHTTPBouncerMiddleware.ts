@@ -6,8 +6,7 @@ import {
     DecisionsStream,
     IBouncerAuthentication,
     ICrowdSecClientOptions,
-    ITLSAuthentication,
-    APITypes
+    ITLSAuthentication
 } from 'crowdsec-client';
 import { AddressObject, createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
