@@ -21,7 +21,7 @@ export class AllowListEnricher extends EnricherScenario {
         debug('construct');
         super(options);
 
-        const currentOptions = options?.['allow-list'] || {};
+        const currentOptions = options?.['allow-list'] ?? {};
 
         this.allowed = (currentOptions?.allowed ?? defaultAllowed).map((ip) => getIpObject(ip));
     }

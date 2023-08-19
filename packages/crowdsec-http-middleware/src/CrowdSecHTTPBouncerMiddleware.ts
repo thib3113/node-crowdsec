@@ -22,7 +22,6 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
 
     //TODO store this on updates
     public get decisionsCount(): number {
-        const decisions = this.decisions || {};
         return Object.keys(this.decisions || {}).reduce((previousValue, key) => previousValue + (this.decisions[key]?.length || 0), 0);
     }
 
