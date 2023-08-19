@@ -41,13 +41,13 @@
 <pre><code><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-0">i</span><span class="hl-1"> </span><span class="hl-0">crowdsec</span><span class="hl-1">-</span><span class="hl-0">client</span><span class="hl-1">-</span><span class="hl-0">scenarios</span>
 </code><button>Copy</button></pre>
 <p>and then read the documentation in the <a href="https://github.com/thib3113/node-crowdsec/wiki">wiki</a></p>
-<a id="md:usage" class="tsd-anchor"></a><h1><a href="#md:usage">Usage</a></h1><p>This package, is planned to host scenarios used by <a href="../crowdsec-http-middleware">crowdsec-http-middleware</a> and other middleware that extend it</p>
+<a id="md:usage" class="tsd-anchor"></a><h1><a href="#md:usage">Usage</a></h1><p>This package, is planned to host scenarios used by <a href="https://www.npmjs.com/package/crowdsec-http-middleware">crowdsec-http-middleware</a> and other middleware that extend it</p>
 <a id="md:scenarios" class="tsd-anchor"></a><h1><a href="#md:scenarios">Scenarios</a></h1><p>in this part, we will use the variables <code>scenarios</code> and <code>scenariosOptions</code>, to illustrate the use in the middlewares</p>
-<a id="md:defaults-scenarios" class="tsd-anchor"></a><h2><a href="#md:defaults-scenarios">Defaults scenarios</a></h2><p>the defaults scenarios are (<a href="./src/index.ts#L8">defined here</a>) :</p>
+<a id="md:defaults-scenarios" class="tsd-anchor"></a><h2><a href="#md:defaults-scenarios">Defaults scenarios</a></h2><p>the defaults scenarios are (<a href="https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-client-scenarios/src/index.ts#L8">defined here</a>) :</p>
 <ul>
 <li><a href="#allowlist">AllowListEnricher</a> : allow you to skip alerts on your local ips</li>
 <li><a href="#xforwardedforchecker">XForwardedForChecker</a> : allow to extract visitor ip</li>
-<li><a href="#httpenricher">HTTPEnricher</a> : enrich alerts with informations from the http request</li>
+<li><a href="#httpenricher">HTTPEnricher</a> : enrich alerts with information from the http request</li>
 </ul>
 <a id="md:available-scenarios" class="tsd-anchor"></a><h2><a href="#md:available-scenarios">Available scenarios</a></h2><p>The available scenarios are :</p>
 <a id="md:xforwardedforchecker" class="tsd-anchor"></a><h3><a href="#md:xforwardedforchecker">XForwardedForChecker</a></h3><p>This scenario will validate the XForwardedFor header . Some malicious persons will send you a fake <code>X-Forwarded-For</code> header, to hide their real IP .
