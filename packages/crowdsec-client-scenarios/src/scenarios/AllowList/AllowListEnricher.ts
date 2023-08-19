@@ -17,11 +17,11 @@ const debug = createDebugger('AllowListEnricher');
 export class AllowListEnricher extends EnricherScenario {
     static scenarioName = 'allow-list';
     private allowed: Array<AddressObject>;
-    constructor(options: IScenarioOptions) {
+    constructor(options?: IScenarioOptions) {
         debug('construct');
         super(options);
 
-        const currentOptions = options['allow-list'];
+        const currentOptions = options?.['allow-list'] ?? {};
 
         this.allowed = (currentOptions?.allowed ?? defaultAllowed).map((ip) => getIpObject(ip));
     }

@@ -8,18 +8,23 @@ import {
     ICrowdSecClientOptions,
     ITLSAuthentication
 } from 'crowdsec-client';
-import { AddressObject, createDebugger } from './utils.js';
+import { AddressObject } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage, ServerResponse } from 'http';
+import { CommonsMiddleware } from './CommonsMiddleware.js';
 
 type decisionScope = 'ip' | 'range';
 type decisionType = Decision<decisionScope>;
 
-const debug = createDebugger('CrowdSecHTTPBouncerMiddleware');
-
-export class CrowdSecHTTPBouncerMiddleware {
+export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
     public readonly client: BouncerClient;
+
+    //TODO store this on updates
+    public get decisionsCount(): number {
+        return Object.keys(this.decisions || {}).reduce((previousValue, key) => previousValue + (this.decisions[key]?.length || 0), 0);
+    }
+
     private decisions: Record<string, Array<{ selector: AddressObject; decision: decisionType }>> = {};
     private options: ICrowdSecHTTPBouncerMiddlewareOptions;
     private ipObjectCache: IpObjectsCacher;
@@ -33,7 +38,9 @@ export class CrowdSecHTTPBouncerMiddleware {
     private _decisionStream?: DecisionsStream<decisionScope>;
 
     constructor(options: ICrowdSecHTTPBouncerMiddlewareOptions, clientOptions: ICrowdSecClientOptions, cache?: IpObjectsCacher) {
-        debug('construct');
+        super('CrowdSecHTTPBouncerMiddleware', options.logger);
+        this.logger.debug('construct');
+
         this.options = options;
         this.clientOptions = clientOptions;
 
@@ -50,7 +57,7 @@ export class CrowdSecHTTPBouncerMiddleware {
     }
 
     private getBouncerAuthentication(bouncerOptions: ICrowdSecHTTPMiddlewareOptions['bouncer']) {
-        debug('getBouncerAuthentication');
+        this.logger.debug('getBouncerAuthentication');
         if (Validate.implementsTKeys<ITLSAuthentication>(bouncerOptions, ['key', 'ca', 'cert'])) {
             return {
                 cert: bouncerOptions.cert,
@@ -69,6 +76,7 @@ export class CrowdSecHTTPBouncerMiddleware {
     }
 
     public async start() {
+        this.logger.info('start');
         await this.client.login();
 
         this._decisionStream = this.client.Decisions.getStream({
@@ -77,13 +85,11 @@ export class CrowdSecHTTPBouncerMiddleware {
         });
 
         this._decisionStream.on('error', (e) => {
-            debug('client stream error : %o', e);
+            this.logger.error('client stream error', e);
         });
 
         let timeout: NodeJS.Timeout | undefined;
         this._decisionStream.on('added', (decision) => {
-            const localDebug = debug.extend('decisionAdded');
-            localDebug('start');
             try {
                 // TODO this method doesn't support range including multiple top level group
                 const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
@@ -97,18 +103,14 @@ export class CrowdSecHTTPBouncerMiddleware {
                     this.decisions[decisionId].push({ decision, selector: this.ipObjectCache.getIpObjectWithCache(decision.value) });
                 }
             } catch (e) {
-                debug('fail to add decision %o : ', decision, e);
+                this.logger.error('fail to add decision', e, decision);
             }
-            localDebug('end');
         });
 
         this._decisionStream.on('deleted', (decision) => {
-            const localDebug = debug.extend('decisionDeleted');
-            localDebug('start');
             const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
             const decisionId = ipObject.parsedAddress[0];
             this.decisions[decisionId] = (this.decisions[decisionId] || []).filter(({ decision: d }) => !this.isSameDecision(d, decision));
-            localDebug('end');
         });
 
         this._decisionStream.resume();
@@ -119,27 +121,27 @@ export class CrowdSecHTTPBouncerMiddleware {
     }
 
     public async stop() {
-        debug('stop');
+        this.logger.info('stop');
         return this.client.stop();
     }
 
     public middleware(ip: string, req: IncomingMessage & { decision?: Decision<any> }) {
-        const localDebug = debug.extend('bouncerMiddleware');
-        localDebug('start');
+        const localDebug = this.logger.extend('bouncerMiddleware');
+        localDebug.debug('start');
 
         const currentAddress = this.ipObjectCache.getIpObjectWithCache(ip);
 
-        localDebug('bouncerMiddleware receive request from %s', currentAddress.addressMinusSuffix);
-        localDebug('start decision loop');
+        localDebug.debug('bouncerMiddleware receive request from %s', currentAddress.addressMinusSuffix);
+        localDebug.debug('start decision loop');
         const decision = (this.decisions[currentAddress.parsedAddress[0]] || []).find(({ selector }) =>
             currentAddress.isInSubnet(selector)
         );
-        localDebug('end decision loop');
+        localDebug.debug('end decision loop');
 
         if (decision) {
             req.decision = decision.decision;
         }
-        localDebug('end');
+        localDebug.debug('end');
     }
 
     public getMiddleware(getIpFromRequest: getCurrentIpFn) {
