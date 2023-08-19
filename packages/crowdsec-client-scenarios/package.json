@@ -1,6 +1,6 @@
 {
     "name": "crowdsec-client-scenarios",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "description": "tmp",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
