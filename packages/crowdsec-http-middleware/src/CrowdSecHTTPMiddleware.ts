@@ -1,18 +1,18 @@
-import { ICrowdSecHTTPMiddlewareOptions } from './ICrowdSecHTTPMiddlewareOptions.js';
+import { ICommonOptions, ICrowdSecHTTPMiddlewareOptions } from './ICrowdSecHTTPMiddlewareOptions.js';
 import { ICrowdSecClientOptions } from 'crowdsec-client';
 import { pkg } from './pkg.js';
-import { AddressObject, createDebugger } from './utils.js';
+import { AddressObject } from './utils.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { CrowdSecHTTPBouncerMiddleware } from './CrowdSecHTTPBouncerMiddleware.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { CrowdSecHTTPWatcherMiddleware } from './CrowdSecHTTPWatcherMiddleware.js';
+import { CommonsMiddleware } from './CommonsMiddleware.js';
 
 const defaultClientOptions: Partial<ICrowdSecHTTPMiddlewareOptions['clientOptions']> = {
     userAgent: `${pkg.name}/v${pkg.version}`
 };
-const debug = createDebugger('CrowdSecHTTPMiddleware');
 
-export class CrowdSecHTTPMiddleware {
+export class CrowdSecHTTPMiddleware extends CommonsMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
     private options: ICrowdSecHTTPMiddlewareOptions;
 
@@ -21,7 +21,9 @@ export class CrowdSecHTTPMiddleware {
     private ipObjectCache: IpObjectsCacher;
 
     constructor(options: ICrowdSecHTTPMiddlewareOptions) {
-        debug('construct');
+        super('CrowdSecHTTPMiddleware', options.logger);
+        this.logger.debug('construct');
+
         this.options = {
             protectedByHeader: true,
             ...options
@@ -34,19 +36,24 @@ export class CrowdSecHTTPMiddleware {
 
         this.ipObjectCache = new IpObjectsCacher(options.maxIpCache);
 
+        const commonsOptions: ICommonOptions = {
+            logger: options.logger,
+            maxIpCache: options.maxIpCache
+        };
+
         if (options.watcher) {
-            this.watcher = new CrowdSecHTTPWatcherMiddleware(options.watcher, this.clientOptions);
+            this.watcher = new CrowdSecHTTPWatcherMiddleware({ ...commonsOptions, ...options.watcher }, this.clientOptions);
         }
 
         if (options.bouncer) {
-            this.bouncer = new CrowdSecHTTPBouncerMiddleware(options.bouncer, this.clientOptions);
+            this.bouncer = new CrowdSecHTTPBouncerMiddleware({ ...commonsOptions, ...options.bouncer }, this.clientOptions);
         }
     }
 
     public async start() {
-        debug('start');
+        this.logger.info('start');
 
-        debug('login');
+        this.logger.debug('login');
         await Promise.all([
             this.bouncer ? this.bouncer.start() : Promise.resolve(),
             this.watcher ? this.watcher.start() : Promise.resolve()
@@ -100,12 +107,12 @@ export class CrowdSecHTTPMiddleware {
     };
 
     public getMiddleware() {
-        debug('getMiddleware');
+        this.logger.debug('getMiddleware');
         return this.middlewareFunction;
     }
 
     public async stop() {
-        debug('stop');
+        this.logger.info('stop');
         await Promise.all([this.bouncer?.stop(), this.watcher?.stop()]);
     }
 }

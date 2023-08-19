@@ -16,7 +16,7 @@ export interface IXForwardedForOptions {
 
 declare module '../IScenarioOptions.js' {
     interface IScenarioOptions {
-        'x-forwarded-for': IXForwardedForOptions;
+        'x-forwarded-for'?: IXForwardedForOptions;
     }
 }
 

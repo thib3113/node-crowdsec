@@ -5,6 +5,7 @@ import { createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage } from 'http';
 import { BaseScenario, IIpExtractionResult, IScenario, IScenarioConstructor, MAX_CONFIDENCE } from 'crowdsec-client-scenarios';
+import { CommonsMiddleware } from './CommonsMiddleware.js';
 
 const SCENARIOS_PACKAGE_NAME = 'crowdsec-client-scenarios';
 
@@ -16,7 +17,7 @@ const debug = createDebugger('CrowdSecHTTPWatcherMiddleware');
  * only ip extraction was tested
  */
 
-export class CrowdSecHTTPWatcherMiddleware {
+export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
     private readonly clientOptions: ICrowdSecClientOptions;
     public readonly client: WatcherClient;
     private scenarios: Array<IScenario> = [];
@@ -25,7 +26,9 @@ export class CrowdSecHTTPWatcherMiddleware {
     private ipObjectCache: IpObjectsCacher;
 
     constructor(options: ICrowdSecHTTPWatcherMiddlewareOptions, clientOptions: ICrowdSecClientOptions, cache?: IpObjectsCacher) {
-        debug('construct');
+        super('CrowdSecHTTPWatcherMiddleware', options.logger);
+        this.logger.debug('construct');
+
         this.options = options;
         this.clientOptions = clientOptions;
 
@@ -46,7 +49,7 @@ export class CrowdSecHTTPWatcherMiddleware {
     private getWatcherAuthentication(
         watcherOptions: ICrowdSecHTTPMiddlewareOptions['watcher']
     ): IWatcherAuthentication | ITLSAuthentication {
-        debug('getWatcherAuthentication');
+        this.logger.debug('getWatcherAuthentication');
         if (Validate.implementsTKeys<ITLSAuthentication>(watcherOptions, ['key', 'ca', 'cert'])) {
             return {
                 cert: watcherOptions.cert,
@@ -66,7 +69,7 @@ export class CrowdSecHTTPWatcherMiddleware {
     }
 
     public async start() {
-        debug('start');
+        this.logger.info('start');
 
         await this.loadDefaultsScenarios(true);
         if (this.options.scenarios) {
@@ -74,21 +77,21 @@ export class CrowdSecHTTPWatcherMiddleware {
                 this.addScenario(typeof scenario === 'string' ? scenario : this.initScenario(scenario))
             );
         } else {
-            debug('add (%d) default scenarios', this.defaultScenarios.length);
+            this.logger.debug('add (%d) default scenarios', this.defaultScenarios.length);
             this.defaultScenarios.forEach((scenario) => this.addScenario(this.initScenario(scenario)));
         }
 
         if (this.scenarios?.length > 0) {
-            debug('start to load %d scenarios', this.scenarios.length);
+            this.logger.debug('start to load %d scenarios', this.scenarios.length);
             await Promise.all(this.scenarios.map((s) => (s.loaded === false && s.load ? s.load() : Promise.resolve())));
         }
 
-        debug('login');
+        this.logger.debug('login');
         await this.client.login();
     }
 
     public async loadDefaultsScenarios(allowFail = false) {
-        debug('loadDefaultsScenarios');
+        this.logger.info('loadDefaultsScenarios');
         let defaultScenariosPackage: { scenarios: Array<new (options: any) => BaseScenario> };
         try {
             defaultScenariosPackage = await import(SCENARIOS_PACKAGE_NAME);
@@ -109,7 +112,7 @@ export class CrowdSecHTTPWatcherMiddleware {
     }
 
     private _addScenario(scenario: IScenario) {
-        debug('_addScenario(%s)', scenario.name);
+        this.logger.debug('_addScenario', scenario.name);
         if (!this.client) {
             throw new Error('client need to be configured to register scenario');
         }
@@ -124,7 +127,7 @@ export class CrowdSecHTTPWatcherMiddleware {
             throw new Error('scenario is needed');
         }
 
-        debug('add scenario "%s"', typeof scenario === 'string' ? scenario : scenario.name);
+        this.logger.debug('add scenario', typeof scenario === 'string' ? scenario : scenario.name);
 
         let currentScenario: IScenario;
         if (typeof scenario === 'string') {
@@ -151,13 +154,13 @@ export class CrowdSecHTTPWatcherMiddleware {
     }
 
     public async stop() {
-        debug('stop');
+        this.logger.info('stop');
         return this.client.stop();
     }
 
     public extractIp(req: IncomingMessage): string | undefined {
-        const localDebug = debug.extend('extractIp');
-        localDebug('start extracting ip from request');
+        const localDebug = this.logger.extend('extractIp');
+        localDebug.debug('start extracting ip from request');
 
         const othersIpsFound: Array<IIpExtractionResult> = [];
         const ip = this.scenarios.reduce((currentIp: string | undefined, currentScenario) => {
@@ -180,20 +183,26 @@ export class CrowdSecHTTPWatcherMiddleware {
         }, undefined);
 
         if (!ip && othersIpsFound.length > 0) {
-            localDebug('no ip found with max confidence, check with less confidence');
+            localDebug.debug('no ip found with max confidence, check with less confidence');
             return [...othersIpsFound].sort((a, b) => b.confidence - a.confidence)[0]?.ip;
         }
-        localDebug('ip found');
+        localDebug.debug('ip found');
         return ip;
     }
 
-    public middleware(ip: string, req: IncomingMessage & { decision?: Decision<any> }) {
-        const localDebug = debug.extend('watcherMiddleware');
-        localDebug('start');
+    /**
+     * Middleware function that processes incoming requests and checks for alerts based on IP address and request data.
+     *
+     * @param {string} ip - The IP address of the incoming request.
+     * @param {IncomingMessage & { decision?: Decision<any> }} req - The incoming request object.
+     */
+    public middleware(ip: string, req: IncomingMessage & { decision?: Decision<any> }): void {
+        const localDebug = this.logger.extend('watcherMiddleware');
+        localDebug.debug('start');
         try {
             const currentAddress = this.ipObjectCache.getIpObjectWithCache(ip);
-            localDebug('watcherMiddleware receive request from %s', currentAddress.addressMinusSuffix);
-            localDebug('start check');
+            localDebug.debug('watcherMiddleware receive request from %s', currentAddress.addressMinusSuffix);
+            localDebug.debug('start check');
             const alerts = this.scenarios
                 .map((scenario) => {
                     const alerts = scenario.check?.(currentAddress, req);
@@ -206,13 +215,13 @@ export class CrowdSecHTTPWatcherMiddleware {
                 .flat()
                 .filter((v) => !!v) as Array<APITypes.Alert>;
 
-            localDebug('end check');
+            localDebug.debug('end check');
 
             if (alerts.length === 0) {
                 return;
             }
 
-            localDebug('start enrich');
+            localDebug.debug('start enrich');
             const enrichedAlerts = alerts
                 .map((alert) => {
                     return this.scenarios.reduce((previousValue: APITypes.Alert | undefined, scenario: IScenario) => {
@@ -224,17 +233,17 @@ export class CrowdSecHTTPWatcherMiddleware {
                     }, alert);
                 })
                 .filter((v) => !!v) as Array<APITypes.Alert>;
-            localDebug('end enrich');
+            localDebug.debug('end enrich');
 
             if (enrichedAlerts.length === 0) {
                 return;
             }
 
-            this.client.Alerts.pushAlerts(enrichedAlerts)
-                .then((res) => console.log(res))
-                .catch((e) => console.error('fail to push alert', e));
+            this.logger.debug(`ip ${ip} triggers alerts on scenarios : ${enrichedAlerts.map(({ scenario }) => scenario).join(', ')}`);
+
+            this.client.Alerts.pushAlerts(enrichedAlerts).catch((e) => console.error('fail to push alert', e));
         } finally {
-            localDebug('end');
+            localDebug.debug('end');
         }
     }
 

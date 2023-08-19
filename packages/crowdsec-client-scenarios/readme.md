@@ -41,18 +41,18 @@ and then read the documentation in the [wiki](https://github.com/thib3113/node-c
 
 # Usage
 
-This package, is planned to host scenarios used by [crowdsec-http-middleware](../crowdsec-http-middleware) and other middleware that extend it
+This package, is planned to host scenarios used by [crowdsec-http-middleware](https://www.npmjs.com/package/crowdsec-http-middleware) and other middleware that extend it
 
 # Scenarios
 
 in this part, we will use the variables `scenarios` and `scenariosOptions`, to illustrate the use in the middlewares
 
 ## Defaults scenarios
-the defaults scenarios are ([defined here](./src/index.ts#L8)) :
+the defaults scenarios are ([defined here](https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-client-scenarios/src/index.ts#L8)) :
 
 - [AllowListEnricher](#allowlist) : allow you to skip alerts on your local ips
 - [XForwardedForChecker](#xforwardedforchecker) : allow to extract visitor ip
-- [HTTPEnricher](#httpenricher) : enrich alerts with informations from the http request
+- [HTTPEnricher](#httpenricher) : enrich alerts with information from the http request
 
 ## Available scenarios
 The available scenarios are :
