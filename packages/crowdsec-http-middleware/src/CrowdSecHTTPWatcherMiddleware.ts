@@ -1,15 +1,12 @@
 import { getCurrentIpFn, ICrowdSecHTTPMiddlewareOptions, ICrowdSecHTTPWatcherMiddlewareOptions } from './ICrowdSecHTTPMiddlewareOptions.js';
 import Validate from './Validate.js';
 import { APITypes, Decision, ICrowdSecClientOptions, ITLSAuthentication, IWatcherAuthentication, WatcherClient } from 'crowdsec-client';
-import { createDebugger } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage } from 'http';
 import { BaseScenario, IIpExtractionResult, IScenario, IScenarioConstructor, MAX_CONFIDENCE } from 'crowdsec-client-scenarios';
 import { CommonsMiddleware } from './CommonsMiddleware.js';
 
 const SCENARIOS_PACKAGE_NAME = 'crowdsec-client-scenarios';
-
-const debug = createDebugger('CrowdSecHTTPWatcherMiddleware');
 
 /**
  * TODO
@@ -77,12 +74,12 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
                 this.addScenario(typeof scenario === 'string' ? scenario : this.initScenario(scenario))
             );
         } else {
-            this.logger.debug('add (%d) default scenarios', this.defaultScenarios.length);
+            this.logger.debug(`add (${this.defaultScenarios.length}) default scenarios`);
             this.defaultScenarios.forEach((scenario) => this.addScenario(this.initScenario(scenario)));
         }
 
         if (this.scenarios?.length > 0) {
-            this.logger.debug('start to load %d scenarios', this.scenarios.length);
+            this.logger.debug(`start to load (${this.scenarios.length}) scenarios`);
             await Promise.all(this.scenarios.map((s) => (s.loaded === false && s.load ? s.load() : Promise.resolve())));
         }
 
@@ -96,7 +93,7 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
         try {
             defaultScenariosPackage = await import(SCENARIOS_PACKAGE_NAME);
         } catch (e) {
-            debug('fail to load defaultScenarios : %o', e);
+            this.logger.error('fail to load defaultScenarios', e);
             if (allowFail) {
                 return;
             }
@@ -201,7 +198,7 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
         localDebug.debug('start');
         try {
             const currentAddress = this.ipObjectCache.getIpObjectWithCache(ip);
-            localDebug.debug('watcherMiddleware receive request from %s', currentAddress.addressMinusSuffix);
+            localDebug.debug('watcherMiddleware receive request from ', currentAddress.addressMinusSuffix);
             localDebug.debug('start check');
             const alerts = this.scenarios
                 .map((scenario) => {
