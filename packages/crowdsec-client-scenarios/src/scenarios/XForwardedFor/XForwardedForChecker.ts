@@ -5,6 +5,8 @@ import { IScenarioOptions } from '../IScenarioOptions.js';
 import { IncomingMessage } from 'http';
 import { IncomingHttpHeaders } from 'http2';
 import { CheckerScenario } from '../../baseScenarios/CheckerScenario.js';
+import { LRUCache } from 'lru-cache';
+import * as crypto from 'crypto';
 
 export interface IXForwardedForOptions {
     /**
@@ -34,6 +36,7 @@ export class XForwardedForChecker extends CheckerScenario {
 
     private reverseProxiesRange: Array<AddressObject>;
     private readonly currentOptions: IXForwardedForOptions;
+    private extractIpCache: LRUCache<string, Array<IExtractedIP>, unknown>;
 
     constructor(options?: IScenarioOptions) {
         debug('construct');
@@ -45,6 +48,9 @@ export class XForwardedForChecker extends CheckerScenario {
             ...currentOptions
         };
         this.reverseProxiesRange = (currentOptions?.trustedProxies ?? []).map((cidr) => this.getAddressObjectWithCache(cidr));
+        this.extractIpCache = new LRUCache<string, Array<IExtractedIP>>({
+            max: this.ipObjectCache.max
+        });
     }
 
     private generateAlert(
@@ -81,11 +87,12 @@ export class XForwardedForChecker extends CheckerScenario {
         const ipResult = this.extractIps(req);
 
         const ipStr = ip.addressMinusSuffix ?? '';
-        if (ipResult.findIndex((i) => !i.trustedProxy) < ipResult.length) {
+        const untrustedProxyIndex = ipResult.findIndex((i) => !i.trustedProxy);
+        if (untrustedProxyIndex + 1 < ipResult.length) {
             localDebug('untrusted "proxy" pass header, send alert ? %o', alertOnNotTrustedIps);
             if (alertOnNotTrustedIps) {
-                //create alert
                 const scenarioName = `${XForwardedForChecker.scenarioName}/untrusted-proxy`;
+                const headers = this.getXForwardedForHeader(req.headers);
                 //create alert
                 alerts.push(
                     this.generateAlert(
@@ -95,6 +102,14 @@ export class XForwardedForChecker extends CheckerScenario {
                             events: [
                                 {
                                     meta: [
+                                        {
+                                            key: 'http_forwarded_for',
+                                            value: headers[0]
+                                        },
+                                        {
+                                            key: 'http_forwarded_for_parsed',
+                                            value: ipResult.map(({ ip }) => ip).join(', ')
+                                        },
                                         {
                                             key: 'source_ip',
                                             value: ipStr
@@ -175,7 +190,16 @@ export class XForwardedForChecker extends CheckerScenario {
 
         let firstUntrustedIpFound = false;
 
-        return [remoteAddressIPResult, ...this.extractIpsFromHeader(this.getXForwardedForHeader(req.headers))].map((ipResult) => {
+        const xForwardedForHeaderValues = this.getXForwardedForHeader(req.headers);
+
+        //use cache if this xForwardedFor is always known
+        const cacheKey = xForwardedForHeaderValues.map((h) => crypto.createHash('sha256').update(h).digest('hex')).join('|');
+        const cache = this.extractIpCache.get(cacheKey);
+        if (cache) {
+            return [...cache];
+        }
+
+        const result = [remoteAddressIPResult, ...this.extractIpsFromHeader(this.getXForwardedForHeader(req.headers))].map((ipResult) => {
             localDebug('test if %o is a reverse proxy', ipResult.ip);
 
             ipResult.valid = true;
@@ -208,6 +232,8 @@ export class XForwardedForChecker extends CheckerScenario {
             localDebug('%o is not a reverse proxy', ipResult.ip);
             return ipResult;
         });
+        this.extractIpCache.set(cacheKey, result);
+        return [...result];
     }
 
     public extractIp = (req: IncomingMessage): IIpExtractionResult | undefined => {
