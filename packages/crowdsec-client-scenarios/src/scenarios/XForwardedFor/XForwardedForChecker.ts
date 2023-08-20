@@ -192,6 +192,7 @@ export class XForwardedForChecker extends CheckerScenario {
 
         const xForwardedForHeaderValues = this.getXForwardedForHeader(req.headers);
 
+        localDebug(`X-Forwarded-For extracted (${xForwardedForHeaderValues.length}) : "${xForwardedForHeaderValues.join('", "')}"`);
         //use cache if this xForwardedFor is always known
         const cacheKey = xForwardedForHeaderValues.map((h) => crypto.createHash('sha256').update(h).digest('hex')).join('|');
         const cache = this.extractIpCache.get(cacheKey);
