@@ -5,6 +5,9 @@ import { AddressObject, getIpObject } from '../utils.js';
 import { LRUCache } from 'lru-cache';
 import { IScenarioOptions } from '../scenarios/IScenarioOptions.js';
 
+/**
+ * when creating a scenario, you need to add a static scenarioName
+ */
 export abstract class BaseScenario implements IScenario {
     static ipObjectCache: LRUCache<string, AddressObject, unknown>;
 
@@ -13,7 +16,7 @@ export abstract class BaseScenario implements IScenario {
     }
 
     static get scenarioName(): string {
-        throw new Error('NOT YET IMPLEMENTED');
+        throw new Error('Static ScenarioName is not yet implemented');
     }
 
     public constructor(options?: IScenarioOptions) {

@@ -88,6 +88,12 @@ export class XForwardedForChecker extends CheckerScenario {
 
         const ipStr = ip.addressMinusSuffix ?? '';
         const untrustedProxyIndex = ipResult.findIndex((i) => !i.trustedProxy);
+
+        if (untrustedProxyIndex < 0) {
+            localDebug('current ip not found in XForwardedFor header');
+            return [];
+        }
+
         if (untrustedProxyIndex + 1 < ipResult.length) {
             localDebug('untrusted "proxy" pass header, send alert ? %o', alertOnNotTrustedIps);
             if (alertOnNotTrustedIps) {
