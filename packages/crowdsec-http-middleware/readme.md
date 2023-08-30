@@ -104,6 +104,7 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
     },
     // here, an optional function to extract Ip from request
     // you can also use a scenario with "extractIp" capability
+    // getCurrentIp is prior to scenarios extractIp . If you want to use a default function, create a scenario with only extractIp
     getCurrentIp: (req: IncomingMessage) => req.socket.remoteAddress || '0.0.0.0',
     //we will see this configurations later
     watcher: watcherOptions,

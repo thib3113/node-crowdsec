@@ -88,7 +88,7 @@ export class CrowdSecHTTPMiddleware extends CommonsMiddleware {
         return this.ipObjectCache.getIpObjectWithCache(ip);
     }
 
-    protected middlewareFunction = (req: IncomingMessage, res: ServerResponse) => {
+    protected middlewareFunction = (req: IncomingMessage, res?: ServerResponse) => {
         const currentIp = this.getIpObjectFromReq(req);
 
         if (!currentIp.addressMinusSuffix) {
@@ -101,7 +101,7 @@ export class CrowdSecHTTPMiddleware extends CommonsMiddleware {
 
         this.watcher?.middleware(currentIp.addressMinusSuffix, req);
 
-        if (this.options.protectedByHeader) {
+        if (this.options.protectedByHeader && res) {
             res.appendHeader('X-Protected-By', 'CrowdSec');
         }
     };
