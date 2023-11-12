@@ -9,16 +9,16 @@
     "generate:documentation": "typedoc"
   },
   "devDependencies": {
-    "@tsconfig/node-lts": "18.12.3",
-    "@types/jest": "29.5.3",
-    "@types/node": "20.5.1",
-    "@typescript-eslint/parser": "6.4.0",
-    "eslint": "8.47.0",
+    "@tsconfig/node-lts": "18.12.5",
+    "@types/jest": "29.5.8",
+    "@types/node": "20.9.0",
+    "@typescript-eslint/parser": "6.10.0",
+    "eslint": "8.53.0",
     "eslint-config-prettier": "9.0.0",
-    "eslint-plugin-prettier": "5.0.0",
-    "prettier": "3.0.2",
+    "eslint-plugin-prettier": "5.0.1",
+    "prettier": "3.0.3",
     "ts-node": "10.9.1",
-    "typedoc": "0.24.8",
-    "typescript": "5.1.6"
+    "typedoc": "0.25.3",
+    "typescript": "5.2.2"
   }
 }
