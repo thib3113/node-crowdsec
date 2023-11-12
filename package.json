@@ -9,7 +9,7 @@
     "generate:documentation": "typedoc"
   },
   "devDependencies": {
-    "@tsconfig/node-lts": "18.12.3",
+    "@tsconfig/node-lts": "18.12.5",
     "@types/jest": "29.5.3",
     "@types/node": "20.5.1",
     "@typescript-eslint/parser": "6.4.0",
