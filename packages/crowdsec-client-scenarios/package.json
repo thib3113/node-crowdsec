@@ -54,8 +54,8 @@
     ],
     "license": "ISC",
     "dependencies": {
-        "@laverdet/beaugunderson-ip-address": "^8.1.0",
         "debug": "^4.3.4",
+        "ip-address": "^9.0.5",
         "lru-cache": "^10.0.2",
         "maxmind": "^4.3.17"
     },
