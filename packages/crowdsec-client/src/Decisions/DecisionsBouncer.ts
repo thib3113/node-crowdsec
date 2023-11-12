@@ -3,6 +3,8 @@ import type { decisionOrigin, Decisions } from '../types/index.js';
 import { createDebugger, forceArray } from '../utils.js';
 import { DecisionsStream } from './DecisionsStream.js';
 import { Decision } from './Decision.js';
+import axios from 'axios';
+import { AxiosError } from '../Errors/index.js';
 
 const debug = createDebugger('DecisionsBouncer');
 
@@ -41,11 +43,18 @@ export class DecisionsBouncer extends BaseSubObject {
                 : undefined
         }))();
 
-        return (
-            await this.http.get<Decisions.GetDecisionsStream.ResponseBody>('/v1/decisions/stream', {
-                params
-            })
-        ).data;
+        try {
+            return (
+                await this.http.get<Decisions.GetDecisionsStream.ResponseBody>('/v1/decisions/stream', {
+                    params
+                })
+            ).data;
+        } catch (e) {
+            if (axios.isAxiosError(e)) {
+                throw new AxiosError(e);
+            }
+            throw e;
+        }
     }
 
     public getStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
@@ -214,12 +223,19 @@ export class DecisionsBouncer extends BaseSubObject {
                 : undefined
         }))();
 
-        return (
-            (
-                await this.http.get<Decisions.GetDecisions.ResponseBody>('/v1/decisions', {
-                    params
-                })
-            )?.data || []
-        ).map((d) => new Decision(d));
+        try {
+            return (
+                (
+                    await this.http.get<Decisions.GetDecisions.ResponseBody>('/v1/decisions', {
+                        params
+                    })
+                )?.data || []
+            ).map((d) => new Decision(d));
+        } catch (e) {
+            if (axios.isAxiosError(e)) {
+                throw new AxiosError(e);
+            }
+            throw e;
+        }
     }
 }
