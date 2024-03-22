@@ -118,7 +118,7 @@ jobs:
         shell: bash
 
       - name: Compare npm with local (versions)
-        uses: Rober19/compare-npm-versions-ci@master
+        uses: rbatty19/compare-npm-versions-ci@master
         id: package_version
         continue-on-error: true
         with:
