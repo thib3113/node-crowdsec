@@ -56,7 +56,7 @@
     "dependencies": {
         "debug": "^4.3.4",
         "ip-address": "^9.0.5",
-        "lru-cache": "^10.2.0",
+        "lru-cache": "^11.0.0",
         "maxmind": "^4.3.18"
     },
     "engines": {

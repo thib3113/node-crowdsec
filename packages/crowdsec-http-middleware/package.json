@@ -57,7 +57,7 @@
         "crowdsec-client": "workspace:^",
         "debug": "^4.3.4",
         "ip-address": "^9",
-        "lru-cache": "^10.2.0"
+        "lru-cache": "^11.0.0"
     },
     "engines": {
         "node": ">=16"
