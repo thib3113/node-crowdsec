@@ -55,7 +55,7 @@
     "license": "ISC",
     "dependencies": {
         "debug": "^4.3.4",
-        "ip-address": "^9.0.5",
+        "ip-address": "^10.0.0",
         "lru-cache": "^10.2.0",
         "maxmind": "^4.3.18"
     },
