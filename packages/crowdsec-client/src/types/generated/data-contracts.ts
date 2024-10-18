@@ -14,6 +14,11 @@ export interface WatcherRegistrationRequest {
     machine_id: string;
     /** @format password */
     password: string;
+    /**
+     * @minLength 32
+     * @maxLength 255
+     */
+    registration_token?: string;
 }
 
 /** WatcherAuthRequest */
@@ -196,6 +201,127 @@ export type Meta = {
     value?: string;
 }[];
 
+/** RemediationComponentsMetrics */
+export type RemediationComponentsMetrics = BaseMetrics & {
+    /** type of the remediation component */
+    type?: string;
+    /** name of the remediation component */
+    name?: string;
+    /** last pull date */
+    last_pull?: number;
+};
+
+/** LogProcessorsMetrics */
+export type LogProcessorsMetrics = BaseMetrics & {
+    hub_items: HubItems;
+    /** Number of datasources per type */
+    datasources: Record<string, number>;
+    /** name of the log processor */
+    name?: string;
+    /** last push date */
+    last_push?: number;
+    /** last update date */
+    last_update?: number;
+};
+
+/** LapiMetrics */
+export type LapiMetrics = BaseMetrics & {
+    console_options?: ConsoleOptions;
+};
+
+/** AllMetrics */
+export interface AllMetrics {
+    /** remediation components metrics */
+    remediation_components?: RemediationComponentsMetrics[];
+    /** log processors metrics */
+    log_processors?: LogProcessorsMetrics[];
+    lapi?: LapiMetrics;
+}
+
+/** BaseMetrics */
+export interface BaseMetrics {
+    /**
+     * version of the remediation component
+     * @maxLength 255
+     */
+    version: string;
+    os?: OSversion;
+    /** metrics details */
+    metrics?: DetailedMetrics[];
+    /**
+     * feature flags (expected to be empty for remediation components)
+     * @maxLength 255
+     */
+    feature_flags?: string[];
+    /** UTC timestamp of the startup of the software */
+    utc_startup_timestamp: number;
+}
+
+/** OSversion */
+export interface OSversion {
+    /**
+     * name of the OS
+     * @maxLength 255
+     */
+    name: string;
+    /**
+     * version of the OS
+     * @maxLength 255
+     */
+    version: string;
+}
+
+/** DetailedMetrics */
+export interface DetailedMetrics {
+    items: MetricsDetailItem[];
+    meta: MetricsMeta;
+}
+
+/** MetricsDetailItem */
+export interface MetricsDetailItem {
+    /**
+     * name of the metric
+     * @maxLength 255
+     */
+    name: string;
+    /** value of the metric */
+    value: number;
+    /**
+     * unit of the metric
+     * @maxLength 255
+     */
+    unit: string;
+    /** labels of the metric */
+    labels?: MetricsLabels;
+}
+
+/** MetricsMeta */
+export interface MetricsMeta {
+    /** Size, in seconds, of the window used to compute the metric */
+    window_size_seconds: number;
+    /** UTC timestamp of the current time */
+    utc_now_timestamp: number;
+}
+
+/** MetricsLabels */
+export type MetricsLabels = Record<string, string>;
+
+/** ConsoleOptions */
+export type ConsoleOptions = string[];
+
+/** HubItems */
+export type HubItems = Record<string, HubItem[]>;
+
+/** HubItem */
+export interface HubItem {
+    /** name of the hub item */
+    name?: string;
+    /** version of the hub item */
+    version?: string;
+    /** status of the hub item (official, custom, tainted, etc.) */
+    status?: string;
+}
+
 /**
  * error response
  * error response return by the API
@@ -207,8 +333,17 @@ export interface ErrorResponse {
     errors?: string;
 }
 
+/**
+ * success response
+ * success response return by the API
+ */
+export interface SuccessResponse {
+    /** message */
+    message: string;
+}
+
 export interface GetDecisionsStreamParams {
-    /** If true, means that the bouncers is starting and a full list must be provided */
+    /** If true, means that the remediation component is starting and a full list must be provided */
     startup?: boolean;
     /** Comma separated scopes of decisions to fetch */
     scopes?: string;
