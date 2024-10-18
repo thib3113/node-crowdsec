@@ -1,8 +1,8 @@
 {
   "name": "node-crowdsec-client-root",
   "engines": {
-    "node": ">=18",
-    "pnpm": ">=3"
+    "node": ">=18.12",
+    "pnpm": ">=9"
   },
   "license": "UNLICENSED",
   "scripts": {
