@@ -13,8 +13,8 @@ import { DecisionsStreamResponse, DeleteDecisionResponse, GetDecisionsResponse }
 
 export namespace Decisions {
     /**
-     * @description Returns a list of new/expired decisions. Intended for bouncers that need to "stream" decisions
-     * @tags bouncers
+     * @description Returns a list of new/expired decisions. Intended for remediation component that need to "stream" decisions
+     * @tags Remediation component
      * @name GetDecisionsStream
      * @summary getDecisionsStream
      * @request GET:/decisions/stream
@@ -23,7 +23,7 @@ export namespace Decisions {
     export namespace GetDecisionsStream {
         export type RequestParams = {};
         export type RequestQuery = {
-            /** If true, means that the bouncers is starting and a full list must be provided */
+            /** If true, means that the remediation component is starting and a full list must be provided */
             startup?: boolean;
             /** Comma separated scopes of decisions to fetch */
             scopes?: string;
@@ -40,8 +40,8 @@ export namespace Decisions {
     }
 
     /**
-     * @description Returns a list of new/expired decisions. Intended for bouncers that need to "stream" decisions
-     * @tags bouncers
+     * @description Returns a list of new/expired decisions. Intended for remediation component that need to "stream" decisions
+     * @tags Remediation component
      * @name HeadDecisionsStream
      * @summary GetDecisionsStream
      * @request HEAD:/decisions/stream
@@ -60,10 +60,11 @@ export namespace Decisions {
 
     /**
      * @description Returns information about existing decisions
-     * @tags bouncers
+     * @tags Remediation component
      * @name GetDecisions
      * @summary getDecisions
      * @request GET:/decisions
+     * @secure
      */
     export namespace GetDecisions {
         export type RequestParams = {};
@@ -94,7 +95,7 @@ export namespace Decisions {
 
     /**
      * @description Returns information about existing decisions
-     * @tags bouncers
+     * @tags Remediation component
      * @name HeadDecisions
      * @summary GetDecisions
      * @request HEAD:/decisions
