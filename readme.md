@@ -58,3 +58,8 @@ Here are some optionals scenarios available to use with the middleware
  - [express-web-parser](./examples/express-web-parser) : a watcher example that will ban user checking the user-agent
 
 This library is a Node.js client to talk with crowdsec rest API .
+
+## Thanks to
+
+- [Crowdsec team](https://www.crowdsec.net/) for the crowdsec tool
+- [University of Delaware](https://www.udel.edu/)
