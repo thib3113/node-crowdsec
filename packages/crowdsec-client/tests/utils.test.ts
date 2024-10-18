@@ -23,6 +23,7 @@ describe('utils', () => {
             global.Date.now = RealDate;
         });
         const testDatas: Array<[string, number]> = [
+            ['0s', 0],
             ['48.11435635s', 48114],
             ['-11h29m39.698479471s', -41379699],
             ['59m49.264032632s', 3589264],
