@@ -53,7 +53,7 @@
         "firewall",
         "security"
     ],
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "axios": "^1.7.7",
         "debug": "^4.3.7"
