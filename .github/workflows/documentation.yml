@@ -25,12 +25,11 @@ jobs:
         with:
           node-version: lts/*
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         name: Install pnpm
         id: pnpm-install
         with:
           run_install: true
-          version: latest
 
       - name: Get pnpm store directory
         id: pnpm-cache
