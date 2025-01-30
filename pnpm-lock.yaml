@@ -61,8 +61,8 @@ importers:
         specifier: 5.0.0
         version: 5.0.0
       dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
+        specifier: 16.4.7
+        version: 16.4.7
       source-map-support:
         specifier: 0.5.21
         version: 0.5.21
@@ -140,8 +140,8 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
       dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
+        specifier: 16.4.7
+        version: 16.4.7
       esbuild:
         specifier: 0.24.0
         version: 0.24.0
@@ -192,8 +192,8 @@ importers:
         specifier: workspace:^
         version: link:../crowdsec-client
       dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
+        specifier: 16.4.7
+        version: 16.4.7
       esbuild:
         specifier: 0.24.0
         version: 0.24.0
@@ -244,8 +244,8 @@ importers:
         specifier: workspace:^
         version: link:../crowdsec-client-scenarios
       dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
+        specifier: 16.4.7
+        version: 16.4.7
       esbuild:
         specifier: 0.24.0
         version: 0.24.0
@@ -1361,6 +1361,10 @@ packages:
 
   dotenv@16.4.5:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
+    engines: {node: '>=12'}
+
+  dotenv@16.4.7:
+    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
 
   eastasianwidth@0.2.0:
@@ -4286,6 +4290,8 @@ snapshots:
       esutils: 2.0.3
 
   dotenv@16.4.5: {}
+
+  dotenv@16.4.7: {}
 
   eastasianwidth@0.2.0: {}
 
