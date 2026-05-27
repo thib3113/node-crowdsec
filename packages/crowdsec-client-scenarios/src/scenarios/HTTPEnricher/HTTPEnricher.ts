@@ -28,6 +28,7 @@ export class HTTPEnricher extends EnricherScenario {
         };
 
         alert.events = alert.events.map((e) => ({ ...e, meta: mergeMetas(e.meta, metas) }));
+        alert.meta = mergeMetas(alert.meta, metas);
 
         return alert;
     }
