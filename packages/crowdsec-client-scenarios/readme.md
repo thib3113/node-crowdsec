@@ -28,7 +28,7 @@
 
 [![NPM](https://nodei.co/npm/crowdsec-client-scenarios.png)](https://nodei.co/npm/crowdsec-client-scenarios/)
 
-This library is a Node.js client to talk with crowdsec rest API .
+This library is a Node.js client to talk with crowdsec rest API . Please note that Node.js >= 24 is required.
 # Start
 
 install it
