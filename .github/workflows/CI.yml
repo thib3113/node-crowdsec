@@ -30,7 +30,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 24
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -78,7 +78,7 @@ jobs:
       fail-fast: false
       matrix:
         package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
-        node-version: [ lts/*, 24, latest ]
+        node-version: [ 24, latest ]
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -140,7 +140,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 24
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
