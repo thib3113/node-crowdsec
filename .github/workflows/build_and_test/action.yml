@@ -115,4 +115,4 @@ runs:
       with:
         args: -Dsonar.projectName=${{ inputs.package_name }}
         projectBaseDir: ${{ inputs.package_path }}
-      if: ${{ inputs.check == 'true' }}
+      if: ${{ inputs.check == 'true' && github.ref == 'refs/heads/main' }}
