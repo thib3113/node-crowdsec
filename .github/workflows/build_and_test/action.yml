@@ -32,12 +32,12 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    - uses: pnpm/action-setup@v2
+    - uses: pnpm/action-setup@v4
       name: Install pnpm
       id: pnpm-install
       with:
         run_install: true
-        version: latest
+        version: 9.15.4
 
     - name: Get pnpm store directory
       id: pnpm-cache
