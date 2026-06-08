@@ -74,7 +74,7 @@ export const parseExpiration = (duration: string) => {
     return new Date(Date.now() + seconds * multiplier);
 };
 
-export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? p : [p]);
+export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? (p as T[]) : [p as T]);
 
 /**
  * the job of this function, is to unblock the loop when running a long while

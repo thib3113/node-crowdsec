@@ -11,11 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "crowdsec-client": "workspace:^",
-    "express": "^4.21.1"
+    "express": "^5.2.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "dotenv": "^16.4.5",
+    "@types/express": "^5.0.6",
+    "dotenv": "^17.4.2",
     "source-map-support": "^0.5.21"
   }
 }

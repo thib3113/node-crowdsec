@@ -64,10 +64,10 @@ describe('DecisionsBouncer', () => {
         const mockSetTimeout = jest.fn();
 
         let localDecisionStream: DecisionsStream;
-        const oldSetTimeout = setTimeout;
+        const oldSetTimeout = global.setTimeout;
         beforeEach(() => {
             // @ts-ignore
-            setTimeout = mockSetTimeout;
+            global.setTimeout = mockSetTimeout as any;
 
             localDecisionStream = {
                 paused: true,
@@ -84,7 +84,7 @@ describe('DecisionsBouncer', () => {
         afterEach(() => {
             // jest.useRealTimers();
             // @ts-ignore
-            setTimeout = oldSetTimeout;
+            global.setTimeout = oldSetTimeout;
             mockTimeoutCleared.mockRestore();
         });
 
