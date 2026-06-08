@@ -64,7 +64,7 @@
     },
     "devDependencies": {
         "@jest/globals": "29.7.0",
-        "@types/debug": "4.1.12",
+        "@types/debug": "4.1.13",
         "crowdsec-client": "workspace:^",
         "dotenv": "16.4.5",
         "esbuild": "0.24.0",
