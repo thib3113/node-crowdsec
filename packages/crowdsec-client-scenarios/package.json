@@ -19,7 +19,7 @@
         "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
         "test:ci": "npm run jest -- --ci",
         "test:ci:coverage": "npm run jest -- --ci --coverage",
-        "lint": "eslint -f unix \"src/**\"",
+        "lint": "eslint src",
         "lint:fix": "npm lint -- --fix",
         "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
     },
@@ -54,26 +54,26 @@
     ],
     "license": "ISC",
     "dependencies": {
-        "debug": "^4.3.7",
-        "ip-address": "^10.0.1",
-        "lru-cache": "^11.0.1",
-        "maxmind": "^4.3.22"
+        "debug": "^4.4.3",
+        "ip-address": "^10.2.0",
+        "lru-cache": "^11.5.1",
+        "maxmind": "^5.0.6"
     },
     "engines": {
         "node": ">=16"
     },
     "devDependencies": {
-        "@jest/globals": "29.7.0",
-        "@types/debug": "4.1.12",
+        "@jest/globals": "30.4.1",
+        "@types/debug": "4.1.13",
         "crowdsec-client": "workspace:^",
-        "dotenv": "16.4.5",
-        "esbuild": "0.24.0",
-        "jest": "29.7.0",
+        "dotenv": "17.4.2",
+        "esbuild": "0.28.0",
+        "jest": "30.4.2",
         "jest-sonar": "0.2.16",
-        "mmdb-lib": "2.1.1",
-        "rimraf": "6.0.1",
+        "mmdb-lib": "3.0.2",
+        "rimraf": "6.1.3",
         "source-map-support": "0.5.21",
-        "ts-jest": "29.2.5",
+        "ts-jest": "29.4.11",
         "ts-node": "10.9.2"
     },
     "funding": [
