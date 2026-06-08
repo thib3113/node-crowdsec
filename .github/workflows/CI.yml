@@ -37,7 +37,7 @@ jobs:
         id: pnpm-install
         with:
           run_install: true
-          version: 9.15.4
+          version: 9.15.9
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -67,7 +67,7 @@ jobs:
         id: pnpm-install
         with:
           run_install: true
-          version: 9.15.4
+          version: 9.15.9
       - id: set-matrix
         run: |
           export MATRIX=$(pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c)
@@ -149,7 +149,7 @@ jobs:
         id: pnpm-install
         with:
           run_install: true
-          version: 9.15.4
+          version: 9.15.9
 
       - name: Get pnpm store directory
         id: pnpm-cache

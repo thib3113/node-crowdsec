@@ -37,7 +37,7 @@ runs:
       id: pnpm-install
       with:
         run_install: true
-        version: 9.15.4
+        version: 9.15.9
 
     - name: Get pnpm store directory
       id: pnpm-cache
