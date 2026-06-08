@@ -187,14 +187,14 @@ describe('WatcherClient.test.ts', () => {
 
         describe('_login', () => {
             let _login: WatcherClientType['_login'];
-            const oldSetTimeout = setTimeout;
+            const oldSetTimeout = global.setTimeout;
             const mockSetTimeout = jest.fn();
             const mockSetAuthenticationHeaders = jest.fn();
             beforeEach(() => {
                 // @ts-ignore
                 _login = watcher._login.bind(watcher);
                 // @ts-ignore
-                setTimeout = mockSetTimeout;
+                global.setTimeout = mockSetTimeout as any;
 
                 // @ts-ignore
                 watcher.setAuthenticationHeaders = mockSetAuthenticationHeaders;
@@ -202,7 +202,7 @@ describe('WatcherClient.test.ts', () => {
 
             afterEach(() => {
                 // @ts-ignore
-                setTimeout = oldSetTimeout;
+                global.setTimeout = oldSetTimeout;
             });
             it('should log in with machineId and password', async () => {
                 httpPostMock.mockImplementationOnce(() => ({
@@ -406,18 +406,18 @@ describe('WatcherClient.test.ts', () => {
         });
         describe('heartbeatLoop', () => {
             let heartbeatLoop: WatcherClientType['heartbeatLoop'];
-            const oldSetTimeout = setTimeout;
+            const oldSetTimeout = global.setTimeout;
             const mockSetTimeout = jest.fn();
             beforeEach(() => {
                 // @ts-ignore
                 heartbeatLoop = watcher.heartbeatLoop.bind(watcher);
                 // @ts-ignore
-                setTimeout = mockSetTimeout;
+                global.setTimeout = mockSetTimeout as any;
             });
 
             afterEach(() => {
                 // @ts-ignore
-                setTimeout = oldSetTimeout;
+                global.setTimeout = oldSetTimeout;
             });
             it('should clear timeout heartbeatLoop', async () => {
                 const [timeout, mockTimeout] = getFakeTimeout();
