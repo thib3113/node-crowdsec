@@ -6,5 +6,4 @@ tsconfig.json
 .env
 esbuild.js
 jest.config.js
-sonar-project.properties
 typedoc.json
