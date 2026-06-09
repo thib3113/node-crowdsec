@@ -20,9 +20,6 @@ inputs:
   GITHUB_TOKEN:
     description: 'GITHUB_TOKEN'
     required: true
-  SONAR_TOKEN:
-    description: 'SONAR_TOKEN'
-    required: true
 
 runs:
   using: "composite"
@@ -106,14 +103,4 @@ runs:
         name: ${{ inputs.package_name }}
         verbose: true
         directory: ${{ inputs.package_path }}/coverage
-      if: ${{ inputs.check == 'true' }}
-
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarqube-scan-action@v5.3.1
-      env:
-        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
-      with:
-        args: -Dsonar.projectName=${{ inputs.package_name }}
-        projectBaseDir: ${{ inputs.package_path }}
       if: ${{ inputs.check == 'true' }}
