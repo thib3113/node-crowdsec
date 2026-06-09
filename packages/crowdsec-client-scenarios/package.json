@@ -60,7 +60,7 @@
         "maxmind": "^5.0.6"
     },
     "engines": {
-        "node": ">=16"
+        "node": ">=24"
     },
     "devDependencies": {
         "@jest/globals": "30.4.1",

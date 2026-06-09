@@ -236,7 +236,8 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
                 return;
             }
 
-            this.logger.debug(`ip ${ip} triggers alerts on scenarios : ${enrichedAlerts.map(({ scenario }) => scenario).join(', ')}`);
+            this.logger.warn(`ip ${ip} triggers alerts on scenarios : ${enrichedAlerts.map(({ scenario }) => scenario).join(', ')}`);
+            this.logger.debug(`ip ${ip} triggers alerts: %j`, enrichedAlerts);
 
             this.client.Alerts.pushAlerts(enrichedAlerts).catch((e) => console.error('fail to push alert', e));
         } finally {

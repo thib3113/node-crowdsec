@@ -59,7 +59,7 @@
         "debug": "^4.4.3"
     },
     "engines": {
-        "node": ">=18.12"
+        "node": ">=24"
     },
     "devDependencies": {
         "@jest/globals": "30.4.1",

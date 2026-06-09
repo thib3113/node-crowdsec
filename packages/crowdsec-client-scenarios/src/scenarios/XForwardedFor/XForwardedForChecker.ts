@@ -54,8 +54,11 @@ export class XForwardedForChecker extends CheckerScenario {
     }
 
     private generateAlert(
-        alert: Omit<APITypes.Alert, 'scenario_version' | 'scenario_hash' | 'capacity' | 'leakspeed' | 'simulated' | 'events' | 'source'> &
-            Partial<Pick<APITypes.Alert, 'events' | 'capacity' | 'leakspeed' | 'simulated' | 'source'>>,
+        alert: Omit<
+            APITypes.Alert,
+            'scenario_version' | 'scenario_hash' | 'capacity' | 'leakspeed' | 'simulated' | 'events' | 'source' | 'meta'
+        > &
+            Partial<Pick<APITypes.Alert, 'events' | 'capacity' | 'leakspeed' | 'simulated' | 'source' | 'meta'>>,
         ip: string
     ): APITypes.Alert {
         return {
@@ -126,6 +129,24 @@ export class XForwardedForChecker extends CheckerScenario {
                                         }
                                     ],
                                     timestamp: date
+                                }
+                            ],
+                            meta: [
+                                {
+                                    key: 'http_forwarded_for',
+                                    value: headers[0]
+                                },
+                                {
+                                    key: 'http_forwarded_for_parsed',
+                                    value: ipResult.map(({ ip }) => ip).join(', ')
+                                },
+                                {
+                                    key: 'source_ip',
+                                    value: ipStr
+                                },
+                                {
+                                    key: 'timestamp',
+                                    value: date
                                 }
                             ],
                             events_count: 1,

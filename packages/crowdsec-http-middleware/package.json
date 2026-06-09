@@ -60,7 +60,7 @@
         "lru-cache": "^11.5.1"
     },
     "engines": {
-        "node": ">=16"
+        "node": ">=24"
     },
     "devDependencies": {
         "@jest/globals": "30.4.1",
