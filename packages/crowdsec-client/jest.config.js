@@ -9,15 +9,7 @@ export default {
     moduleFileExtensions: ['ts', 'tsx', 'js'],
     testMatch: ['<rootDir>/tests/**/*.(test|tests|spec|specs).+(ts|tsx|js)'],
     reporters: [
-        'default',
-        [
-            'jest-sonar',
-            {
-                outputDirectory: '<rootDir>/coverage',
-                outputName: 'test-report.xml',
-                reportedFilePath: 'absolute'
-            }
-        ]
+        'default'
     ],
     extensionsToTreatAsEsm: ['.ts'],
     moduleNameMapper: {
