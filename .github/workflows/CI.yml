@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 24
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         id: pnpm-install
         with:
@@ -60,7 +60,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         id: pnpm-install
         with:
@@ -140,7 +140,7 @@ jobs:
         with:
           node-version: 24
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         id: pnpm-install
         with:
