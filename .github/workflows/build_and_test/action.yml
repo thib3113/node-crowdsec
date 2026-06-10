@@ -95,7 +95,7 @@ runs:
       if: ${{ inputs.check == 'true' }}
 
 
-    - uses: codecov/codecov-action@v5
+    - uses: codecov/codecov-action@v7
       with:
         token: ${{ inputs.CODECOV_TOKEN }}
         flags: ${{ inputs.package_name }}
