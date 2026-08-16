@@ -125,6 +125,7 @@ describe('WatcherClient.test.ts', () => {
     describe('functions', () => {
         const httpGetMock = vi.fn();
         const httpPostMock = vi.fn();
+        const httpDeleteMock = vi.fn();
         let watcher: WatcherClientType;
         beforeEach(async () => {
             watcher = new WatcherClient({
@@ -135,7 +136,16 @@ describe('WatcherClient.test.ts', () => {
                 url: ''
             });
             // @ts-ignore
-            watcher.http = { get: httpGetMock, post: httpPostMock };
+            watcher.http = { get: httpGetMock, post: httpPostMock, delete: httpDeleteMock };
+        });
+
+        describe('deleteWatcher', () => {
+            it('should call the delete watcher endpoint', async () => {
+                httpDeleteMock.mockImplementationOnce(() => ({ data: undefined }));
+                await watcher.deleteWatcher();
+
+                expect(httpDeleteMock).toHaveBeenCalledWith('/v1/watchers/self');
+            });
         });
 
         describe('login', () => {
@@ -516,6 +526,29 @@ describe('WatcherClient.test.ts', () => {
             expect(mockPost).toHaveBeenCalledWith('/v1/watchers', {
                 machine_id: 'test_machine_id',
                 password: 'test_password'
+            });
+        });
+    });
+
+    describe('static deleteWatcher', () => {
+        it('should call delete watcher endpoint with credentials', async () => {
+            const mockDelete = vi.fn().mockImplementationOnce(() => ({ data: {} }));
+            const mockGetHTTPClient = vi.fn().mockImplementation(() => ({ delete: mockDelete }));
+            // @ts-ignore
+            FakeClient.getHTTPClient = mockGetHTTPClient;
+
+            await WatcherClient.deleteWatcher({
+                machine_id: 'test_machine_id',
+                password: 'test_password',
+                url: 'https://localhost:8080'
+            });
+
+            expect(mockGetHTTPClient).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://localhost:8080' }));
+            expect(mockDelete).toHaveBeenCalledWith('/v1/watchers/self', {
+                auth: {
+                    username: 'test_machine_id',
+                    password: 'test_password'
+                }
             });
         });
     });

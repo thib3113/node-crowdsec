@@ -19,6 +19,7 @@
         "test": "vitest run",
         "test:ci": "vitest run",
         "test:ci:coverage": "vitest run --coverage",
+        "bench": "node --experimental-strip-types --experimental-transform-types bench/ip-lookup.ts",
         "lint": "eslint src",
         "lint:fix": "npm lint -- --fix",
         "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
@@ -63,8 +64,10 @@
         "node": ">=24"
     },
     "devDependencies": {
+        "@types/benchmark": "^2.1.5",
         "@types/debug": "4.1.13",
         "@vitest/coverage-v8": "^4.1.10",
+        "benchmark": "^2.1.4",
         "crowdsec-client-scenarios": "workspace:^",
         "dotenv": "17.4.2",
         "esbuild": "0.28.2",

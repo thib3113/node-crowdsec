@@ -1,7 +1,7 @@
 {
     "entryPoints": ["packages/*"],
     "entryPointStrategy": "packages",
-    "out": "docs",
+    "out": "docs-typedoc",
     "includeVersion": true,
     "name": "Node CrowdSec Client",
     "useTsLinkResolution": true,

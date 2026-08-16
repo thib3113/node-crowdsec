@@ -28,7 +28,61 @@
 
 [![NPM](https://nodei.co/npm/crowdsec-http-middleware.png)](https://nodei.co/npm/crowdsec-http-middleware/)
 
-This library is a Node.js client to talk with crowdsec rest API . Please note that Node.js >= 24 is required.
+**Protect your Node.js HTTP server with CrowdSec.**
+
+This package runs a CrowdSec **bouncer** inside your app : it checks each
+incoming request's IP against CrowdSec's decisions and tells you — via
+`req.decision` — whether the visitor is banned, should be challenged with a
+captcha, or is clean. **You** decide the response (custom page, captcha,
+redirect, JSON...). A **watcher** can also detect malicious requests and report
+them to CrowdSec.
+
+Requires Node.js >= 24 and a CrowdSec LAPI.
+
+## Quick start
+
+The simplest setup: install, configure the LAPI URL + a bouncer API key, and
+start.
+
+```
+npm i crowdsec-http-middleware
+```
+
+````typescript
+import * as http from 'http';
+import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
+
+const middleware = new CrowdSecHTTPMiddleware({
+    url: process.env.CROWDSEC_URL,              // e.g. http://localhost:8080
+    bouncer: {
+        apiKey: process.env.CROWDSEC_API_KEY    // from the LAPI bouncer config
+    }
+});
+
+await middleware.start();
+
+const server = http.createServer((req, res) => {
+    middleware.getMiddleware()(req, res);
+
+    if (req.decision) {
+        // banned or captcha : you decide what the visitor sees
+        res.statusCode = 403;
+        res.end('You are blocked by CrowdSec');
+        return;
+    }
+
+    res.statusCode = 200;
+    res.end('Hello, World!');
+});
+server.listen(3000);
+````
+
+That's it. `req.decision` is `undefined` for clean visitors and holds the decision
+(`ban`, `captcha`...) for flagged ones.
+
+Need more control (live mode, which subnets to trust, a watcher, an AI agent to
+configure it) ? Read on.
+
 ## Start
 
 install it
@@ -53,7 +107,9 @@ you can read what are the default scenarios enabled in [crowdsec-client-scenario
 
 This package, is a base package to create HTTP Middleware for HTTP Servers
 
-You can use it like :
+A full example, showing how you stay in control of the response (custom message
+per decision type) :
+
 ````typescript
 import * as http from 'http';
 import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
@@ -91,6 +147,21 @@ server.listen(port, () => {
 ### options
 
 options are described here : [technical documentation](https://thib3113.github.io/node-crowdsec/interfaces/crowdsec_http_middleware.ICrowdSecHTTPMiddlewareOptions.html)
+
+#### Give to your AI agent
+
+Copy-paste this into your AI agent. It reads the setup guide and interviews you
+before writing the config.
+
+````text
+Help me configure the node-crowdsec HTTP middleware (bouncer and/or watcher,
+with optional scenarios).
+
+1. Read this guide: https://raw.githubusercontent.com/thib3113/node-crowdsec/main/docs/agent-setup-guide.md
+2. First tell me if I even need this library, then ask me the questions it lists.
+3. Use the recommended defaults when I have no opinion.
+4. Output the `CrowdSecHTTPMiddleware` config + a short justification.
+````
 
 First the global options
 ````typescript
@@ -140,11 +211,66 @@ bouncer, will check if a decision is associated with the current IP .
 about authentication, you can also use TLS certificates . Check the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications)
 ````typescript
 const bouncerOptions = {
-    apiKey: process.env.CROWDSEC_API_KEY || ''
+    apiKey: process.env.CROWDSEC_API_KEY || '',
+    // how often the bouncer pulls the decisions stream from the LAPI ( in ms )
+    pollingInterval: 10000,
+    // how far up the prefix hierarchy to consider as malicious.
+    // "resident" = only /32, "company" = up to /24 ( default ), "country" = up to /16
+    subnetLevel: SubnetLevel.company,
+    // optional live mode : checks unknown ips against the LAPI in the background
+    live: {
+        // enable the live mode ( default : false )
+        enabled: false,
+        // what to do when a live check fails : failOpen ( default, cache the failure
+        // for errorBackoffTtl) or failFast ( re-check on every request )
+        errorBehavior: LiveCheckErrorBehavior.failOpen,
+        // how long ( s ) a "clean" verdict is trusted before re-checking ( default : 60 )
+        cleanCacheTtl: 60,
+        // max number of "clean" verdicts kept in memory ( LRU, default : maxIpCache ?? 50000 )
+        cleanCacheMax: 50000,
+        // max number of concurrent live checks against the LAPI ( default : 100 )
+        maxConcurrentChecks: 100,
+        // how long ( s ) a failed check is remembered as backoff ( default : 10 )
+        errorBackoffTtl: 10,
+        // periodically scan the index and remove expired decisions, even if the
+        // LAPI is down and the stream `deleted` events stop coming ( default : true )
+        watchdog: true
+    }
 }
 ````
 
 When a decision is found by the bouncer, `req.decision` will contain the decision
+
+These options are passed through the global `CrowdSecHTTPMiddleware` via the
+`bouncer` key of the constructor options. For example, to enable the live mode
+from the global middleware:
+
+````typescript
+const middleware = new CrowdSecHTTPMiddleware({
+    url: process.env.CROWDSEC_URL,
+    bouncer: {
+        apiKey: process.env.CROWDSEC_API_KEY || '',
+        subnetLevel: SubnetLevel.company,
+        live: {
+            enabled: true
+        }
+    }
+});
+````
+
+##### Live mode behavior
+
+On a local cache miss, the current request **always passes** and a live check
+(`GET /v1/decisions?ip=<ip>`) runs in the background. If the LAPI says the IP is
+banned, the decision is injected in the local index, so the **next** request
+from that IP is blocked. A malicious unknown IP can pass once, never twice.
+
+## Benchmarks
+
+`npm run bench` compares the IP lookup strategies explored during the design
+(linear `isInSubnet` scan, current `MapOfMaps` index, packed `MapSMI`, sorted
+`Uint32Array` + binary search, custom open-addressing hash) across hit / miss
+lookups, `subnetLevel` presets and index setup.
 
 ## Debug
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :

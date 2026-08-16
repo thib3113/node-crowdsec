@@ -154,6 +154,35 @@ export class WatcherClient extends CrowdSecClient {
         ).data;
     }
 
+    /**
+     * Delete the current watcher from the LAPI.
+     * Useful to cleanup an auto-registered watcher.
+     */
+    public async deleteWatcher(): Promise<void> {
+        await this.http.delete<null, AxiosResponse<null>>('/v1/watchers/self');
+    }
+
+    /**
+     * Delete a watcher from the LAPI using its credentials.
+     * Useful to cleanup an auto-registered watcher without keeping a client instance.
+     * @param options - the machine credentials + connection options
+     */
+    public static async deleteWatcher(options: WatcherRegistrationRequest & IHTTPOptions): Promise<void> {
+        const httpClient = CrowdSecClient.getHTTPClient({
+            url: options.url,
+            userAgent: options.userAgent,
+            timeout: options.timeout,
+            strictSSL: options.strictSSL
+        });
+
+        await httpClient.delete<null, AxiosResponse<null>>('/v1/watchers/self', {
+            auth: {
+                username: options.machine_id,
+                password: options.password
+            }
+        });
+    }
+
     public async stop() {
         if (this.heartbeatTimeout) {
             clearTimeout(this.heartbeatTimeout);

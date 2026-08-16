@@ -13,6 +13,22 @@ This repository will host multiples packages, you can found them with examples b
 
 Technical documentation is available [here](https://thib3113.github.io/node-crowdsec/)
 
+## Features
+
+- **Full CrowdSec client** : watcher & bouncer clients for the CrowdSec LAPI
+  (alerts, decisions, stream, watcher registration/self-delete...).
+- **High-performance bouncer** : decisions are streamed from the LAPI and indexed
+  locally by CIDR (numeric prefix lookup). Checking an IP costs ~µs with a
+  negligible event loop impact, even with hundreds of thousands of decisions.
+- **Live mode** (optional) : unknown IPs are checked against the LAPI in the
+  background, closing the freshness gap of the stream poll. A malicious unknown
+  IP passes at most once.
+- **Configurable trust scope** : `subnetLevel` lets you choose how far up the
+  prefix hierarchy to consider as malicious (`resident` / `company` / `country`),
+  so a whole country block is never banned by accident.
+- **Watcher scenarios** : bundled scenarios (user-agent, ip-extraction...) to
+  detect and alert on malicious requests, with a pluggable scenario system.
+
 ## Packages
 
 ### [crowdsec-client](./packages/crowdsec-client)

@@ -7,6 +7,7 @@ export * from './Decisions/index.js';
 export * from './Errors/index.js';
 export * from './interfaces/index.js';
 export * from './BaseSubObject.js';
+export * from './EventEmitter.js';
 
 export { APITypes };
 export const VERSION = pkg.version;
