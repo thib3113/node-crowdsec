@@ -127,7 +127,9 @@ jobs:
 
       - name: publish to NPM
         run: |
-          pnpm publish --filter ${{ matrix.package.name }} --no-git-checks
+          npm i -g npm@latest
+          npm --version
+          npm publish --provenance
         working-directory: ${{ matrix.package.path }}
         if: steps.package_version.outputs.npm_is_greater != 'true'
 
