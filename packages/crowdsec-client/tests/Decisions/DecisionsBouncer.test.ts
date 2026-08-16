@@ -1,39 +1,69 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 
 import type { DecisionsBouncer } from '../../src/Decisions/DecisionsBouncer.js';
 import type { DecisionsStream } from '../../src/Decisions/DecisionsStream.js';
-import Mock = jest.Mock;
 
-const mockDebug = jest.fn();
-const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
-const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
-// @ts-ignore
-mockDebug.extend = mockDebugExtend;
+const {
+    mockDebug,
+    mockDebugExtend,
+    createDebuggerMock,
+    mockParseExpiration,
+    mockForceArray,
+    mockStreamOnce,
+    mockStreamOn,
+    mockResume,
+    mockDecisionStream,
+    mockDecisionStreamConstructor
+} = vi.hoisted(() => {
+    const mockDebug = vi.fn();
+    const mockDebugExtend = vi.fn().mockImplementation(() => mockDebug);
+    const createDebuggerMock = vi.fn().mockImplementation(() => mockDebug);
+    // @ts-ignore
+    mockDebug.extend = mockDebugExtend;
 
-const mockParseExpiration = jest.fn().mockReturnValue(new Date('2023-06-01T17:41:26.499Z'));
-const mockForceArray = jest.fn().mockImplementation((p) => (Array.isArray(p) ? p : [p]));
-jest.unstable_mockModule('../../src/utils.js', () => ({
+    const mockParseExpiration = vi.fn().mockReturnValue(new Date('2023-06-01T17:41:26.499Z'));
+    const mockForceArray = vi.fn().mockImplementation((p) => (Array.isArray(p) ? p : [p]));
+
+    const mockStreamOnce = vi.fn();
+    const mockStreamOn = vi.fn();
+    const mockResume = vi.fn();
+    const mockDecisionStream = {
+        once: mockStreamOnce,
+        on: mockStreamOn,
+        resume: mockResume
+    } as unknown as DecisionsStream;
+    const mockDecisionStreamConstructor = vi.fn(function () {
+        return mockDecisionStream;
+    });
+
+    return {
+        mockDebug,
+        mockDebugExtend,
+        createDebuggerMock,
+        mockParseExpiration,
+        mockForceArray,
+        mockStreamOnce,
+        mockStreamOn,
+        mockResume,
+        mockDecisionStream,
+        mockDecisionStreamConstructor
+    };
+});
+
+vi.mock('../../src/utils.js', () => ({
     parseExpiration: mockParseExpiration,
     createDebugger: createDebuggerMock,
     forceArray: mockForceArray
 }));
-jest.unstable_mockModule('../../src/BaseSubObject.js', () => ({ BaseSubObject: jest.fn() }));
+vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
 
-const mockStreamOnce = jest.fn();
-const mockStreamOn = jest.fn();
-const mockResume = jest.fn();
-const mockDecisionStream = {
-    once: mockStreamOnce,
-    on: mockStreamOn,
-    resume: mockResume
-} as unknown as DecisionsStream;
-const mockDecisionStreamConstructor = jest.fn().mockReturnValue(mockDecisionStream);
-jest.unstable_mockModule('../../src/Decisions/DecisionsStream.js', () => ({
+vi.mock('../../src/Decisions/DecisionsStream.js', () => ({
     DecisionsStream: mockDecisionStreamConstructor
 }));
 
 describe('DecisionsBouncer', () => {
-    const httpGetMock = jest.fn();
+    const httpGetMock = vi.fn();
     let bouncer: DecisionsBouncer;
     beforeEach(async () => {
         const res = await import('../../src/Decisions/DecisionsBouncer.js');
@@ -50,7 +80,7 @@ describe('DecisionsBouncer', () => {
         let getStreamLoop: DecisionsBouncer['getStreamLoop'];
 
         //check if fakeTimeout is cleared by checking if mockTimeoutCleared is called
-        const mockTimeoutCleared = jest.fn();
+        const mockTimeoutCleared = vi.fn();
         const fakeTimeout = {};
         //works with node <20 ?
         Object.defineProperty(fakeTimeout, '_onTimeout', {
@@ -60,8 +90,8 @@ describe('DecisionsBouncer', () => {
             }
         });
 
-        const mockGetRawStream = jest.fn().mockImplementation(() => Promise.resolve());
-        const mockSetTimeout = jest.fn();
+        const mockGetRawStream = vi.fn().mockImplementation(() => Promise.resolve());
+        const mockSetTimeout = vi.fn();
 
         let localDecisionStream: DecisionsStream;
         const oldSetTimeout = global.setTimeout;
@@ -71,8 +101,8 @@ describe('DecisionsBouncer', () => {
 
             localDecisionStream = {
                 paused: true,
-                emit: jest.fn(),
-                push: jest.fn()
+                emit: vi.fn(),
+                push: vi.fn()
             } as unknown as DecisionsStream;
 
             // @ts-ignore
@@ -82,7 +112,7 @@ describe('DecisionsBouncer', () => {
             bouncer.getRawStream = mockGetRawStream;
         });
         afterEach(() => {
-            // jest.useRealTimers();
+            // vi.useRealTimers();
             // @ts-ignore
             global.setTimeout = oldSetTimeout;
             mockTimeoutCleared.mockRestore();
@@ -111,7 +141,7 @@ describe('DecisionsBouncer', () => {
             // @ts-ignore
             const timeOutFn = (global.setTimeout as Mock).mock.calls[0][0];
             expect(timeOutFn).toBeDefined();
-            const mockTimeoutLoop = jest.fn().mockImplementation(() => Promise.resolve());
+            const mockTimeoutLoop = vi.fn().mockImplementation(() => Promise.resolve());
             // @ts-ignore
             bouncer.getStreamLoop = mockTimeoutLoop;
             // @ts-ignore
@@ -175,7 +205,7 @@ describe('DecisionsBouncer', () => {
             const fakeDecision = {
                 foo: 'bar'
             };
-            const mockCB = jest.fn();
+            const mockCB = vi.fn();
             // @ts-ignore
             streamToCallback(mockDecisionStream, mockCB);
             expect(mockResume).toHaveBeenCalled();
@@ -199,7 +229,7 @@ describe('DecisionsBouncer', () => {
             const fakeDecision = {
                 foo: 'bar'
             };
-            const mockCB = jest.fn();
+            const mockCB = vi.fn();
             // @ts-ignore
             streamToCallback(mockDecisionStream, mockCB);
             expect(mockResume).toHaveBeenCalled();
@@ -221,7 +251,7 @@ describe('DecisionsBouncer', () => {
         });
         it('should handle error event', async () => {
             const fakeError = new Error('fake');
-            const mockCB = jest.fn();
+            const mockCB = vi.fn();
             // @ts-ignore
             streamToCallback(mockDecisionStream, mockCB);
             expect(mockResume).toHaveBeenCalled();
@@ -399,7 +429,7 @@ describe('DecisionsBouncer', () => {
         });
     });
     describe('getStreamLoopWrapper', () => {
-        const mockGetStreamLoop = jest.fn();
+        const mockGetStreamLoop = vi.fn();
         let getStreamLoopWrapper: DecisionsBouncer['getStreamLoopWrapper'];
 
         beforeEach(() => {
@@ -453,7 +483,7 @@ describe('DecisionsBouncer', () => {
 
             return listeners;
         };
-        const getStreamLoopWrapper = jest.fn().mockImplementation(() => Promise.resolve());
+        const getStreamLoopWrapper = vi.fn().mockImplementation(() => Promise.resolve());
         beforeEach(() => {
             // @ts-ignore
             bouncer.getStreamLoopWrapper = getStreamLoopWrapper;
@@ -594,8 +624,8 @@ describe('DecisionsBouncer', () => {
             expect(mockStreamOn).toHaveBeenCalledWith('error', expect.any(Function));
         });
         it('should generate a stream and call function to handle cb', async () => {
-            const mockCB = jest.fn();
-            const mockStreamToCallback = jest.fn();
+            const mockCB = vi.fn();
+            const mockStreamToCallback = vi.fn();
             // @ts-ignore
             bouncer.streamToCallback = mockStreamToCallback;
 
@@ -625,7 +655,7 @@ describe('DecisionsBouncer', () => {
         describe('stream events', () => {
             let listeners: Record<string, Function> = {};
 
-            const mockTimeoutCleared = jest.fn();
+            const mockTimeoutCleared = vi.fn();
             const fakeTimeout = {};
             //works with node <20 ?
             Object.defineProperty(fakeTimeout, '_onTimeout', {
@@ -641,7 +671,7 @@ describe('DecisionsBouncer', () => {
             });
 
             afterEach(() => {
-                jest.useRealTimers();
+                vi.useRealTimers();
             });
 
             it('should handle the close listener', async () => {
@@ -817,7 +847,7 @@ describe('DecisionsBouncer', () => {
     });
     describe('stop', () => {
         it('should call stop of the stream stored', async () => {
-            const closeMock = jest.fn();
+            const closeMock = vi.fn();
             // @ts-ignore
             bouncer.runningStreams = [{ close: closeMock }];
 

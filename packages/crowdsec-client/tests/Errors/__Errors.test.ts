@@ -1,5 +1,5 @@
 import { __Error, EErrorsCodes } from '../../src/Errors/index.js';
-import { expect, jest } from '@jest/globals';
+import { expect, vi } from 'vitest';
 
 describe('Errors', () => {
     describe('__Error', () => {
@@ -41,7 +41,9 @@ describe('Errors', () => {
         });
         it('should handle error without stack', async () => {
             // @ts-ignore
-            global.Error = jest.fn(() => ({ stack: null }));
+            global.Error = vi.fn(function ErrorMock() {
+                return { stack: null };
+            });
 
             const err = new __Error('my error', EErrorsCodes.CONNECTION_TEST_FAILED);
             expect(err.code).toBe(EErrorsCodes.CONNECTION_TEST_FAILED);

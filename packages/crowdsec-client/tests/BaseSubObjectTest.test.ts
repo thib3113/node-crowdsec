@@ -1,5 +1,5 @@
 import { BaseSubObject } from '../src/BaseSubObject.js';
-import { describe, expect } from '@jest/globals';
+import { describe, expect } from 'vitest';
 import { AxiosInstance } from 'axios';
 
 class Test extends BaseSubObject {}

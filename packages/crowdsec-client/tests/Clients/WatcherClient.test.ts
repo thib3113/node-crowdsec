@@ -1,16 +1,36 @@
-import { beforeEach, describe, expect, jest, it, afterEach } from '@jest/globals';
+import { beforeEach, describe, expect, vi, it, afterEach } from 'vitest';
 import type { WatcherClient as WatcherClientType } from '../../src/Clients/WatcherClient.js';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
 import { EErrorsCodes } from '../../src/Errors/EErrorsCodes.js';
-import { mock } from 'node:test';
 
-const mockDebug = jest.fn();
-const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
-const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
+const { mockDebug, mockDebugExtend, createDebuggerMock, mockDecisionsWatcher, mockAlerts, mockCrowdSecClientConstructor, FakeClient } =
+    vi.hoisted(() => {
+        const mockDebug = vi.fn();
+        const mockDebugExtend = vi.fn().mockImplementation(() => mockDebug);
+        const createDebuggerMock = vi.fn().mockImplementation(() => mockDebug);
+
+        const mockDecisionsWatcher = vi.fn();
+        const mockAlerts = vi.fn();
+
+        const mockCrowdSecClientConstructor = vi.fn();
+        class FakeClient {
+            setAuthenticationHeaders = vi.fn();
+            setAuthenticationByTLS = vi.fn();
+            _testConnection = vi.fn();
+            // @ts-ignore
+            constructor(...args) {
+                mockCrowdSecClientConstructor(...args);
+            }
+            http = 'fake-http';
+            static getHTTPClient: unknown;
+        }
+
+        return { mockDebug, mockDebugExtend, createDebuggerMock, mockDecisionsWatcher, mockAlerts, mockCrowdSecClientConstructor, FakeClient };
+    });
 
 const getFakeTimeout = () => {
     //check if fakeTimeout is cleared by checking if mockTimeoutCleared is called
-    const mockTimeoutCleared = jest.fn();
+    const mockTimeoutCleared = vi.fn();
     const fakeTimeout = {};
     //works with node <20 ?
     Object.defineProperty(fakeTimeout, '_onTimeout', {
@@ -25,32 +45,18 @@ const getFakeTimeout = () => {
 
 // @ts-ignore
 mockDebug.extend = mockDebugExtend;
-jest.unstable_mockModule('../../src/utils.js', () => ({
+vi.mock('../../src/utils.js', () => ({
     createDebugger: createDebuggerMock
 }));
 
-const mockDecisionsWatcher = jest.fn();
-jest.unstable_mockModule('../../src/Decisions/DecisionsWatcher.js', () => ({
+vi.mock('../../src/Decisions/DecisionsWatcher.js', () => ({
     DecisionsWatcher: mockDecisionsWatcher
 }));
-const mockAlerts = jest.fn();
-jest.unstable_mockModule('../../src/Alerts/Alerts.js', () => ({
+vi.mock('../../src/Alerts/Alerts.js', () => ({
     Alerts: mockAlerts
 }));
 
-const mockCrowdSecClientConstructor = jest.fn();
-class FakeClient {
-    setAuthenticationHeaders = jest.fn();
-    setAuthenticationByTLS = jest.fn();
-    _testConnection = jest.fn();
-    // @ts-ignore
-    constructor(...args) {
-        mockCrowdSecClientConstructor(...args);
-    }
-    http = 'fake-http';
-}
-
-jest.unstable_mockModule('../../src/Clients/CrowdSecClient.js', () => ({
+vi.mock('../../src/Clients/CrowdSecClient.js', () => ({
     CrowdSecClient: FakeClient
 }));
 
@@ -67,7 +73,7 @@ describe('WatcherClient.test.ts', () => {
                 }
             });
 
-            const mockPost = jest.fn();
+            const mockPost = vi.fn();
 
             // @ts-ignore
             client.http = {
@@ -117,8 +123,8 @@ describe('WatcherClient.test.ts', () => {
         });
     });
     describe('functions', () => {
-        const httpGetMock = jest.fn();
-        const httpPostMock = jest.fn();
+        const httpGetMock = vi.fn();
+        const httpPostMock = vi.fn();
         let watcher: WatcherClientType;
         beforeEach(async () => {
             watcher = new WatcherClient({
@@ -133,9 +139,9 @@ describe('WatcherClient.test.ts', () => {
         });
 
         describe('login', () => {
-            const mockTestConnection = jest.fn();
-            const mockLogin = jest.fn();
-            const mockHeartbeatLoop = jest.fn<() => Promise<void>>().mockResolvedValue();
+            const mockTestConnection = vi.fn();
+            const mockLogin = vi.fn();
+            const mockHeartbeatLoop = vi.fn<() => Promise<void>>().mockResolvedValue();
             beforeEach(() => {
                 // @ts-ignore
                 watcher.testConnection = mockTestConnection;
@@ -188,8 +194,8 @@ describe('WatcherClient.test.ts', () => {
         describe('_login', () => {
             let _login: WatcherClientType['_login'];
             const oldSetTimeout = global.setTimeout;
-            const mockSetTimeout = jest.fn();
-            const mockSetAuthenticationHeaders = jest.fn();
+            const mockSetTimeout = vi.fn();
+            const mockSetAuthenticationHeaders = vi.fn();
             beforeEach(() => {
                 // @ts-ignore
                 _login = watcher._login.bind(watcher);
@@ -344,7 +350,7 @@ describe('WatcherClient.test.ts', () => {
                 expect(nbTimeout).toBeLessThanOrEqual(timeout - 5 * 60);
 
                 expect(timeOutFn).toBeDefined();
-                const mockTimeoutLoop = jest.fn().mockImplementationOnce(() => Promise.resolve());
+                const mockTimeoutLoop = vi.fn().mockImplementationOnce(() => Promise.resolve());
                 // @ts-ignore
                 watcher._login = mockTimeoutLoop;
                 // @ts-ignore
@@ -407,7 +413,7 @@ describe('WatcherClient.test.ts', () => {
         describe('heartbeatLoop', () => {
             let heartbeatLoop: WatcherClientType['heartbeatLoop'];
             const oldSetTimeout = global.setTimeout;
-            const mockSetTimeout = jest.fn();
+            const mockSetTimeout = vi.fn();
             beforeEach(() => {
                 // @ts-ignore
                 heartbeatLoop = watcher.heartbeatLoop.bind(watcher);
@@ -468,7 +474,7 @@ describe('WatcherClient.test.ts', () => {
                 const timeOutFn = mockSetTimeout.mock.calls[0][0];
 
                 expect(timeOutFn).toBeDefined();
-                const mockTimeoutLoop = jest.fn().mockImplementationOnce(() => Promise.resolve());
+                const mockTimeoutLoop = vi.fn().mockImplementationOnce(() => Promise.resolve());
                 // @ts-ignore
                 watcher.heartbeatLoop = mockTimeoutLoop;
                 // @ts-ignore
@@ -495,8 +501,8 @@ describe('WatcherClient.test.ts', () => {
 
     describe('static registerWatcher', () => {
         it('should call register watcher endpoint', async () => {
-            const mockPost = jest.fn().mockImplementationOnce(() => ({ data: {} }));
-            const mockGetHTTPClient = jest.fn().mockImplementation(() => ({ post: mockPost }));
+            const mockPost = vi.fn().mockImplementationOnce(() => ({ data: {} }));
+            const mockGetHTTPClient = vi.fn().mockImplementation(() => ({ post: mockPost }));
             // @ts-ignore
             FakeClient.getHTTPClient = mockGetHTTPClient;
 

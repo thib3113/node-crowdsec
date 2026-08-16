@@ -16,9 +16,9 @@
         "ts-types": "tsc --emitDeclarationOnly --outDir lib/types",
         "build": "rimraf lib && node ./esbuild.js && npm run ts-types",
         "debug": "npm run build && node -r source-map-support/register ./lib/esm/debug.mjs",
-        "jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-        "test:ci": "npm run jest -- --ci",
-        "test:ci:coverage": "npm run jest -- --ci --coverage",
+        "test": "vitest run",
+        "test:ci": "vitest run",
+        "test:ci:coverage": "vitest run --coverage",
         "lint": "eslint src",
         "lint:fix": "npm lint -- --fix",
         "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
@@ -63,17 +63,16 @@
         "node": ">=24"
     },
     "devDependencies": {
-        "@jest/globals": "30.4.1",
         "@types/debug": "4.1.13",
+        "@vitest/coverage-v8": "^4.1.10",
         "crowdsec-client": "workspace:^",
         "dotenv": "17.4.2",
         "esbuild": "0.28.1",
-        "jest": "30.4.2",
         "mmdb-lib": "3.0.2",
         "rimraf": "6.1.3",
         "source-map-support": "0.5.21",
-        "ts-jest": "29.4.11",
-        "ts-node": "10.9.2"
+        "ts-node": "10.9.2",
+        "vitest": "^4.1.10"
     },
     "funding": [
         {

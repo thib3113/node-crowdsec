@@ -1,5 +1,5 @@
 import { CrowdSecServerError } from '../../src/Errors/CrowdSecServerError.js';
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 
 describe('CrowdSecServerError.test.ts', () => {
     it('should create CrowdSecServerError', () => {

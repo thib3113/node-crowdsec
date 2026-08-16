@@ -66,14 +66,13 @@ runs:
       run: pnpm -F ${{ inputs.package_name }}... build
       shell: bash
 
-    - uses: mattallty/jest-github-action@v1.0.3
+    - name: Run tests with coverage
+      run: npm run test:ci:coverage -- --reporter=github-actions
+      working-directory: ${{ inputs.package_path }}
+      shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         CI: true
-      with:
-        working-directory: ${{ inputs.package_path }}
-        test-command: npm run test:ci:coverage
-        coverage-comment: false
 
     - name: replace path in coverage files
       working-directory: ${{ inputs.package_path }}
@@ -89,8 +88,6 @@ runs:
           ${{ inputs.package_path }}/coverage/clover.xml
           ${{ inputs.package_path }}/coverage/coverage-final.json
           ${{ inputs.package_path }}/coverage/lcov.info
-          ${{ inputs.package_path }}/coverage/junit.xml
-          ${{ inputs.package_path }}/coverage/test-report.xml
           ${{ inputs.package_path }}/coverage/eslint-report.json
       if: ${{ inputs.check == 'true' }}
 

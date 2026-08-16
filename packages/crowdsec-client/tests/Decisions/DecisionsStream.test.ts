@@ -1,18 +1,23 @@
-import { afterEach, beforeEach, describe, expect, jest, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, vi, it } from 'vitest';
 import type { DecisionsStream } from '../../src/Decisions/DecisionsStream.js';
 import type { Decision } from '../../src/Decisions/Decision.js';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
 import type { nonBlockingFn } from '../../src/utils.js';
 
-const mockDebug = jest.fn();
-const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
-const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
-// @ts-ignore
-mockDebug.extend = mockDebugExtend;
+const { mockDebug, mockDebugExtend, createDebuggerMock, mockNonBlockingLoop, mockDecisionObject } = vi.hoisted(() => {
+    const mockDebug = vi.fn();
+    const mockDebugExtend = vi.fn().mockImplementation(() => mockDebug);
+    const createDebuggerMock = vi.fn().mockImplementation(() => mockDebug);
+    // @ts-ignore
+    mockDebug.extend = mockDebugExtend;
 
-const mockNonBlockingLoop = jest.fn<any>();
+    const mockNonBlockingLoop = vi.fn<any>();
+    const mockDecisionObject = vi.fn();
 
-jest.unstable_mockModule('../../src/utils.js', () => ({
+    return { mockDebug, mockDebugExtend, createDebuggerMock, mockNonBlockingLoop, mockDecisionObject };
+});
+
+vi.mock('../../src/utils.js', () => ({
     createDebugger: createDebuggerMock,
     setImmediatePromise: async () => {
         return new Promise<void>((resolve) => {
@@ -22,8 +27,7 @@ jest.unstable_mockModule('../../src/utils.js', () => ({
     nonBlockingLoop: mockNonBlockingLoop
 }));
 
-const mockDecisionObject = jest.fn();
-jest.unstable_mockModule('../../src/Decisions/Decision', () => ({ Decision: mockDecisionObject }));
+vi.mock('../../src/Decisions/Decision', () => ({ Decision: mockDecisionObject }));
 
 describe('DecisionsStream', () => {
     let stream: DecisionsStream;
@@ -48,7 +52,7 @@ describe('DecisionsStream', () => {
     });
 
     describe('pause', () => {
-        const mockEmit = jest.fn();
+        const mockEmit = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             stream.emit = mockEmit;
@@ -69,8 +73,8 @@ describe('DecisionsStream', () => {
         });
     });
     describe('resume', () => {
-        const mockEmit = jest.fn();
-        const mockLoopWrapper = jest.fn();
+        const mockEmit = vi.fn();
+        const mockLoopWrapper = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             stream.emit = mockEmit;
@@ -95,7 +99,7 @@ describe('DecisionsStream', () => {
         });
     });
     describe('start', () => {
-        const mockResume = jest.fn();
+        const mockResume = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             stream.resume = mockResume;
@@ -111,7 +115,7 @@ describe('DecisionsStream', () => {
         });
     });
     describe('close', () => {
-        const mockEmit = jest.fn();
+        const mockEmit = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             stream.emit = mockEmit;
@@ -133,7 +137,7 @@ describe('DecisionsStream', () => {
     });
 
     describe('push', () => {
-        const mockLoopWrapper = jest.fn();
+        const mockLoopWrapper = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             stream.loopWrapper = mockLoopWrapper;
@@ -173,7 +177,7 @@ describe('DecisionsStream', () => {
         });
 
         it('should handle Error in addedPromise', async () => {
-            const mockHandleError = jest.fn();
+            const mockHandleError = vi.fn();
             // @ts-ignore
             stream.handleError = mockHandleError;
 
@@ -218,7 +222,7 @@ describe('DecisionsStream', () => {
             expect(mockLoopWrapper).toHaveBeenCalled();
         });
         it('should handle Error in deletedPromise', async () => {
-            const mockHandleError = jest.fn();
+            const mockHandleError = vi.fn();
             // @ts-ignore
             stream.handleError = mockHandleError;
 
@@ -263,7 +267,7 @@ describe('DecisionsStream', () => {
             expect(mockLoopWrapper).toHaveBeenCalled();
         });
         describe('nonBlocking', () => {
-            const mockEmit = jest.fn();
+            const mockEmit = vi.fn();
             const decision = {
                 id: 1,
                 origin: 'Origin',
@@ -312,8 +316,12 @@ describe('DecisionsStream', () => {
                     const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as (d: any) => void;
                     const functionPassedToDelete = mockNonBlockingLoop.mock.calls[1][1] as (d: any) => void;
 
-                    mockDecisionObject.mockReturnValueOnce({ decision: 'added' });
-                    mockDecisionObject.mockReturnValueOnce({ decision: 'deleted' });
+                    mockDecisionObject.mockImplementationOnce(function () {
+                        return { decision: 'added' };
+                    });
+                    mockDecisionObject.mockImplementationOnce(function () {
+                        return { decision: 'deleted' };
+                    });
 
                     // @ts-ignore
                     stream.decisions = {
@@ -354,7 +362,7 @@ describe('DecisionsStream', () => {
                     new: [decision]
                 };
 
-                const mockEmit = jest.fn();
+                const mockEmit = vi.fn();
                 // @ts-ignore
                 stream.emit = mockEmit;
 
@@ -371,8 +379,12 @@ describe('DecisionsStream', () => {
                 const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as (d: any) => void;
                 const functionPassedToDelete = mockNonBlockingLoop.mock.calls[1][1] as (d: any) => void;
 
-                mockDecisionObject.mockReturnValueOnce({ decision: 'added' });
-                mockDecisionObject.mockReturnValueOnce({ decision: 'deleted' });
+                mockDecisionObject.mockImplementationOnce(function () {
+                    return { decision: 'added' };
+                });
+                mockDecisionObject.mockImplementationOnce(function () {
+                    return { decision: 'deleted' };
+                });
 
                 // @ts-ignore
                 stream.decisions = {
@@ -397,7 +409,7 @@ describe('DecisionsStream', () => {
     });
 
     describe('loopWrapper', () => {
-        const mockLoop = jest.fn().mockImplementation(() => Promise.resolve());
+        const mockLoop = vi.fn().mockImplementation(() => Promise.resolve());
         let loopWrapper: DecisionsStream['loopWrapper'];
         beforeEach(() => {
             // @ts-ignore
@@ -417,7 +429,7 @@ describe('DecisionsStream', () => {
 
         it('should handle loop errors', async () => {
             const fakeError = new Error();
-            const mockHandleError = jest.fn();
+            const mockHandleError = vi.fn();
             // @ts-ignore
             stream.handleError = mockHandleError;
 
@@ -433,7 +445,7 @@ describe('DecisionsStream', () => {
     });
 
     describe('emitDecisions', () => {
-        const mockEmit = jest.fn();
+        const mockEmit = vi.fn();
         let emitDecisions: DecisionsStream['emitDecisions'];
         beforeEach(() => {
             // @ts-ignore
@@ -455,7 +467,7 @@ describe('DecisionsStream', () => {
             await emitDecisions('added', decisionsArray);
 
             expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
-            const fakeStopFn = jest.fn();
+            const fakeStopFn = vi.fn();
             const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
 
             //should return undefined to remove from array
@@ -474,7 +486,7 @@ describe('DecisionsStream', () => {
 
             expect(mockNonBlockingLoop).toHaveBeenCalledWith(decisionsArray, expect.any(Function));
 
-            const fakeStopFn = jest.fn();
+            const fakeStopFn = vi.fn();
             const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
 
             //should return undefined to remove from array
@@ -515,7 +527,7 @@ describe('DecisionsStream', () => {
             const decisionsArray = [...new Array(1e6)].map(() => fakeDecision);
             await emitDecisions('added', decisionsArray);
 
-            const fakeStopFn = jest.fn();
+            const fakeStopFn = vi.fn();
             const functionPassedToAdd = mockNonBlockingLoop.mock.calls[0][1] as nonBlockingFn<any>;
             expect(await functionPassedToAdd(fakeDecision, fakeStopFn)).toBe(undefined);
             expect(fakeStopFn).not.toHaveBeenCalled();
@@ -553,8 +565,8 @@ describe('DecisionsStream', () => {
         });
     });
     describe('loop', () => {
-        const mockEmit = jest.fn();
-        const mockEmitDecisions = jest.fn().mockImplementation(() => Promise.resolve());
+        const mockEmit = vi.fn();
+        const mockEmitDecisions = vi.fn().mockImplementation(() => Promise.resolve());
         let loop: DecisionsStream['loop'];
 
         beforeEach(() => {

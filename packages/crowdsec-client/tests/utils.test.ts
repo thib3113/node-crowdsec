@@ -7,7 +7,7 @@ import {
     parseExpiration,
     setImmediatePromise
 } from '../src/utils.js';
-import { jest, describe, it, afterEach, beforeEach, expect } from '@jest/globals';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { RawAxiosRequestConfig } from 'axios';
 import * as crypto from 'crypto';
 
@@ -16,7 +16,7 @@ describe('utils', () => {
         const RealDate = Date.now;
 
         beforeEach(() => {
-            global.Date.now = jest.fn(() => new Date('2019-04-07T10:20:30Z').getTime());
+            global.Date.now = vi.fn(() => new Date('2019-04-07T10:20:30Z').getTime());
         });
 
         afterEach(() => {
@@ -153,20 +153,20 @@ describe('utils', () => {
     });
     describe('nonBlockingLoop', () => {
         it('should perform no operations if the array is empty', async () => {
-            const mockFn = jest.fn();
+            const mockFn = vi.fn();
             await nonBlockingLoop([], mockFn);
             expect(mockFn).not.toHaveBeenCalled();
         });
 
         it('should call the provided function on each element of the array', async () => {
-            const mockFn = jest.fn((x: number) => x * 2);
+            const mockFn = vi.fn((x: number) => x * 2);
             const arr = [1, 2, 3];
             await nonBlockingLoop(arr, mockFn);
             expect(mockFn).toHaveBeenCalledTimes(arr.length);
         });
 
         it('should stop executing if the stop function is called', async () => {
-            const mockFn = jest.fn((x: number, stop: () => void) => {
+            const mockFn = vi.fn((x: number, stop: () => void) => {
                 if (x > 2) {
                     stop();
                 }
@@ -178,7 +178,7 @@ describe('utils', () => {
         });
 
         it('should break execution every breakCounter operations', async () => {
-            const mockFn = jest.fn((x: number, stop) => x * 2);
+            const mockFn = vi.fn((x: number, stop) => x * 2);
             const arr = Array(200).fill(1);
             const res = nonBlockingLoop(arr, mockFn, 50);
 

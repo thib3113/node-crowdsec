@@ -23,11 +23,17 @@ export const getIpObject = (ip: string): AddressObject => {
         return new Address4(ip);
     } catch (e) {
         //e is not instance of AddressError
-        if ((e as { name: string }).name === 'AddressError') {
-            //maybe it's a valid IPv6
-            return new Address6(ip);
-        } else {
+        if ((e as { name: string }).name !== 'AddressError') {
             throw e;
         }
+
+        //maybe it's a valid IPv6
+        const address = new Address6(ip);
+        //IPv4-mapped IPv6 are compared as IPv4 ( https://github.com/thib3113/node-crowdsec/issues/88 )
+        if (address.is4() && address.address4) {
+            return address.address4;
+        }
+
+        return address;
     }
 };

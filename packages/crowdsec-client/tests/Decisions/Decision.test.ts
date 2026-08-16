@@ -1,8 +1,10 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 
-const mockParseExpiration = jest.fn().mockReturnValue(new Date('2023-06-01T17:41:26.499Z'));
+const { mockParseExpiration } = vi.hoisted(() => ({
+    mockParseExpiration: vi.fn().mockReturnValue(new Date('2023-06-01T17:41:26.499Z'))
+}));
 
-jest.unstable_mockModule('../../src/utils.js', () => ({
+vi.mock('../../src/utils.js', () => ({
     parseExpiration: mockParseExpiration
 }));
 

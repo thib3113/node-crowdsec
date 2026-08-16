@@ -1,14 +1,14 @@
-import { jest, describe, it, afterEach, beforeEach, expect } from '@jest/globals';
+import { describe, it, afterEach, beforeEach, expect, vi } from 'vitest';
 
 import type { Alerts as AlertsTypes } from '../../src/types/index.js';
 import type { Alerts } from '../../src/index.js';
 
-jest.unstable_mockModule('../../src/BaseSubObject.js', () => ({ BaseSubObject: jest.fn() }));
+vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
 
 describe('DecisionsWatcher', () => {
-    const httpDeleteMock = jest.fn();
-    const httpPostMock = jest.fn();
-    const httpGetMock = jest.fn();
+    const httpDeleteMock = vi.fn();
+    const httpPostMock = vi.fn();
+    const httpGetMock = vi.fn();
     let alerts: Alerts;
     beforeEach(async () => {
         const res = await import('../../src/Alerts/Alerts.js');

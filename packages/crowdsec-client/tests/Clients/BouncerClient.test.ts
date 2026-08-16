@@ -1,25 +1,31 @@
-import { beforeEach, describe, expect, jest, it } from '@jest/globals';
+import { beforeEach, describe, expect, vi, it } from 'vitest';
 import type { BouncerClient as BouncerClientType } from '../../src/Clients/BouncerClient.js';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
 
-const mockCrowdSecClientConstructor = jest.fn();
-class FakeClient {
-    setAuthenticationHeaders = jest.fn();
-    setAuthenticationByTLS = jest.fn();
-    _testConnection = jest.fn();
-    // @ts-ignore
-    constructor(...args) {
-        mockCrowdSecClientConstructor(...args);
+const { mockCrowdSecClientConstructor, FakeClient, mockDecisionsBouncer } = vi.hoisted(() => {
+    const mockCrowdSecClientConstructor = vi.fn();
+    class FakeClient {
+        setAuthenticationHeaders = vi.fn();
+        setAuthenticationByTLS = vi.fn();
+        _testConnection = vi.fn();
+        // @ts-ignore
+        constructor(...args) {
+            mockCrowdSecClientConstructor(...args);
+        }
+        http = 'fake-http';
+        static getHTTPClient: unknown;
     }
-    http = 'fake-http';
-}
 
-jest.unstable_mockModule('../../src/Clients/CrowdSecClient.js', () => ({
+    const mockDecisionsBouncer = vi.fn();
+
+    return { mockCrowdSecClientConstructor, FakeClient, mockDecisionsBouncer };
+});
+
+vi.mock('../../src/Clients/CrowdSecClient.js', () => ({
     CrowdSecClient: FakeClient
 }));
 
-const mockDecisionsBouncer = jest.fn();
-jest.unstable_mockModule('../../src/Decisions/DecisionsBouncer.js', () => ({
+vi.mock('../../src/Decisions/DecisionsBouncer.js', () => ({
     DecisionsBouncer: mockDecisionsBouncer
 }));
 
@@ -75,7 +81,7 @@ describe('BouncerClient.test.ts', () => {
         });
     });
     describe('functions', () => {
-        const httpGetMock = jest.fn();
+        const httpGetMock = vi.fn();
         let bouncer: BouncerClientType;
         beforeEach(async () => {
             bouncer = new BouncerClient({
@@ -89,7 +95,7 @@ describe('BouncerClient.test.ts', () => {
 
         describe('login', () => {
             it('should call the testConnection', async () => {
-                const mockTestConnection = jest.fn();
+                const mockTestConnection = vi.fn();
                 // @ts-ignore
                 bouncer.testConnection = mockTestConnection;
 
@@ -108,7 +114,7 @@ describe('BouncerClient.test.ts', () => {
         });
         describe('stop', () => {
             it('should call the Decisions stop', async () => {
-                const mockDecisionsStrop = jest.fn();
+                const mockDecisionsStrop = vi.fn();
                 // @ts-ignore
                 bouncer.Decisions = {
                     stop: mockDecisionsStrop

@@ -1,52 +1,49 @@
-import { afterEach, beforeEach, describe, expect, jest, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, vi, it } from 'vitest';
 import type { CrowdSecClient as TypeCrowdSecClient } from '../../src/Clients/CrowdSecClient.js';
 import type { ICrowdSecClientOptions } from '../../src/index.js';
 import Validate from '../../src/Validate.js';
 import * as https from 'https';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
 import { EErrorsCodes } from '../../src/Errors/EErrorsCodes.js';
-import Mock = jest.Mock;
+import type { Mock, MockInstance } from 'vitest';
 import { AxiosError } from '../../src/Errors/AxiosError.js';
 import { CrowdSecServerError } from '../../src/Errors/CrowdSecServerError.js';
 
-const mockDebug = jest.fn();
-const mockDebugExtend = jest.fn().mockImplementation(() => mockDebug);
-const createDebuggerMock = jest.fn().mockImplementation(() => mockDebug);
-// @ts-ignore
-mockDebug.extend = mockDebugExtend;
+const { mockDebug, mockDebugExtend, createDebuggerMock, mockAxios, mockGetUrlRepresentation } = vi.hoisted(() => {
+    const mockDebug = vi.fn();
+    const mockDebugExtend = vi.fn().mockImplementation(() => mockDebug);
+    const createDebuggerMock = vi.fn().mockImplementation(() => mockDebug);
+    // @ts-ignore
+    mockDebug.extend = mockDebugExtend;
 
-const mockAxios: {
-    defaults: { headers: {} };
-    create: Mock;
-    isAxiosError: Mock;
-    head: Mock;
-    interceptors: { request: { use: Mock }; response: { use: Mock } };
-} = {
-    defaults: {
-        headers: {}
-    },
-    interceptors: {
-        request: {
-            use: jest.fn()
+    const mockAxios = {
+        defaults: { headers: {} },
+        interceptors: {
+            request: {
+                use: vi.fn()
+            },
+            response: {
+                use: vi.fn()
+            }
         },
-        response: {
-            use: jest.fn()
-        }
-    },
-    create: jest.fn().mockImplementation(() => mockAxios),
-    isAxiosError: jest.fn(),
-    head: jest.fn()
-};
+        create: vi.fn().mockImplementation(() => mockAxios),
+        isAxiosError: vi.fn(),
+        head: vi.fn()
+    };
 
-const mockGetUrlRepresentation = jest.fn();
-jest.unstable_mockModule('../../src/utils.js', () => ({
+    const mockGetUrlRepresentation = vi.fn();
+
+    return { mockDebug, mockDebugExtend, createDebuggerMock, mockAxios, mockGetUrlRepresentation };
+});
+
+vi.mock('../../src/utils.js', () => ({
     createDebugger: createDebuggerMock,
     getUrlRepresentation: mockGetUrlRepresentation
 }));
-jest.unstable_mockModule('axios', () => ({
+vi.mock('axios', () => ({
     default: mockAxios
 }));
-jest.unstable_mockModule('../../src/pkg.js', () => ({
+vi.mock('../../src/pkg.js', () => ({
     pkg: {
         name: 'test-crowdsec',
         version: '1.0.0'
@@ -95,10 +92,10 @@ describe('CrowdSecClient.ts', () => {
     }
 
     describe('constructor', () => {
-        let mockGetHTTPClient: jest.Spied<any>;
+        let mockGetHTTPClient: MockInstance;
         beforeEach(() => {
             // @ts-ignore
-            mockGetHTTPClient = jest.spyOn(CrowdSecClient, 'getHTTPClient').mockImplementation(() => {});
+            mockGetHTTPClient = vi.spyOn(CrowdSecClient, 'getHTTPClient').mockImplementation(() => {});
         });
         afterEach(() => {
             mockGetHTTPClient.mockRestore();
@@ -131,9 +128,6 @@ describe('CrowdSecClient.ts', () => {
     });
 
     describe('addAxiosDebugInterceptors', () => {
-        describe('function', () => {
-            //TODO
-        });
         describe('interceptors', () => {
             describe('logger', () => {
                 it('should log the request', async () => {
@@ -459,7 +453,7 @@ describe('CrowdSecClient.ts', () => {
 
     describe('getHTTPClient', () => {
         let getHTTPClient: (typeof CrowdSecClient)['getHTTPClient'];
-        const mockAddAxiosDebugInterceptors = jest.fn();
+        const mockAddAxiosDebugInterceptors = vi.fn();
         beforeEach(() => {
             // @ts-ignore
             FakeClient.prototype.addAxiosDebugInterceptors = mockAddAxiosDebugInterceptors;
@@ -525,10 +519,10 @@ describe('CrowdSecClient.ts', () => {
     });
 
     describe('functions', () => {
-        let mockGetHTTPClient: jest.Spied<any>;
+        let mockGetHTTPClient: MockInstance;
         beforeEach(() => {
             // @ts-ignore
-            mockGetHTTPClient = jest.spyOn(CrowdSecClient, 'getHTTPClient').mockImplementation(() => mockAxios);
+            mockGetHTTPClient = vi.spyOn(CrowdSecClient, 'getHTTPClient').mockImplementation(() => mockAxios);
         });
         afterEach(() => {
             mockGetHTTPClient.mockRestore();

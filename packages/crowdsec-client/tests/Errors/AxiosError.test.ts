@@ -1,7 +1,7 @@
 import { AxiosError } from '../../src/Errors/AxiosError.js';
 import type { AxiosError as BaseAxiosError } from 'axios';
 import * as util from 'util';
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 
 const error: BaseAxiosError = {
     message: 'testErrorMessage',

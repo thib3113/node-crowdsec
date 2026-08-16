@@ -1,4 +1,4 @@
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 import { VERSION } from '../src/index.js';
 
 it('should export a VERSION', async () => {
