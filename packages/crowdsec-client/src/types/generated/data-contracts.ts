@@ -1,5 +1,6 @@
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 /*
  * ---------------------------------------------------------------
  * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
@@ -71,6 +72,8 @@ export interface Alert {
     /** the Meta data of the Alert itself */
     meta?: Meta;
     labels?: string[];
+    /** Origin of the alert (crowdsec,waf,bot-detection,...) */
+    kind?: string;
 }
 
 /** Source */
@@ -265,6 +268,11 @@ export interface OSversion {
      */
     name: string;
     /**
+     * family of the OS
+     * @maxLength 255
+     */
+    family?: string;
+    /**
      * version of the OS
      * @maxLength 255
      */
@@ -320,6 +328,76 @@ export interface HubItem {
     version?: string;
     /** status of the hub item (official, custom, tainted, etc.) */
     status?: string;
+}
+
+/** GetAllowlistsResponse */
+export type GetAllowlistsResponse = GetAllowlistResponse[];
+
+/** GetAllowlistResponse */
+export interface GetAllowlistResponse {
+    /** name of the allowlist */
+    name?: string;
+    /** id of the allowlist */
+    allowlist_id?: string;
+    /** description of the allowlist */
+    description?: string;
+    /** items in the allowlist */
+    items?: AllowlistItem[];
+    /**
+     * creation date of the allowlist
+     * @format date-time
+     */
+    created_at?: string;
+    /**
+     * last update date of the allowlist
+     * @format date-time
+     */
+    updated_at?: string;
+    /** true if the allowlist is managed by the console */
+    console_managed?: boolean;
+}
+
+/** AllowlistItem */
+export interface AllowlistItem {
+    /** value of the allowlist item */
+    value?: string;
+    /** description of the allowlist item */
+    description?: string;
+    /**
+     * creation date of the allowlist item
+     * @format date-time
+     */
+    created_at?: string;
+    /**
+     * expiration date of the allowlist item
+     * @format date-time
+     */
+    expiration?: string;
+}
+
+/** CheckAllowlistResponse */
+export interface CheckAllowlistResponse {
+    /** true if the IP or range is in the allowlist */
+    allowlisted?: boolean;
+    /** item that matched the provided value */
+    reason?: string;
+}
+
+export interface BulkCheckAllowlistRequest {
+    /** Array of IP addresses or CIDR ranges to check */
+    targets: string[];
+}
+
+export interface BulkCheckAllowlistResult {
+    /** The IP or range that is allowlisted */
+    target: string;
+    /** Matching ip or range, name of the allowlist and comment related to the target */
+    allowlists: string[];
+}
+
+export interface BulkCheckAllowlistResponse {
+    /** Per-target allowlist membership results */
+    results: BulkCheckAllowlistResult[];
 }
 
 /**
@@ -409,6 +487,10 @@ export interface DeleteDecisionsParams {
     range?: string;
     /** scenario to search */
     scenario?: string;
+}
+
+export interface DeleteDecisionParams {
+    decisionId: string;
 }
 
 export interface SearchAlertsParams {
@@ -502,4 +584,34 @@ export interface DeleteAlertsParams {
     has_active_decision?: boolean;
     /** delete only alerts with matching source (ie. cscli/crowdsec) */
     alert_source?: string;
+}
+
+export interface GetAlertbyIdParams {
+    alertId: string;
+}
+
+export interface HeadAlertbyIdParams {
+    alertId: string;
+}
+
+export interface DeleteAlertParams {
+    alertId: string;
+}
+
+export interface GetAllowlistParams {
+    allowlistName: string;
+}
+
+export interface HeadAllowlistParams {
+    /** if true, the content of the allowlist will be returned as well */
+    with_content?: boolean;
+    allowlistName: string;
+}
+
+export interface CheckAllowlistParams {
+    ipOrRange: string;
+}
+
+export interface HeadCheckAllowlistParams {
+    ipOrRange: string;
 }

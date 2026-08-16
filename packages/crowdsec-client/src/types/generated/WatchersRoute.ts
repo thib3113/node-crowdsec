@@ -1,5 +1,6 @@
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 /*
  * ---------------------------------------------------------------
  * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
@@ -23,6 +24,22 @@ export namespace Watchers {
         export type RequestParams = {};
         export type RequestQuery = {};
         export type RequestBody = WatcherRegistrationRequest;
+        export type RequestHeaders = {};
+        export type ResponseBody = void;
+    }
+
+    /**
+     * @description watcher self-delete
+     * @tags watchers
+     * @name DeleteWatcher
+     * @summary DeleteWatcher
+     * @request DELETE:/watchers/self
+     * @secure
+     */
+    export namespace DeleteWatcher {
+        export type RequestParams = {};
+        export type RequestQuery = {};
+        export type RequestBody = never;
         export type RequestHeaders = {};
         export type ResponseBody = void;
     }
