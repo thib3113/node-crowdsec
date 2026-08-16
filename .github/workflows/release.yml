@@ -8,7 +8,6 @@ jobs:
     uses: ./.github/workflows/CI.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     permissions:
       checks: write
