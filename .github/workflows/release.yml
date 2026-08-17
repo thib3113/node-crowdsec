@@ -25,7 +25,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: lts/*
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
@@ -56,6 +56,10 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
       - uses: pnpm/action-setup@v6
         name: Install pnpm
         id: pnpm-install
@@ -87,6 +91,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
+          node-version: lts/*
           registry-url: 'https://registry.npmjs.org'
 
       - uses: pnpm/action-setup@v6
