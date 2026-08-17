@@ -1,6 +1,6 @@
 {
     "name": "crowdsec-http-middleware",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "HTTP server middleware that can act as a crowdsec bouncer/watcher",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
