@@ -114,12 +114,40 @@ jobs:
         shell: bash
 
       - name: Compare npm with local (versions)
-        uses: rbatty19/compare-npm-versions-ci@master
         id: package_version
-        continue-on-error: true
+        uses: actions/github-script@v7
         with:
-          path: ${{ matrix.package.path }}
-          npm_package_name: ${{ matrix.package.name }}
+          script: |
+            const fs = require('fs');
+            const { name, version: localVersion } = JSON.parse(
+              fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/${process.env.CHECK_PATH}/package.json`, 'utf8')
+            );
+            let npmVersion = '0.0.0';
+            try {
+              const res = await fetch(`https://registry.npmjs.org/${name}`);
+              if (res.ok) {
+                const data = await res.json();
+                npmVersion = data['dist-tags']?.latest || '0.0.0';
+              }
+            } catch (e) {
+              console.log(`could not fetch ${name} from registry: ${e.message}`);
+            }
+            const compare = (a, b) => {
+              const pa = a.split('.').map(Number);
+              const pb = b.split('.').map(Number);
+              for (let i = 0; i < 3; i++) {
+                if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+                if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+              }
+              return 0;
+            };
+            const npmIsGreater = compare(npmVersion, localVersion) >= 0;
+            core.setOutput('version', localVersion);
+            core.setOutput('pkg_npm_version', npmVersion);
+            core.setOutput('npm_is_greater', String(npmIsGreater));
+            console.log(`local ${name}@${localVersion} vs npm ${name}@${npmVersion} npm_is_greater=${npmIsGreater}`);
+        env:
+          CHECK_PATH: ${{ matrix.package.path }}
 
       - name: build dependencies
         run: pnpm -F ${{ matrix.package.name }}... build
