@@ -115,7 +115,7 @@ jobs:
 
       - name: Compare npm with local (versions)
         id: package_version
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
