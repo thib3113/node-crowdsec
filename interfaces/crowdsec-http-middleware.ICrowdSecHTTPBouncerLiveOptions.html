@@ -13,7 +13,7 @@
 <h1>Interface ICrowdSecHTTPBouncerLiveOptions</h1></div>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">ICrowdSecHTTPBouncerLiveOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#cleancachemax">cleanCacheMax</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cleancachettl">cleanCacheTtl</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#enabled">enabled</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#errorbackoffttl">errorBackoffTtl</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#errorbehavior">errorBehavior</a><span class="tsd-signature-symbol">?:</span> <a href="../enums/crowdsec-http-middleware.LiveCheckErrorBehavior.html" class="tsd-signature-type tsd-kind-enum">LiveCheckErrorBehavior</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxconcurrentchecks">maxConcurrentChecks</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#watchdog">watchdog</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L55">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:55</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L55">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:55</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -38,7 +38,7 @@
 <div class="tsd-comment tsd-typography"><p>max number of &quot;clean&quot; verdicts kept in memory ( LRU ). Default: <code>maxIpCache ?? 50000</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L73">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:73</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L73">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:73</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cleancachettl"><code class="tsd-tag">Optional</code><span>clean<wbr/>Cache<wbr/>Ttl</span><a href="#cleancachettl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">cleanCacheTtl</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
@@ -46,7 +46,7 @@
 Default: <code>60</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L69">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:69</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L69">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="enabled"><code class="tsd-tag">Optional</code><span>enabled</span><a href="#enabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">enabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -54,7 +54,7 @@ Default: <code>60</code></p>
 LAPI in the background and block it from the next request on. Default: <code>false</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L60">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:60</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L60">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:60</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="errorbackoffttl"><code class="tsd-tag">Optional</code><span>error<wbr/>Backoff<wbr/>Ttl</span><a href="#errorbackoffttl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">errorBackoffTtl</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
@@ -62,21 +62,21 @@ LAPI in the background and block it from the next request on. Default: <code>fal
 Default: <code>10</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L82">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:82</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L82">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:82</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="errorbehavior"><code class="tsd-tag">Optional</code><span>error<wbr/>Behavior</span><a href="#errorbehavior" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">errorBehavior</span><span class="tsd-signature-symbol">?:</span> <a href="../enums/crowdsec-http-middleware.LiveCheckErrorBehavior.html" class="tsd-signature-type tsd-kind-enum">LiveCheckErrorBehavior</a></div>
 <div class="tsd-comment tsd-typography"><p>what to do when a live check fails. Default: <code>failOpen</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L64">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:64</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L64">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:64</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxconcurrentchecks"><code class="tsd-tag">Optional</code><span>max<wbr/>Concurrent<wbr/>Checks</span><a href="#maxconcurrentchecks" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxConcurrentChecks</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>max number of concurrent live checks against the LAPI. Default: <code>100</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L77">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:77</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L77">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:77</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="watchdog"><code class="tsd-tag">Optional</code><span>watchdog</span><a href="#watchdog" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">watchdog</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -86,7 +86,7 @@ Applies in stream mode too (a safety net on top of the stream <code>deleted</cod
 events). Default: <code>true</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/78c07d275c82d8c7a6132330cb3d1ce6ef7cbf63/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L89">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:89</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/thib3113/node-crowdsec/blob/b645c7086ad5b8955fc619bd10de10843fc74847/packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts#L89">packages/crowdsec-http-middleware/src/ICrowdSecHTTPMiddlewareOptions.ts:89</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
