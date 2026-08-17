@@ -124,8 +124,11 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const pkgPath = process.env.CHECK_PATH.startsWith('/')
+              ? process.env.CHECK_PATH
+              : `${process.env.GITHUB_WORKSPACE}/${process.env.CHECK_PATH}`;
             const { name, version: localVersion } = JSON.parse(
-              fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/${process.env.CHECK_PATH}/package.json`, 'utf8')
+              fs.readFileSync(pkgPath, 'utf8')
             );
             let npmVersion = '0.0.0';
             try {
