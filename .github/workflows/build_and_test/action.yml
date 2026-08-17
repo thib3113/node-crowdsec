@@ -81,9 +81,15 @@ runs:
         find ./coverage -type f -exec sed -i -e "s@$(pwd)@.@g" {} \;
       if: ${{ inputs.check == 'true' }}
 
+    - name: Normalize node version for artifact name
+      id: norm-node
+      shell: bash
+      run: |
+        echo "safe=$(echo '${{ inputs.node-version }}' | tr -c 'A-Za-z0-9._-' '_')" >> "$GITHUB_OUTPUT"
+
     - uses: actions/upload-artifact@v7
       with:
-        name: "coverage-${{ inputs.package_name }}-${{ inputs.node-version }}-${{ inputs.node-version }}"
+        name: "coverage-${{ inputs.package_name }}-${{ steps.norm-node.outputs.safe }}"
         path: |
           ${{ inputs.package_path }}/coverage/clover.xml
           ${{ inputs.package_path }}/coverage/coverage-final.json
