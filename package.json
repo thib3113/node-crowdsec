@@ -20,5 +20,5 @@
         "typedoc": "0.28.20",
         "typescript": "6.0.3"
     },
-    "packageManager": "pnpm@9.15.9"
+    "packageManager": "pnpm@11.22.0"
 }
