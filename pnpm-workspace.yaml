@@ -2,3 +2,5 @@ packages:
   - 'dev/*'
   - 'examples/*'
   - 'packages/*'
+allowBuilds:
+  esbuild: true
