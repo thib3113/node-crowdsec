@@ -18,7 +18,7 @@
         "prettier": "3.9.6",
         "ts-node": "10.9.2",
         "typedoc": "0.28.20",
-        "typescript": "6.0.3"
+        "typescript": "7.0.2"
     },
     "packageManager": "pnpm@11.28.3+sha512.d49760a13b1755948775a5d4cb1bc4ba871ff2dc941adf851630d044ed722f9b5be8be57bef93166098c80c706bd612c282d05526dd1d0ae660188c086820f35"
 }
