@@ -392,4 +392,7 @@ const run = async () => {
     await benchSetup();
 };
 
-run();
+run().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

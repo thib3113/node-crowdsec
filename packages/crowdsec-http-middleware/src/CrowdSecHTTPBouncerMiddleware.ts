@@ -302,10 +302,11 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
         this.concurrentChecks++;
         const check = this.runLiveCheck(ip);
         this.pendingChecks.set(ip, check);
-        check.finally(() => {
+        const cleanup = () => {
             this.concurrentChecks--;
             this.pendingChecks.delete(ip);
-        });
+        };
+        check.then(cleanup, cleanup);
     }
 
     private async runLiveCheck(ip: string): Promise<void> {
