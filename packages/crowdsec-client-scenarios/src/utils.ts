@@ -18,7 +18,22 @@ export const createDebugger = (name: string): Debugger => {
 
 export type AddressObject = Address4 | Address6;
 
+/**
+ * Upper bound on the length of an IP string accepted for parsing.
+ *
+ * A valid IP is at most 45 chars, 49 with a CIDR suffix. This bound is
+ * deliberately large (20x margin) : it only rejects oversized
+ * attacker-controlled input before `ip-address` parsing
+ * (CVE-2026-101911 : unbounded Address6 diagnostic → sync stall / OOM).
+ */
+export const MAX_IP_LENGTH = 1024;
+
 export const getIpObject = (ip: string): AddressObject => {
+    if (ip.length > MAX_IP_LENGTH) {
+        const error = new Error(`ip string too long (${ip.length} > ${MAX_IP_LENGTH})`);
+        error.name = 'AddressError';
+        throw error;
+    }
     try {
         //check if it's a valid IPv4
         return new Address4(ip);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { IpDecisionDB } from '../src/IpDecisionDB.js';
-import { getIpObject } from '../src/utils.js';
+import { MAX_IP_LENGTH, getIpObject } from '../src/utils.js';
 import { Address4, Address6 } from 'ip-address';
 
 const ipv4 = (ip: string) => getIpObject(ip);
@@ -99,6 +99,20 @@ describe('IpDecisionDB', () => {
             expect(db.lookup(ipv6('::1'))).toBe('loopback');
             // 0.0.0.1 must NOT be matched by the `::1` decision
             expect(db.lookup(ipv4('0.0.0.1'))).toBeUndefined();
+        });
+    });
+
+    describe('oversized input (CVE-2026-101911 hardening)', () => {
+        it('rejects strings longer than MAX_IP_LENGTH as AddressError', () => {
+            const payload = '!'.repeat(MAX_IP_LENGTH + 1);
+            expect(() => getIpObject(payload)).toThrowError(expect.objectContaining({ name: 'AddressError' }));
+        });
+
+        it('rejects MiB-scale input without stalling', () => {
+            const payload = '!'.repeat(1024 * 1024);
+            const start = Date.now();
+            expect(() => getIpObject(payload)).toThrowError(expect.objectContaining({ name: 'AddressError' }));
+            expect(Date.now() - start).toBeLessThan(1000);
         });
     });
 });

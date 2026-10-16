@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IncomingMessage } from 'http';
 import { XForwardedForChecker } from '../../src/scenarios/XForwardedFor/XForwardedForChecker.js';
-import { getIpObject } from '../../src/utils.js';
+import { getIpObject, MAX_IP_LENGTH } from '../../src/utils.js';
 import { Address4, Address6 } from 'ip-address';
 
 const getRequest = (forwardedFor: string, remoteAddress = '1.1.1.1'): IncomingMessage =>
@@ -28,6 +28,10 @@ describe('getIpObject', () => {
     it('should parse an ipv4-mapped ipv6 as a valid ipv4', () => {
         const object = getIpObject('::ffff:10.0.0.5');
         expect(object.isInSubnet(new Address4('10.0.0.0/8'))).toBe(true);
+    });
+
+    it.each([[MAX_IP_LENGTH + 1], [1024 * 1024]])('rejects oversized input of %d chars (CVE-2026-101911 hardening)', (size) => {
+        expect(() => getIpObject('!'.repeat(size))).toThrowError(expect.objectContaining({ name: 'AddressError' }));
     });
 });
 

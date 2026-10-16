@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http';
 import { APITypes } from 'crowdsec-client';
 import { IIpExtractionResult, IScenario } from './IScenario.js';
-import { AddressObject, getIpObject } from '../utils.js';
+import { AddressObject, MAX_IP_LENGTH, getIpObject } from '../utils.js';
 import { LRUCache } from 'lru-cache';
 import { IScenarioOptions } from '../scenarios/IScenarioOptions.js';
 
@@ -30,6 +30,11 @@ export abstract class BaseScenario implements IScenario {
     protected getAddressObjectWithCache(address?: string): AddressObject {
         if (!address) {
             throw new Error('no address passed');
+        }
+        if (address.length > MAX_IP_LENGTH) {
+            const error = new Error(`ip string too long (${address.length} > ${MAX_IP_LENGTH})`);
+            error.name = 'AddressError';
+            throw error;
         }
         const cachedIp = this.ipObjectCache.get(address);
         if (cachedIp) {

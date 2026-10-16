@@ -12,14 +12,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "26.6.4",
+    "@types/node": "26.6.5",
     "crowdsec-client": "workspace:^",
     "crowdsec-client-scenarios": "workspace:^",
     "crowdsec-http-middleware": "workspace:^"
   },
   "devDependencies": {
     "@types/express": "5.0.6",
-    "dotenv": "17.4.2",
+    "dotenv": "18.0.8",
     "source-map-support": "0.5.21"
   }
 }
