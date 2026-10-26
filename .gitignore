@@ -196,6 +196,9 @@ packages/node-crowdsec-client/.env
 # vuepress build output
 .vuepress/dist
 
+# monorepo package build output
+/packages/crowdsec-mcp/dist
+
 # Serverless directories
 .serverless
 
