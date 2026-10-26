@@ -225,11 +225,15 @@ export type LogProcessorsMetrics = BaseMetrics & {
     last_push?: number;
     /** last update date */
     last_update?: number;
+    /** features enabled on the log processor (log_processor, waf, bot_detection), plus those of the LAPI it runs with in the same process (lapi, capi, papi) */
+    features?: string[];
 };
 
 /** LapiMetrics */
 export type LapiMetrics = BaseMetrics & {
     console_options?: ConsoleOptions;
+    /** features enabled on the LAPI (lapi, capi, papi) */
+    features?: string[];
 };
 
 /** AllMetrics */

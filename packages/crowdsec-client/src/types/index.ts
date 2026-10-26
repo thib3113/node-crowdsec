@@ -1,4 +1,5 @@
 export * from './generated/AlertsRoute.js';
+export * from './generated/AllowlistsRoute.js';
 export * from './generated/data-contracts.js';
 export * from './generated/DecisionsRoute.js';
 export * from './generated/WatchersRoute.js';

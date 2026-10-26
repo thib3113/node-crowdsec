@@ -5,6 +5,7 @@ import type { AxiosResponse } from 'axios';
 import type { WatcherAuthRequest, WatcherAuthResponse, WatcherRegistrationRequest } from '../types/index.js';
 import { DecisionsWatcher } from '../Decisions/DecisionsWatcher.js';
 import { Alerts } from '../Alerts/Alerts.js';
+import { Allowlists } from '../Allowlists/Allowlists.js';
 import { CrowdsecClientError, EErrorsCodes } from '../Errors/index.js';
 import Validate from '../Validate.js';
 
@@ -19,6 +20,7 @@ export class WatcherClient extends CrowdSecClient {
 
     public Decisions: DecisionsWatcher;
     public Alerts: Alerts;
+    public Allowlists: Allowlists;
     private readonly heartbeat: boolean | number;
     readonly scenarios: Array<string>;
 
@@ -44,6 +46,7 @@ export class WatcherClient extends CrowdSecClient {
 
         this.Decisions = new DecisionsWatcher({ httpClient: this.http });
         this.Alerts = new Alerts({ httpClient: this.http });
+        this.Allowlists = new Allowlists({ httpClient: this.http });
     }
 
     private async _login() {

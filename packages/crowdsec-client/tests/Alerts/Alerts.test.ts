@@ -84,7 +84,7 @@ describe('DecisionsWatcher', () => {
 
         expect(await alerts.delete(deleteOptions)).toBe('test');
 
-        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { data: deleteOptions });
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: deleteOptions });
     });
 
     it('should call delete with id', async () => {

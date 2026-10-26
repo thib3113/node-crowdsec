@@ -29,13 +29,11 @@ export class Alerts extends BaseSubObject {
         ).data;
     }
 
-    public async getById(id: string): Promise<AlertsTypes.SearchAlerts.ResponseBody> {
+    public async getById(id: string): Promise<AlertsTypes.GetAlertbyId.ResponseBody> {
         return (
-            await this.http.get<
-                AlertsTypes.SearchAlerts.ResponseBody,
-                AxiosResponse<AlertsTypes.SearchAlerts.ResponseBody>,
-                AlertsTypes.SearchAlerts.RequestQuery
-            >(`/v1/alerts/${id}`)
+            await this.http.get<AlertsTypes.GetAlertbyId.ResponseBody, AxiosResponse<AlertsTypes.GetAlertbyId.ResponseBody>>(
+                `/v1/alerts/${id}`
+            )
         ).data;
     }
 
@@ -46,7 +44,7 @@ export class Alerts extends BaseSubObject {
                 AxiosResponse<AlertsTypes.DeleteAlerts.ResponseBody>,
                 AlertsTypes.DeleteAlerts.RequestQuery
             >('/v1/alerts', {
-                data: options
+                params: options
             })
         ).data;
     }
