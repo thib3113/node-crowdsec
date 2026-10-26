@@ -163,7 +163,7 @@ jobs:
 
       - name: publish to NPM
         run: |
-          npm i -g npm@latest
+          npm install --global npm@11.19.0 --ignore-scripts
           npm --version
           npm publish --provenance
         working-directory: ${{ matrix.package.path }}
