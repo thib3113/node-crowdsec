@@ -216,8 +216,8 @@ importers:
         specifier: 5.0.6
         version: 5.0.6
       dotenv:
-        specifier: 18.0.8
-        version: 18.0.8
+        specifier: 18.0.9
+        version: 18.0.9
       source-map-support:
         specifier: 0.5.21
         version: 0.5.21
@@ -295,8 +295,8 @@ importers:
         specifier: 5.0.4
         version: 5.0.4(vitest@5.0.4)
       dotenv:
-        specifier: 18.0.8
-        version: 18.0.8
+        specifier: 18.0.9
+        version: 18.0.9
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -341,8 +341,8 @@ importers:
         specifier: workspace:^
         version: link:../crowdsec-client
       dotenv:
-        specifier: 18.0.8
-        version: 18.0.8
+        specifier: 18.0.9
+        version: 18.0.9
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -393,8 +393,8 @@ importers:
         specifier: workspace:^
         version: link:../crowdsec-client-scenarios
       dotenv:
-        specifier: 18.0.8
-        version: 18.0.8
+        specifier: 18.0.9
+        version: 18.0.9
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -1194,6 +1194,11 @@ packages:
 
   dotenv@18.0.8:
     resolution: {integrity: sha512-2KDeoFoK/zRtcnbunCDlLG5VWVMcyqeQc6iK65o231nfNAcuGrKoqUQfJFUtBI+QlShk5HKIHxwebBtUl3rEfA==}
+    engines: {node: '>=12'}
+    hasBin: true
+
+  dotenv@18.0.9:
+    resolution: {integrity: sha512-3fVOW4cB02R066PUSwn8O4TJyz9NckQl7F81blIbaq9jKBm2tSmOKky7ZHIXzGvkVPXCSn6jkpziBPZdGFs8Tw==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -2926,6 +2931,8 @@ snapshots:
   dotenv@17.4.2: {}
 
   dotenv@18.0.8: {}
+
+  dotenv@18.0.9: {}
 
   dunder-proto@1.0.1:
     dependencies:
