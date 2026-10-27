@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
-COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$REPO_ROOT/packages/crowdsec-mcp/tests/e2e/http/compose.yaml"
 PROJECT="crowdsec-mcp-e2e"
 
 export REPO_ROOT
@@ -133,3 +133,26 @@ export CROWDSEC_WATCHER_TOKEN="$WATCHER_TOKEN"
 
 cd "$REPO_ROOT"
 pnpm --filter crowdsec-mcp exec vitest run tests/e2e/http/live.test.ts
+
+# Seed the fixtures used by the live integration test, then run it against the
+# same LAPI. It is kept separate so the HTTP E2E cannot delete its alerts first.
+if ! compose exec -T crowdsec cscli allowlists create test-allowlist -d "mcp integration" >/dev/null; then
+    echo "Failed to create integration allowlist" >&2
+    exit 1
+fi
+if ! compose exec -T crowdsec cscli allowlists add test-allowlist 192.0.2.10 -d "mcp test" >/dev/null; then
+    echo "Failed to seed integration allowlist" >&2
+    exit 1
+fi
+if ! compose exec -T crowdsec cscli decisions add --ip 203.0.113.10 --duration 24h --reason "mcp integration" >/dev/null; then
+    echo "Failed to seed integration decision" >&2
+    exit 1
+fi
+
+export CROWDSEC_INTEGRATION=1
+export CROWDSEC_INTEGRATION_WRITE=1
+export CROWDSEC_MACHINE_ID="$MACHINE_ID"
+export CROWDSEC_PASSWORD="$MACHINE_PASSWORD"
+export CROWDSEC_API_KEY="$BOUNCER_KEY"
+
+pnpm --filter crowdsec-mcp exec vitest run tests/integration/live.test.ts

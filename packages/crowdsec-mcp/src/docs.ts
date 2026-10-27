@@ -1,4 +1,5 @@
 import type { AppContext } from './types.js';
+import { isAlertDeleteAvailable } from './config.js';
 
 export const DOC_BASE_URL = 'https://docs.crowdsec.net';
 
@@ -43,10 +44,7 @@ function writeSummary(ctx: AppContext): string {
 }
 
 function canDeleteAlerts(ctx: AppContext): boolean {
-    return (
-        ctx.config.enableAlertDelete &&
-        (!ctx.config.passthrough || Boolean(ctx.config.http.token) || ctx.config.allowAlertDeleteWithoutToken)
-    );
+    return isAlertDeleteAvailable(ctx.config);
 }
 
 function availabilityLines(ctx: AppContext): string[] {

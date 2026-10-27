@@ -180,15 +180,17 @@ describe('alertTools', () => {
             );
         });
 
-        it('should include kind filter in search', async () => {
+        it('should filter by kind client-side', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([
+                { id: 1, created_at: CREATED_AT, kind: 'waf', source: { scope: 'Ip', value: '1.1.1.1' }, decisions: [] },
+                { id: 2, created_at: CREATED_AT, kind: 'crowdsec', source: { scope: 'Ip', value: '2.2.2.2' }, decisions: [] }
+            ]);
             const tool = alertTools.find((t) => t.name === 'list_alerts')!;
-            await tool.handler({ kind: 'waf' }, mockCtx);
+            const result = await tool.handler({ kind: 'waf' }, mockCtx);
 
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    kind: 'waf'
-                })
-            );
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(expect.not.objectContaining({ kind: expect.anything() }));
+            expect(result).toContain('1.1.1.1');
+            expect(result).not.toContain('2.2.2.2');
         });
 
         it('should format output as markdown table with summary', async () => {
@@ -261,8 +263,7 @@ describe('alertTools', () => {
 
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ip: '198.51.100.0/24',
-                    contains: false
+                    ip: '198.51.100.0/24'
                 })
             );
         });
@@ -503,22 +504,17 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
         });
 
-        it('should delete alerts by origin through a search', async () => {
+        it('should delete alerts by origin with a direct delete', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            mockWatcher.Alerts.search.mockResolvedValue([{ id: 11 }, { id: 12 }]);
-            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
-
             const result = await tool.handler({ origin: 'cscli' }, mockCtx);
 
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+            expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    origin: 'cscli',
-                    limit: 0
+                    alert_source: 'cscli'
                 })
             );
-            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledTimes(2);
-            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
-            expect(result).toContain('Deleted 2 alert(s).');
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(result).toContain('Deleted 5 alert(s).');
         });
 
         it('should delete alerts by decision type and time filters through a search', async () => {
@@ -539,20 +535,17 @@ describe('alertTools', () => {
             expect(result).toContain('Deleted 1 alert(s).');
         });
 
-        it('should delete alerts with active decisions through a search', async () => {
+        it('should delete alerts with active decisions with a direct delete', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            mockWatcher.Alerts.search.mockResolvedValue([{ id: 21 }]);
-            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
-
             const result = await tool.handler({ has_active_decision: true }, mockCtx);
 
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+            expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    has_active_decision: true,
-                    limit: 0
+                    has_active_decision: true
                 })
             );
-            expect(result).toContain('Deleted 1 alert(s).');
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(result).toContain('Deleted 5 alert(s).');
         });
 
         it('should reject unknown parameters', async () => {
@@ -567,7 +560,7 @@ describe('alertTools', () => {
             await expect(tool.handler({ scope: 'Country', value: 'ZZ' }, mockCtx)).rejects.toThrow(/invalid country code/);
         });
 
-        it('should delete alerts contained in a CIDR', async () => {
+        it('should delete alerts contained in a CIDR through a search', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
             mockWatcher.Alerts.search.mockResolvedValue([{ id: 101 }, { id: 102 }]);
             mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
@@ -577,7 +570,6 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ip: '198.51.100.0/24',
-                    contains: false,
                     limit: 0
                 })
             );

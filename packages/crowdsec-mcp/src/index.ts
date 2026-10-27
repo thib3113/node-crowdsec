@@ -26,6 +26,7 @@ async function main(): Promise<void> {
     const config = loadConfig(values);
     let context: AppContext | undefined;
     let stdioServer: ReturnType<typeof createServer> | undefined;
+    let httpServer: Awaited<ReturnType<typeof startHttpServer>> | undefined;
 
     let stopping = false;
     const shutdown = async (signal: string): Promise<void> => {
@@ -36,6 +37,12 @@ async function main(): Promise<void> {
         stopping = true;
         log('received %s, shutting down', signal);
         try {
+            if (httpServer) {
+                httpServer.closeIdleConnections();
+                await new Promise<void>((resolve) => {
+                    httpServer!.close(() => resolve());
+                });
+            }
             await context?.stop();
             await stdioServer?.close();
         } finally {
@@ -52,7 +59,7 @@ async function main(): Promise<void> {
 
     if (config.transport === 'http') {
         if (config.passthrough) {
-            await startHttpServer((headers) => {
+            httpServer = await startHttpServer((headers) => {
                 const requestContext = createPassthroughContext(config, headers);
                 const requestTools = selectTools(allTools(), requestContext);
                 return {
@@ -63,7 +70,7 @@ async function main(): Promise<void> {
         } else {
             context = await createContext(config);
             const tools = selectTools(allTools(), context);
-            await startHttpServer(() => ({ server: createServer(tools, context!) }), config);
+            httpServer = await startHttpServer(() => ({ server: createServer(tools, context!) }), config);
         }
         log('HTTP transport listening on %s:%d', config.http.host, config.http.port);
         return;

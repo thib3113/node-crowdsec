@@ -14,6 +14,8 @@ export type RequestServerFactory = (headers: http.IncomingHttpHeaders) => Reques
 
 const MAX_BODY_SIZE = 4 * 1024 * 1024;
 
+class BodyTooLargeError extends Error {}
+
 export function isAuthorizedHeader(header: string | undefined, token: string): boolean {
     if (!header) {
         return false;
@@ -57,7 +59,7 @@ function readBody(req: http.IncomingMessage): Promise<string> {
 
         req.on('end', () => {
             if (tooLarge) {
-                reject(new Error('Payload too large'));
+                reject(new BodyTooLargeError('Payload too large'));
                 return;
             }
             resolve(Buffer.concat(chunks).toString('utf-8'));
@@ -100,8 +102,14 @@ async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse)
     let raw: string;
     try {
         raw = await readBody(req);
-    } catch {
-        sendRpcError(res, 413, -32000, 'Payload too large');
+    } catch (error) {
+        if (error instanceof BodyTooLargeError) {
+            sendRpcError(res, 413, -32000, 'Payload too large');
+        } else {
+            const message = error instanceof Error ? error.message : String(error);
+            process.stderr.write(`crowdsec-mcp: failed to read request body: ${message}\n`);
+            sendRpcError(res, 500, -32603, 'Internal server error');
+        }
         return { ok: false };
     }
 
@@ -111,6 +119,16 @@ async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse)
         sendRpcError(res, 400, -32700, 'Parse error');
         return { ok: false };
     }
+}
+
+function closeResource(promise: Promise<unknown> | undefined, label: string): void {
+    if (!promise) {
+        return;
+    }
+    promise.catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`crowdsec-mcp: ${label} failed: ${message}\n`);
+    });
 }
 
 function sendSetupError(res: http.ServerResponse, error: unknown): void {
@@ -148,10 +166,10 @@ async function handlePost(req: http.IncomingMessage, res: http.ServerResponse, c
     });
 
     res.on('close', () => {
-        void transport.close();
-        void server.close();
+        closeResource(transport.close(), 'transport close');
+        closeResource(server.close(), 'server close');
         if (cleanup) {
-            void cleanup();
+            closeResource(cleanup(), 'request cleanup');
         }
     });
 
@@ -205,6 +223,11 @@ export async function startHttpServer(createRequestServer: RequestServerFactory,
     const httpServer = http.createServer((req, res) => {
         void handleRequest(req, res, createRequestServer, token);
     });
+
+    httpServer.requestTimeout = 30_000;
+    httpServer.headersTimeout = 10_000;
+    httpServer.keepAliveTimeout = 5_000;
+    httpServer.maxHeadersCount = 100;
 
     return new Promise<http.Server>((resolve, reject) => {
         httpServer.once('error', reject);

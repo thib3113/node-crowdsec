@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { AppContext, ToolDefinition } from './types.js';
 import { buildInstructions, docResources } from './docs.js';
+import { isAlertDeleteAvailable } from './config.js';
 import { crowdsecPrompts, isPromptAvailable } from './prompts.js';
 import { NAME, VERSION } from './version.js';
 
@@ -77,17 +78,11 @@ export function selectTools(tools: ToolDefinition[], ctx: AppContext): ToolDefin
             return false;
         }
 
-        if (tool.feature === 'alert-delete') {
-            if (!context.config.enableAlertDelete) {
-                return false;
-            }
-
+        if (tool.feature === 'alert-delete' && !isAlertDeleteAvailable(context.config)) {
             // delete_alerts is local-only and destructive. In passthrough mode
             // without a service token, any LAPI token holder could reach it, so
             // hide it unless the operator explicitly forces it.
-            if (context.config.passthrough && !context.config.http.token && !context.config.allowAlertDeleteWithoutToken) {
-                return false;
-            }
+            return false;
         }
 
         if (context.config.tools && !context.config.tools.includes(tool.name)) {

@@ -12,7 +12,8 @@ import {
     isValidIp,
     isValidTimeFilter,
     parsePositiveId,
-    resolveListWindow
+    resolveListWindow,
+    toGoDuration
 } from '../utils.js';
 
 async function deleteAlertIds(ctx: AppContext, ids: number[]): Promise<number> {
@@ -172,16 +173,20 @@ async function deleteAlertsById(ctx: AppContext, id: string | number): Promise<s
 }
 
 async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAlertInput, cidr: string): Promise<string> {
+    // The delete endpoint matches exact filter values; search first so alerts
+    // whose source IP is contained in the range are also removed.
     const alerts = await ctx.watcher!.Alerts.search({
         ip: cidr,
-        contains: false,
         scope: filters.normalizedScope,
         value: filters.normalizedValue,
         scenario: filters.scenario,
         origin: filters.origin,
+        decision_type: filters.decisionType,
+        since: filters.since ? toGoDuration(filters.since) : undefined,
+        until: filters.until ? toGoDuration(filters.until) : undefined,
         has_active_decision: filters.has_active_decision,
         limit: 0
-    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
+    });
 
     return deleteAlertsByIds(
         ctx,
@@ -190,19 +195,21 @@ async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAler
 }
 
 async function deleteAlertsBySearch(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
+    // `decision_type` is not supported by the delete endpoint, so this is the
+    // only filter that still requires a search followed by id deletions.
     const alerts = await ctx.watcher!.Alerts.search({
         ip: filters.ip,
-        contains: false,
+        range: filters.range,
         scope: filters.normalizedScope,
         value: filters.normalizedValue,
         scenario: filters.scenario,
         origin: filters.origin,
         decision_type: filters.decisionType,
-        since: filters.since,
-        until: filters.until,
+        since: filters.since ? toGoDuration(filters.since) : undefined,
+        until: filters.until ? toGoDuration(filters.until) : undefined,
         has_active_decision: filters.has_active_decision,
         limit: 0
-    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
+    });
 
     return deleteAlertsByIds(
         ctx,
@@ -210,13 +217,21 @@ async function deleteAlertsBySearch(ctx: AppContext, filters: NormalizedDeleteAl
     );
 }
 
-async function deleteAlertsDirect(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
-    const result = await ctx.watcher!.Alerts.delete({
+function buildDeleteQuery(filters: NormalizedDeleteAlertInput): APITypes.Alerts.DeleteAlerts.RequestQuery {
+    return {
         ip: filters.ip,
         scope: filters.normalizedScope,
         value: filters.normalizedValue,
-        scenario: filters.scenario
-    });
+        scenario: filters.scenario,
+        since: filters.since ? toGoDuration(filters.since) : undefined,
+        until: filters.until ? toGoDuration(filters.until) : undefined,
+        has_active_decision: filters.has_active_decision,
+        alert_source: filters.origin
+    };
+}
+
+async function deleteAlertsDirect(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
+    const result = await ctx.watcher!.Alerts.delete(buildDeleteQuery(filters));
 
     return formatDeletedCount(Number(result.nbDeleted ?? 0));
 }
@@ -266,7 +281,7 @@ export const alertTools: ToolDefinition[] = [
             }
 
             const window = resolveListWindow(limit, all === true, ctx.config.maxResults);
-            const query: APITypes.Alerts.SearchAlerts.RequestQuery & { kind?: string; contains?: boolean } = {
+            const query: APITypes.Alerts.SearchAlerts.RequestQuery = {
                 ip,
                 range,
                 scope,
@@ -274,17 +289,16 @@ export const alertTools: ToolDefinition[] = [
                 scenario,
                 decision_type: decisionType,
                 origin,
-                kind,
-                since,
-                until,
-                contains: false,
+                since: since ? toGoDuration(since) : undefined,
+                until: until ? toGoDuration(until) : undefined,
                 has_active_decision,
                 limit: window.fetchLimit
             };
 
             const alerts = await ctx.watcher!.Alerts.search(query);
+            const filteredAlerts = kind ? alerts.filter((alert) => alert.kind === kind) : alerts;
 
-            return formatAlertList(alerts, window.displayLimit, window.maybeMore);
+            return formatAlertList(filteredAlerts, window.displayLimit, window.maybeMore);
         }
     },
     {
@@ -345,7 +359,7 @@ export const alertTools: ToolDefinition[] = [
             if (cidr) {
                 return deleteAlertsByCidr(ctx, filters, cidr);
             }
-            if (filters.origin || filters.decisionType || filters.since || filters.until || filters.has_active_decision !== undefined) {
+            if (filters.decisionType) {
                 return deleteAlertsBySearch(ctx, filters);
             }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GetPromptResult } from '@modelcontextprotocol/sdk/types.js';
 import type { AppContext } from './types.js';
-import { isValidIp } from './utils.js';
+import { isValidIp, parseDuration } from './utils.js';
 
 export interface CrowdSecPrompt {
     name: string;
@@ -45,7 +45,14 @@ function writeGuardrail(ctx: AppContext): string {
 const DurationArg = z
     .string()
     .trim()
-    .regex(/^\d+[smhd]$/, 'Use a duration with a unit, e.g. 30m, 4h or 7d');
+    .refine((value) => {
+        try {
+            parseDuration(value);
+            return true;
+        } catch {
+            return false;
+        }
+    }, 'Use a duration with a unit, e.g. 30m, 4h or 7d');
 
 const CountArg = z.string().trim().regex(/^\d+$/, 'Use a positive integer');
 

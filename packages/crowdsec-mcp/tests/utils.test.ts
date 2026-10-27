@@ -7,7 +7,8 @@ import {
     isValidTimeFilter,
     normalizeScope,
     parseDuration,
-    splitList
+    splitList,
+    toGoDuration
 } from '../src/utils.js';
 
 describe('utils', () => {
@@ -16,6 +17,8 @@ describe('utils', () => {
         expect(parseDuration('4h')).toBe(14400);
         expect(parseDuration('7d')).toBe(604800);
         expect(parseDuration('1h30m')).toBe(5400);
+        expect(parseDuration('2d3h4m5s')).toBe(2 * 86400 + 3 * 3600 + 4 * 60 + 5);
+        expect(parseDuration('2d')).toBe(172800);
     });
 
     it('rejects invalid durations', () => {
@@ -25,6 +28,19 @@ describe('utils', () => {
         expect(() => parseDuration('0h')).toThrow();
         expect(() => parseDuration('90')).toThrow("invalid duration '90': use 30m, 4h or 7d");
         expect(() => parseDuration('300')).toThrow("invalid duration '300': use 30m, 4h or 7d");
+        // CrowdSec only accepts `d` as the first unit and rejects fractional days/weeks.
+        expect(() => parseDuration('1.5d')).toThrow();
+        expect(() => parseDuration('2d4d')).toThrow();
+        expect(() => parseDuration('1h30m2d')).toThrow();
+        expect(() => parseDuration('1w')).toThrow();
+    });
+
+    it('normalizes durations to the Go wire format', () => {
+        expect(toGoDuration('7d')).toBe('168h');
+        expect(toGoDuration('2d3h')).toBe('51h');
+        expect(toGoDuration('1h30m')).toBe('1h30m');
+        expect(toGoDuration('90s')).toBe('1m30s');
+        expect(toGoDuration(300)).toBe('5m');
     });
 
     it('validates and normalizes scope values', () => {

@@ -13,7 +13,8 @@ import {
     normalizeScope,
     parseDuration,
     parsePositiveId,
-    resolveListWindow
+    resolveListWindow,
+    toGoDuration
 } from '../utils.js';
 import {
     formatBanResult,
@@ -37,10 +38,7 @@ function collectDecisionIds(alerts: APITypes.GetAlertsResponse): number[] {
     return [...ids];
 }
 
-async function searchActiveDecisionIds(
-    ctx: AppContext,
-    query: APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean }
-): Promise<number[]> {
+async function searchActiveDecisionIds(ctx: AppContext, query: APITypes.Alerts.SearchAlerts.RequestQuery): Promise<number[]> {
     const alerts = await ctx.watcher!.Alerts.search({ ...query, has_active_decision: true, limit: 0 });
     return collectDecisionIds(alerts);
 }
@@ -78,7 +76,9 @@ const ListDecisionsInput = z
             .boolean()
             .optional()
             .default(false)
-            .describe('false: decisions contained within the value (CIDR containment); true: decisions that contain the value'),
+            .describe(
+                'Bouncer mode only: false: decisions contained within the value (CIDR containment); true: decisions that contain the value'
+            ),
         no_simulated: z.boolean().optional().default(false).describe('Exclude simulated decisions'),
         all: z.boolean().optional().default(false).describe('Return all results without limit'),
         limit: z.number().int().positive().optional().describe('Maximum number of results to return')
@@ -256,15 +256,13 @@ async function unbanAll(ctx: AppContext, input: UnbanInput): Promise<string> {
         throw new Error('Cannot combine all=true with id or filters; use all=true with confirm=true alone to delete everything');
     }
 
-    return unbanDecisionIds(ctx, await searchActiveDecisionIds(ctx, {}));
+    const decisions = await fetchActiveDecisions(ctx);
+    const ids = decisions.map((decision) => decision.id).filter((id): id is number => typeof id === 'number');
+    return unbanDecisionIds(ctx, ids);
 }
 
 async function unbanById(ctx: AppContext, id: string | number): Promise<string> {
     const decisionId = parsePositiveId(id, 'decision id');
-    const activeIds = await searchActiveDecisionIds(ctx, {});
-    if (!activeIds.includes(Number(decisionId))) {
-        throw new Error(`Decision ${decisionId} not found`);
-    }
 
     try {
         const result = await ctx.watcher!.Decisions.deleteById(decisionId);
@@ -282,20 +280,9 @@ async function unbanById(ctx: AppContext, id: string | number): Promise<string> 
     }
 }
 
-async function unbanByScope(ctx: AppContext, scope: string, type: string | undefined, scenario: string | undefined) {
+async function unbanByScope(ctx: AppContext, scope: string, type: string | undefined, scenario: string | undefined): Promise<string> {
     const normalized = assertValidDecisionScope(scope);
-    const decisions = await fetchActiveDecisions(ctx);
-    const ids = decisions
-        .filter(
-            (decision) =>
-                decision.scope?.toLowerCase() === normalized.toLowerCase() &&
-                (!type || decision.type?.toLowerCase() === type) &&
-                (!scenario || decision.scenario === scenario)
-        )
-        .map((decision) => decision.id)
-        .filter((id): id is number => typeof id === 'number');
-
-    return unbanDecisionIds(ctx, ids);
+    return unbanByQuery(ctx, { scope: normalized, type, scenario });
 }
 
 async function unbanByScopeValue(
@@ -311,31 +298,32 @@ async function unbanByScopeValue(
     if (normalized === 'Ip') {
         return unbanByQuery(ctx, { ip: normalizedValue, type, scenario });
     }
+    if (normalized === 'Range') {
+        // The delete endpoint matches the exact range value; search first so
+        // decisions for individual IPs inside the range are also removed.
+        const ids = await searchActiveDecisionIds(ctx, { ip: normalizedValue, decision_type: type, scenario });
+        return unbanDecisionIds(ctx, ids);
+    }
 
-    const ids = await searchActiveDecisionIds(ctx, {
-        ip: normalized === 'Range' ? normalizedValue : undefined,
-        contains: false,
-        scope: normalized === 'Range' ? undefined : normalized,
-        value: normalized === 'Range' ? undefined : normalizedValue,
-        decision_type: type,
-        scenario
-    });
+    return unbanByQuery(ctx, { scope: normalized, value: normalizedValue, type, scenario });
+}
 
+async function unbanByRange(ctx: AppContext, range: string, type: string | undefined, scenario: string | undefined): Promise<string> {
+    // Same as scope=Range: containment requires an alert search to collect IDs.
+    const ids = await searchActiveDecisionIds(ctx, { ip: range, decision_type: type, scenario });
     return unbanDecisionIds(ctx, ids);
 }
 
-async function unbanByRange(ctx: AppContext, range: string, type: string | undefined, scenario: string | undefined) {
-    const ids = await searchActiveDecisionIds(ctx, {
-        ip: range,
-        contains: false,
-        decision_type: type,
-        scenario
-    });
-    return unbanDecisionIds(ctx, ids);
+interface UnbanQuery {
+    ip?: string;
+    scope?: string;
+    value?: string;
+    type?: string;
+    scenario?: string;
 }
 
-async function unbanByQuery(ctx: AppContext, query: { ip?: string; value?: string; type?: string; scenario?: string }) {
-    if (!query.ip && !query.value && !query.type && !query.scenario) {
+async function unbanByQuery(ctx: AppContext, query: UnbanQuery) {
+    if (!query.ip && !query.scope && !query.value && !query.type && !query.scenario) {
         throw new Error('Must provide id, at least one filter, or all=true with confirm=true');
     }
 
@@ -375,6 +363,8 @@ export const decisionTools: ToolDefinition[] = [
             }
 
             const window = resolveListWindow(limit, all, ctx.config.maxResults);
+            const normalizedSince = since ? toGoDuration(since) : undefined;
+            const normalizedUntil = until ? toGoDuration(until) : undefined;
 
             if (ctx.mode === 'watcher' && ctx.watcher) {
                 const query = {
@@ -385,13 +375,12 @@ export const decisionTools: ToolDefinition[] = [
                     scenario,
                     decision_type: decisionType,
                     origin,
-                    since,
-                    until,
+                    since: normalizedSince,
+                    until: normalizedUntil,
                     simulated: no_simulated ? false : undefined,
-                    contains,
                     has_active_decision: true,
                     limit: window.fetchLimit
-                } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean };
+                } as APITypes.Alerts.SearchAlerts.RequestQuery;
 
                 const alerts = await ctx.watcher.Alerts.search(query);
 
@@ -466,8 +455,8 @@ export const decisionTools: ToolDefinition[] = [
 
             const decisionType = assertValidDecisionType(banInput.type);
             const { scope, targetValue } = resolveBanTarget(banInput);
-            const normalizedDuration = String(banInput.duration).trim();
-            const durationSeconds = parseDuration(normalizedDuration);
+            const normalizedDuration = toGoDuration(banInput.duration);
+            const durationSeconds = typeof banInput.duration === 'number' ? banInput.duration : parseDuration(banInput.duration);
 
             await ensureBanAllowed(ctx, scope, targetValue, banInput.force);
             ensureBanDuration(ctx, normalizedDuration, durationSeconds, banInput.force);

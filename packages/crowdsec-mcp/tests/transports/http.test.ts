@@ -256,6 +256,34 @@ describe('http transport authentication', () => {
         }
     });
 
+    it('rejects an oversized body with 413', async () => {
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
+        try {
+            const res = await request(portOf(server), {
+                method: 'POST',
+                path: '/mcp',
+                headers: { ...authHeaders(TOKEN), 'content-type': 'application/json' },
+                body: 'x'.repeat(4 * 1024 * 1024 + 1)
+            });
+            expect(res.status).toBe(413);
+            expect(JSON.parse(res.body)).toMatchObject({ jsonrpc: '2.0', error: { code: -32000 } });
+        } finally {
+            await closeServer(server);
+        }
+    });
+
+    it('sets explicit request timeouts', async () => {
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
+        try {
+            expect(server.requestTimeout).toBe(30_000);
+            expect(server.headersTimeout).toBe(10_000);
+            expect(server.keepAliveTimeout).toBe(5_000);
+            expect(server.maxHeadersCount).toBe(100);
+        } finally {
+            await closeServer(server);
+        }
+    });
+
     it('supports the SDK client initialize/notifications/tools-list sequence', async () => {
         const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {

@@ -295,6 +295,10 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     };
 }
 
+export function isAlertDeleteAvailable(config: Config): boolean {
+    return config.enableAlertDelete && (!config.passthrough || Boolean(config.http.token) || config.allowAlertDeleteWithoutToken);
+}
+
 export function redactedUrl(url: string): string {
     try {
         const parsed = new URL(url);
