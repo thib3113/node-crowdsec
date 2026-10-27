@@ -3,6 +3,9 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/thib3113/node-crowdsec/security/advisories/new
     about: Please report security issues privately, not in a public issue.
-  - name: Documentation
+  - name: Guides and usage documentation
+    url: https://github.com/thib3113/node-crowdsec/wiki
+    about: Read the guides (authentication, bouncer/watcher setup, performance).
+  - name: API reference
     url: https://thib3113.github.io/node-crowdsec/
-    about: Read the API documentation.
+    about: Read the generated technical documentation.

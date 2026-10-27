@@ -2,7 +2,8 @@
 
 ## Documentation
 
-- API documentation: <https://thib3113.github.io/node-crowdsec/>
+- Guides and usage documentation (wiki): <https://github.com/thib3113/node-crowdsec/wiki>
+- API reference (Typedoc): <https://thib3113.github.io/node-crowdsec/>
 - Package READMEs: [`crowdsec-client`](./packages/crowdsec-client),
   [`crowdsec-http-middleware`](./packages/crowdsec-http-middleware),
   [`crowdsec-client-scenarios`](./packages/crowdsec-client-scenarios),

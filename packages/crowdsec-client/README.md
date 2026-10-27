@@ -36,7 +36,7 @@ install it
 npm i crowdsec-client
 ```
 
-and then read the [documentation](https://thib3113.github.io/node-crowdsec/).
+and then read the [getting started guide](https://github.com/thib3113/node-crowdsec/wiki/Getting-Started) or the [API reference](https://thib3113.github.io/node-crowdsec/).
 
 ## Usage
 
@@ -112,7 +112,7 @@ const client = new WatcherClient({
     auth: {
         machineID: 'nameOfTheMachine',
         password: 'password',
-        // the CrowdSec token is valid for 1h; enable autoRenew to renew it automatically
+        // the CrowdSec token is valid for 1h; autoRenew (default: true) keeps it fresh
         autoRenew: true,
     },
     //use this option if you use a self signed ssl certificate
@@ -144,7 +144,7 @@ await client.Alerts.delete({
 });
 ```
 
-More authentication options (such as TLS) are documented in the [documentation](https://thib3113.github.io/node-crowdsec/).
+More authentication options (such as TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications).
 
 ## Debug
 

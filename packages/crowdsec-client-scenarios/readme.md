@@ -38,7 +38,7 @@ install it
 npm i crowdsec-client-scenarios
 ```
 
-and then read the [documentation](https://thib3113.github.io/node-crowdsec/).
+and then read the [scenarios guide](https://github.com/thib3113/node-crowdsec/wiki/Scenarios) or the [API reference](https://thib3113.github.io/node-crowdsec/).
 
 ## Usage
 

@@ -169,8 +169,10 @@ acceptable that requests pass silently ? If yes → `failOpen`, if no →
 
 - Do you want to *detect and report* malicious requests to the LAPI (not just
   block) ? If yes, a watcher with scenarios is needed.
-- Which default scenarios ? (`crowdsec-client-scenarios` provides user-agent
-  based ones). Or custom scenarios ?
+- Which scenarios ? If `crowdsec-client-scenarios` is installed, omitting the
+  `scenarios` option loads the defaults (allowlist, X-Forwarded-For, HTTP
+  enrichment). `scenarios: []` disables them. Custom constructors can be passed
+  explicitly.
 
 Ask : do you need the application to *report* suspicious requests (watcher), or
 only to *block* flagged IPs (bouncer) ?
@@ -218,7 +220,8 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
         machineID: process.env.CROWDSEC_WATCHER_MACHINE_ID || '',
         password: process.env.CROWDSEC_WATCHER_PASSWORD || '',
         heartbeat: true,
-        scenarios: []                                // default scenarios
+        // omit `scenarios` to load the default scenarios;
+        // `scenarios: []` disables them
     }
 };
 ```
@@ -236,6 +239,7 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
 | `live.maxConcurrentChecks` | 100 | avoids thundering herd on the LAPI |
 | `live.errorBackoffTtl` | 10 s | fail-open backoff |
 | `live.watchdog` | `true` | safety net if the LAPI stays down |
+| `watcher.scenarios` | omitted | loads the default scenarios when the package is installed |
 
 ---
 

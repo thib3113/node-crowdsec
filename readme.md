@@ -12,9 +12,12 @@
 
 This repository hosts several packages, listed below with examples.
 
-The [technical documentation](https://thib3113.github.io/node-crowdsec/) is available online.
+## Documentation
 
-For agents and LLM tooling, see [llms.txt](./llms.txt).
+- [Guides and usage documentation](https://github.com/thib3113/node-crowdsec/wiki): authentication, bouncer/watcher setup, performance notes and the glossary.
+- [API reference](https://thib3113.github.io/node-crowdsec/): generated technical documentation (Typedoc).
+- [AI agent setup guide](./docs/agent-setup-guide.md): configure the HTTP middleware with an AI agent.
+- [llms.txt](./llms.txt): index for agents and LLM tooling.
 
 ## Features
 

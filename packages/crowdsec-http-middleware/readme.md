@@ -83,10 +83,14 @@ That's it. `req.decision` is `undefined` for clean visitors and holds the decisi
 Need more control (live mode, which subnets to trust, a watcher, an AI agent to
 configure it) ? Read on.
 
+Guides live in the [wiki](https://github.com/thib3113/node-crowdsec/wiki/HTTP-Middleware);
+the generated API reference is in the [technical documentation](https://thib3113.github.io/node-crowdsec/).
+
 ## Default scenarios
 
 This package supports a default setup with default scenarios.
-You can use the default mode by installing `crowdsec-http-middleware` and `crowdsec-client-scenarios`, and passing an empty `scenarios` configuration:
+Install `crowdsec-http-middleware` and `crowdsec-client-scenarios`, and omit the
+`scenarios` option to load the defaults:
 
 ```
 npm i crowdsec-http-middleware crowdsec-client-scenarios
@@ -190,9 +194,10 @@ const watcherOptions = {
     password: 'myPassword',
     // send heartbeat to LAPI ? it allow the LAPI to see the watcher "online"
     heartbeat: true,
-    // a list of scenarios constructors that will be used
-    scenarios: [],
-    // options passed to the scenarions
+    // omit `scenarios` to load the default scenarios (requires
+    // crowdsec-client-scenarios); an empty array disables all scenarios
+    // scenarios: [],
+    // options passed to the scenarios
     scenariosOptions: {}
 }
 ````
