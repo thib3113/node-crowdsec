@@ -1,7 +1,7 @@
 {
     "name": "crowdsec-mcp",
     "version": "0.1.0",
-    "description": "Model Context Protocol server for CrowdSec",
+    "description": "Model Context Protocol (MCP) server for CrowdSec: decisions, alerts and allowlists",
     "type": "module",
     "main": "./dist/index.js",
     "bin": {
@@ -11,8 +11,7 @@
         ".": "./dist/index.js"
     },
     "files": [
-        "dist",
-        "README.md"
+        "dist"
     ],
     "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-mcp#readme",
     "bugs": {
@@ -20,17 +19,29 @@
     },
     "author": {
         "email": "thib3113@gmail.com",
-        "name": "Thibaut severac"
+        "name": "Thibaut Severac"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/thib3113/node-crowdsec.git"
+        "url": "git+https://github.com/thib3113/node-crowdsec.git",
+        "directory": "packages/crowdsec-mcp"
     },
     "keywords": [
         "crowdsec",
         "mcp",
         "model-context-protocol",
+        "llm",
         "security"
+    ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/thib3113/node-crowdsec"
+        },
+        {
+            "type": "individual",
+            "url": "https://paypal.me/thib3113"
+        }
     ],
     "license": "MIT",
     "engines": {

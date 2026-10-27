@@ -23,11 +23,11 @@ describe('watcher registry', () => {
         expect(tools.map((tool) => tool.name)).toEqual([
             'crowdsec_status',
             'list_decisions',
+            'get_decision',
             'ban_ip',
             'unban_ip',
             'list_alerts',
             'get_alert',
-            'delete_alerts',
             'list_allowlists',
             'get_allowlist',
             'check_allowlist'
@@ -43,5 +43,48 @@ describe('watcher registry', () => {
         const listed = await client.listTools();
         expect(listed.tools.map((tool) => tool.name)).toEqual(tools.map((tool) => tool.name));
         expect(listed.tools.find((tool) => tool.name === 'check_allowlist')?.inputSchema).toBeTruthy();
+
+        const byName = new Map(listed.tools.map((tool) => [tool.name, tool]));
+        const unbanSchema = byName.get('unban_ip')?.inputSchema as { properties?: Record<string, unknown> };
+        const decisionsSchema = byName.get('list_decisions')?.inputSchema as { properties?: Record<string, unknown> };
+
+        expect(unbanSchema?.properties?.id).toBeDefined();
+        expect(decisionsSchema?.properties?.no_simulated).toBeDefined();
+    });
+
+    it('hides delete_alerts in passthrough without a service token unless forced', () => {
+        const base = makeConfig({
+            readonly: false,
+            enableAlertDelete: true,
+            passthrough: true,
+            http: { host: '127.0.0.1', port: 0, token: undefined }
+        });
+
+        const hidden = selectTools(allTools(), makeContext({ config: base }));
+        expect(hidden.map((tool) => tool.name)).not.toContain('delete_alerts');
+
+        const forced = selectTools(
+            allTools(),
+            makeContext({
+                config: { ...base, allowAlertDeleteWithoutToken: true }
+            })
+        );
+        expect(forced.map((tool) => tool.name)).toContain('delete_alerts');
+
+        const withServiceToken = selectTools(
+            allTools(),
+            makeContext({
+                config: { ...base, http: { ...base.http, token: 'service-token' } }
+            })
+        );
+        expect(withServiceToken.map((tool) => tool.name)).toContain('delete_alerts');
+    });
+
+    it('exposes delete_alerts only when explicitly enabled', () => {
+        const disabled = selectTools(allTools(), makeContext({ config: makeConfig({ readonly: false }) }));
+        const enabled = selectTools(allTools(), makeContext({ config: makeConfig({ readonly: false, enableAlertDelete: true }) }));
+
+        expect(disabled.map((tool) => tool.name)).not.toContain('delete_alerts');
+        expect(enabled.map((tool) => tool.name)).toContain('delete_alerts');
     });
 });

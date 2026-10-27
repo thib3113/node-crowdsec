@@ -96,6 +96,49 @@ describe('config', () => {
         expect(config.http.token).toBe('secret');
     });
 
+    it('allows passthrough HTTP without a service token', () => {
+        const config = loadConfig(
+            {},
+            {
+                CROWDSEC_URL: 'https://crowdsec:8080',
+                CROWDSEC_MCP_TRANSPORT: 'http',
+                CROWDSEC_MCP_PASSTHROUGH: 'true'
+            }
+        );
+
+        expect(config.passthrough).toBe(true);
+        expect(config.http.token).toBeUndefined();
+        expect(config.auth).toBe('watcher');
+    });
+
+    it('rejects passthrough over stdio', () => {
+        expect(() =>
+            loadConfig(
+                {},
+                {
+                    CROWDSEC_URL: 'https://crowdsec:8080',
+                    CROWDSEC_MCP_PASSTHROUGH: 'true'
+                }
+            )
+        ).toThrow(/passthrough mode requires/);
+    });
+
+    it('parses the alert-delete passthrough override', () => {
+        const enabled = loadConfig(
+            {},
+            {
+                CROWDSEC_URL: 'https://crowdsec:8080',
+                CROWDSEC_API_KEY: 'key',
+                CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN: 'true'
+            }
+        );
+        expect(enabled.allowAlertDeleteWithoutToken).toBe(true);
+
+        const { values } = parseCliArgs(['--allow-alert-delete-without-token']);
+        const fromCli = loadConfig(values, { CROWDSEC_URL: 'https://crowdsec:8080', CROWDSEC_API_KEY: 'key' });
+        expect(fromCli.allowAlertDeleteWithoutToken).toBe(true);
+    });
+
     it('enables writes with --write', () => {
         const { values } = parseCliArgs(['--write']);
         const config = loadConfig(values, { CROWDSEC_URL: 'https://crowdsec:8080', CROWDSEC_API_KEY: 'key' });
@@ -116,6 +159,16 @@ describe('config', () => {
 
         expect(config.tools).toEqual(['crowdsec_status', 'list_alerts']);
         expect(config.disableTools).toEqual(['delete_alerts']);
+    });
+
+    it('keeps delete_alerts disabled unless explicitly enabled', () => {
+        const base = { CROWDSEC_URL: 'https://crowdsec:8080', CROWDSEC_API_KEY: 'key' };
+
+        expect(loadConfig({}, base).enableAlertDelete).toBe(false);
+        expect(loadConfig({}, { ...base, CROWDSEC_MCP_ENABLE_ALERT_DELETE: 'true' }).enableAlertDelete).toBe(true);
+
+        const { values } = parseCliArgs(['--enable-alert-delete']);
+        expect(loadConfig(values, base).enableAlertDelete).toBe(true);
     });
 
     it('rejects an invalid max-results', () => {

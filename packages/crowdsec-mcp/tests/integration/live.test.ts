@@ -175,29 +175,11 @@ describe.skipIf(!enabled || !url)('live CrowdSec LAPI integration', () => {
                         const decisions = textOf(await client.callTool({ name: 'list_decisions', arguments: {} }));
                         expect(decisions).toContain(testIp);
 
-                        const alerts = textOf(await client.callTool({ name: 'list_alerts', arguments: {} }));
-                        const alertId = alertIdFor(alerts, testIp);
-
                         const unban = textOf(await client.callTool({ name: 'unban_ip', arguments: { ip: testIp } }));
                         expect(unban).toMatch(/decision\(s\) deleted/);
 
                         const afterUnban = textOf(await client.callTool({ name: 'list_decisions', arguments: {} }));
                         expect(afterUnban).not.toContain(testIp);
-
-                        const deletedResult = await client.callTool({
-                            name: 'delete_alerts',
-                            arguments: { id: alertId }
-                        });
-                        const deleted = textOf(deletedResult);
-
-                        if (process.env.CROWDSEC_INTEGRATION_LOCAL_DELETE === '1') {
-                            expect(deletedResult.isError).not.toBe(true);
-                            expect(deleted).toContain('Deleted');
-                        } else if (deletedResult.isError) {
-                            expect(deleted).toMatch(/access forbidden from this IP|only.*local/i);
-                        } else {
-                            expect(deleted).toContain('Deleted');
-                        }
                     } finally {
                         await client.callTool({ name: 'unban_ip', arguments: { ip: testIp } }).catch(() => undefined);
                     }

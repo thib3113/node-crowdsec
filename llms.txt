@@ -1,0 +1,42 @@
+# node-crowdsec
+
+> Node.js client for the CrowdSec Local API (LAPI), with an HTTP bouncer/watcher middleware, detection scenarios and a Model Context Protocol (MCP) server.
+
+## Packages
+
+- [crowdsec-client](https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-client/README.md): CrowdSec LAPI client for bouncers and watchers (decisions, alerts, allowlists, streams, TLS/mTLS).
+- [crowdsec-http-middleware](https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-http-middleware/readme.md): HTTP middleware that checks each request's IP against CrowdSec decisions and exposes `req.decision`.
+- [crowdsec-client-scenarios](https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-client-scenarios/readme.md): optional detection scenarios (X-Forwarded-For, allowlist, HTTP enrichment, MaxMind).
+- [crowdsec-mcp](https://github.com/thib3113/node-crowdsec/blob/main/packages/crowdsec-mcp/README.md): Model Context Protocol server exposing decisions, alerts and allowlists to an LLM.
+
+## Documentation
+
+- [API reference](https://thib3113.github.io/node-crowdsec/): generated Typedoc API documentation.
+- [AI agent setup guide](https://github.com/thib3113/node-crowdsec/blob/main/docs/agent-setup-guide.md): configure the HTTP middleware with an AI agent.
+- [Architecture decisions](https://github.com/thib3113/node-crowdsec/blob/main/docs/adr/README.md): ADRs, including the bouncer decision store.
+- [Security policy](https://github.com/thib3113/node-crowdsec/blob/main/SECURITY.md): private vulnerability reporting.
+
+## Examples
+
+- [express-bouncer](https://github.com/thib3113/node-crowdsec/tree/main/examples/express-bouncer): Express + bouncer (TypeScript, ESM).
+- [express-bouncer-cjs](https://github.com/thib3113/node-crowdsec/tree/main/examples/express-bouncer-cjs): the same example in CommonJS.
+- [express-web-parser](https://github.com/thib3113/node-crowdsec/tree/main/examples/express-web-parser): watcher that reports bad user-agents.
+
+## Repository
+
+- [README](https://github.com/thib3113/node-crowdsec/blob/main/readme.md): project overview and features.
+- [Contributing](https://github.com/thib3113/node-crowdsec/blob/main/CONTRIBUTING.md)
+- [Support](https://github.com/thib3113/node-crowdsec/blob/main/SUPPORT.md)
+- [License (MIT)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+
+## Source layout
+
+- [packages/](https://github.com/thib3113/node-crowdsec/tree/main/packages): npm packages.
+- [examples/](https://github.com/thib3113/node-crowdsec/tree/main/examples): runnable examples.
+- [docs/](https://github.com/thib3113/node-crowdsec/tree/main/docs): guides and ADRs.
+
+## Optional
+
+- [npm: crowdsec-client](https://www.npmjs.com/package/crowdsec-client)
+- [npm: crowdsec-http-middleware](https://www.npmjs.com/package/crowdsec-http-middleware)
+- [npm: crowdsec-client-scenarios](https://www.npmjs.com/package/crowdsec-client-scenarios)

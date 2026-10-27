@@ -28,7 +28,10 @@ export interface Config {
     timeout: number;
     transport: TransportMode;
     http: HttpConfig;
+    passthrough: boolean;
     readonly: boolean;
+    enableAlertDelete: boolean;
+    allowAlertDeleteWithoutToken: boolean;
     tools?: string[];
     disableTools: string[];
     maxResults: number;
@@ -55,6 +58,9 @@ const cliOptions = {
     'http-token': { type: 'string' },
     readonly: { type: 'boolean' },
     write: { type: 'boolean' },
+    passthrough: { type: 'boolean' },
+    'enable-alert-delete': { type: 'boolean' },
+    'allow-alert-delete-without-token': { type: 'boolean' },
     tools: { type: 'string' },
     'disable-tools': { type: 'string' },
     'max-results': { type: 'string' },
@@ -127,6 +133,8 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     const tlsKey = firstDefined(values['tls-key'] as string | undefined, env.CROWDSEC_TLS_KEY);
     const tlsCa = firstDefined(values['tls-ca'] as string | undefined, env.CROWDSEC_TLS_CA);
 
+    const passthrough = values.passthrough === true || readBoolean(env.CROWDSEC_MCP_PASSTHROUGH, 'CROWDSEC_MCP_PASSTHROUGH', false);
+
     const requestedAuth = firstDefined(values.auth as string | undefined, env.CROWDSEC_AUTH)?.toLowerCase();
     if (requestedAuth !== undefined && requestedAuth !== 'bouncer' && requestedAuth !== 'watcher') {
         throw new Error(`CROWDSEC_AUTH must be 'bouncer' or 'watcher', got '${requestedAuth}'`);
@@ -138,6 +146,10 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     } else if (apiKey) {
         auth = 'bouncer';
     } else if (machineId || password) {
+        auth = 'watcher';
+    } else if (passthrough) {
+        // The env credentials are not used in passthrough mode; keep a valid
+        // mode for the shared Config shape.
         auth = 'watcher';
     } else {
         throw new Error('unable to detect authentication mode: set CROWDSEC_API_KEY or CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD');
@@ -151,11 +163,11 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
 
     const tls = tlsCount === 3 ? { cert: tlsCert!, key: tlsKey!, ca: tlsCa! } : undefined;
 
-    if (auth === 'bouncer' && !apiKey && !tls) {
+    if (!passthrough && auth === 'bouncer' && !apiKey && !tls) {
         throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
     }
 
-    if (auth === 'watcher' && !tls && (!machineId || !password)) {
+    if (!passthrough && auth === 'watcher' && !tls && (!machineId || !password)) {
         throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
     }
 
@@ -163,9 +175,12 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     if (transport !== 'stdio' && transport !== 'http') {
         throw new Error(`CROWDSEC_MCP_TRANSPORT must be 'stdio' or 'http', got '${transport}'`);
     }
+    if (passthrough && transport !== 'http') {
+        throw new Error('passthrough mode requires CROWDSEC_MCP_TRANSPORT=http');
+    }
 
     const httpToken = firstDefined(values['http-token'] as string | undefined, env.CROWDSEC_MCP_HTTP_TOKEN);
-    if (transport === 'http' && !httpToken) {
+    if (transport === 'http' && !httpToken && !passthrough) {
         throw new Error('HTTP transport requires CROWDSEC_MCP_HTTP_TOKEN (or --http-token)');
     }
 
@@ -175,6 +190,14 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
 
     const readonlyDefault = readBoolean(env.CROWDSEC_MCP_READONLY, 'CROWDSEC_MCP_READONLY', true);
     const readonly = values.write === true ? false : values.readonly === true ? true : readonlyDefault;
+    const enableAlertDelete =
+        values['enable-alert-delete'] === true
+            ? true
+            : readBoolean(env.CROWDSEC_MCP_ENABLE_ALERT_DELETE, 'CROWDSEC_MCP_ENABLE_ALERT_DELETE', false);
+    const allowAlertDeleteWithoutToken =
+        values['allow-alert-delete-without-token'] === true
+            ? true
+            : readBoolean(env.CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN, 'CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN', false);
 
     const strictSSL = values.insecure === true ? false : readBoolean(env.CROWDSEC_STRICT_SSL, 'CROWDSEC_STRICT_SSL', true);
     const timeout = readInteger((values.timeout as string | undefined) ?? env.CROWDSEC_TIMEOUT, 'CROWDSEC_TIMEOUT', 10000, 1, 600000);
@@ -211,7 +234,10 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
             port: httpPort,
             token: httpToken
         },
+        passthrough,
         readonly,
+        enableAlertDelete,
+        allowAlertDeleteWithoutToken,
         tools: splitList(firstDefined(values.tools as string | undefined, env.CROWDSEC_MCP_TOOLS)),
         disableTools: splitList(firstDefined(values['disable-tools'] as string | undefined, env.CROWDSEC_MCP_DISABLE_TOOLS)) ?? [],
         maxResults,
@@ -253,6 +279,10 @@ MCP:
   --http-token <token>        HTTP bearer token (required for HTTP)
   --readonly                  Force read-only mode (default)
   --write                     Enable write tools
+  --passthrough               Use per-request LAPI credentials (HTTP only)
+  --enable-alert-delete       Expose delete_alerts (only works next to the LAPI)
+  --allow-alert-delete-without-token
+                              Allow delete_alerts in passthrough without a service token (dangerous)
   --tools <a,b>               Only expose these tools
   --disable-tools <a,b>       Hide these tools
   --max-results <n>           Default result limit, default 25

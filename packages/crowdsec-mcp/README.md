@@ -1,8 +1,26 @@
 # crowdsec-mcp
 
+[![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/thib3113/node-crowdsec/branch/main/graph/badge.svg?token=bQdlb31gcU)](https://codecov.io/gh/thib3113/node-crowdsec)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+[![Known Vulnerabilities](https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg)](https://snyk.io/test/github/thib3113/node-crowdsec)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg?logo=paypal)](https://paypal.me/thib3113)
+[![GitHub stars](https://img.shields.io/github/stars/thib3113/node-crowdsec.svg?style=social&label=Star)](https://github.com/thib3113/node-crowdsec/stargazers/)
+
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=bugs)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=code_smells)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=duplicated_lines_density)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=ncloc)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=alert_status)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=security_rating)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=sqale_index)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec)
+
 **Give this to your AI agent.** Copy/paste this prompt:
 
-> Read https://raw.githubusercontent.com/thib3113/node-crowdsec/main/packages/crowdsec-mcp/README.md and give me a brief of what the MCP can do, then explain how to install and configure it for my client (Claude Desktop/Code, Cursor or opencode). Never ask me for credentials: just tell me which environment variables to set. Also explain the security impact before enabling `ban_ip`, `unban_ip` or `delete_alerts`.
+> Read <https://raw.githubusercontent.com/thib3113/node-crowdsec/main/packages/crowdsec-mcp/README.md> and give me a brief of what the MCP can do, then explain how to install and configure it for my client (Claude Desktop/Code, Cursor or opencode). Never ask me for credentials: just tell me which environment variables to set. Also explain the security impact before enabling `ban_ip`, `unban_ip` or `delete_alerts`.
 
 The agent can use this document as the installation and configuration reference.
 
@@ -79,10 +97,13 @@ If both a bouncer key and machine credentials are present, set `CROWDSEC_AUTH` e
 | `CROWDSEC_STRICT_SSL` | Validate TLS certificates | `true` |
 | `CROWDSEC_TIMEOUT` | HTTP timeout in milliseconds | `10000` |
 | `CROWDSEC_MCP_TRANSPORT` | `stdio` or `http` | `stdio` |
+| `CROWDSEC_MCP_PASSTHROUGH` | Use per-request LAPI credentials (HTTP only) | `false` |
 | `CROWDSEC_MCP_HTTP_HOST` | HTTP bind host | `127.0.0.1` |
 | `CROWDSEC_MCP_HTTP_PORT` | HTTP bind port | `3939` |
 | `CROWDSEC_MCP_HTTP_TOKEN` | HTTP bearer token | required for HTTP |
 | `CROWDSEC_MCP_READONLY` | Hide write tools | `true` |
+| `CROWDSEC_MCP_ENABLE_ALERT_DELETE` | Expose `delete_alerts` (requires the MCP next to the LAPI) | `false` |
+| `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN` | In passthrough, allow `delete_alerts` without a service token (dangerous) | `false` |
 | `CROWDSEC_MCP_TOOLS` | Comma-separated allowlist of tools | all |
 | `CROWDSEC_MCP_DISABLE_TOOLS` | Comma-separated denylist of tools | none |
 | `CROWDSEC_MCP_MAX_RESULTS` | Default result limit | `25` |
@@ -92,7 +113,7 @@ Secrets should stay in the environment. Command-line arguments are available for
 
 ### CLI arguments
 
-Every environment variable above has a kebab-case argument equivalent: `--url`, `--auth`, `--api-key`, `--machine-id`, `--password`, `--tls-cert`, `--tls-key`, `--tls-ca`, `--insecure`, `--timeout`, `--transport`, `--http-host`, `--http-port`, `--http-token`, `--readonly`, `--write`, `--tools`, `--disable-tools`, `--max-results`, `--max-ban-duration`.
+Every environment variable above has a kebab-case argument equivalent: `--url`, `--auth`, `--api-key`, `--machine-id`, `--password`, `--tls-cert`, `--tls-key`, `--tls-ca`, `--insecure`, `--timeout`, `--transport`, `--http-host`, `--http-port`, `--http-token`, `--readonly`, `--write`, `--passthrough`, `--enable-alert-delete`, `--allow-alert-delete-without-token`, `--tools`, `--disable-tools`, `--max-results`, `--max-ban-duration`.
 
 Use `--help` for the full list.
 
@@ -104,6 +125,7 @@ Read-only tools are always available according to the authentication mode. Write
 | --- | --- | --- | --- |
 | `crowdsec_status` | read | any | Connection status, auth mode, capabilities and active tools |
 | `list_decisions` | read | bouncer, watcher | Active decisions, like `cscli decisions list` |
+| `get_decision` | read | watcher | Get an active decision by ID, with alert context |
 | `list_alerts` | read | watcher | Alerts with filters, like `cscli alerts list` |
 | `get_alert` | read | watcher | Alert details, decisions, meta and events |
 | `list_allowlists` | read | watcher | Allowlists and their size |
@@ -111,7 +133,7 @@ Read-only tools are always available according to the authentication mode. Write
 | `check_allowlist` | read | watcher | Check one or many IPs/ranges against allowlists |
 | `ban_ip` | write | watcher | Add a decision via the cscli alert payload |
 | `unban_ip` | write | watcher | Delete decisions by ID, filters, or all with confirmation |
-| `delete_alerts` | write | watcher | Delete alerts by ID, filters, or all with confirmation |
+| `delete_alerts` | write | watcher | Opt-in; delete alerts by ID, filters, or all with confirmation (local deployment only) |
 
 ### Read-only by default
 
@@ -121,6 +143,10 @@ CROWDSEC_MCP_READONLY=false  # expose write tools
 ```
 
 When read-only is enabled, write tools are not advertised at all: the model cannot call them.
+
+`list_alerts` reports active decisions only in its Decisions column. `list_decisions`, `get_decision` and `get_alert` expose the decision ID and a computed expiry (from the remaining decision duration).
+
+When `limit` is explicit, the MCP fetches all matching rows so the `hidden` count is exact. Without an explicit `limit`, it fetches `CROWDSEC_MCP_MAX_RESULTS` rows and only hints that more may exist. This keeps default calls cheap on large alert datasets.
 
 ### Limit the tools exposed to the model
 
@@ -145,15 +171,19 @@ ban_ip(ip="203.0.113.10", duration="4h", type="ban", reason="manual block")
 ban_ip(range="203.0.113.0/24", duration="1h", type="captcha")
 ```
 
-- IP and CIDR inputs are validated before sending anything.
+- Provide exactly one of `ip`, `range`, or `scope` + `value`; mixing them is rejected.
+- IP and CIDR inputs are validated before sending anything. Scopes and decision types are validated too.
 - The value is checked against allowlists first. If it is allowlisted, the call is refused unless `force=true`.
+- `duration` must include a unit (`30m`, `4h`, `7d`, `1h30m`). Bare numbers such as `300` are rejected before the LAPI call.
+- `Country` values must be two-letter codes; `AS` values must be numeric ASNs. `Ip`/`Range` values are validated as IP/CIDR.
 - `duration` is limited by `CROWDSEC_MCP_MAX_BAN_DURATION` unless `force=true`.
+- CrowdSec accepts private, unspecified (`0.0.0.0`), broadcast and TEST-NET addresses; the MCP does not filter them.
 - The decision is created through `POST /v1/alerts`, exactly like cscli. It is therefore visible as an alert, and may be forwarded to CAPI depending on your CrowdSec configuration.
 - `origin` is always `cscli`; the MCP does not impersonate a scenario.
 
-### `unban_ip` and `delete_alerts`
+### `unban_ip`
 
-Both require at least one filter, an ID, or an explicit destructive confirmation:
+`unban_ip` deletes decisions and works from anywhere:
 
 ```text
 unban_ip(ip="203.0.113.10")
@@ -161,9 +191,28 @@ unban_ip(id="42")
 unban_ip(all=true, confirm=true)
 ```
 
-`all=true` without `confirm=true` is rejected.
+`all=true` without `confirm=true` is rejected. `scope` is supported for `Ip`/`Range` and for non-IP scopes (`Country`, `AS`, `Session`, `Username`) via an active-decision lookup; matching decisions are deleted by ID.
 
-> **Alert deletion is local-only in CrowdSec.** The LAPI only allows `delete_alerts` from the LAPI host. A remote watcher receives `403 access forbidden from this IP`. `unban_ip` (decision deletion) works remotely; `delete_alerts` is intended for an MCP running on the LAPI host.
+### `delete_alerts` (opt-in)
+
+`delete_alerts` is disabled by default because CrowdSec only allows alert deletion from the LAPI host. Enable it only when the MCP runs next to the LAPI:
+
+```bash
+CROWDSEC_MCP_ENABLE_ALERT_DELETE=true
+```
+
+A remote watcher receives `403 access forbidden from this IP`. Use `unban_ip` to remove decisions remotely, and `cscli alerts delete` on the LAPI host to clean up alerts.
+
+In passthrough mode, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP from exposing the local-only destructive path.
+
+`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. Filters `id`, `origin`, `type`, `since`, `until` and `has_active_decision` are resolved through an alert search followed by deletion by ID, because the LAPI DELETE endpoint does not support all of them directly. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
+
+### CIDR semantics
+
+- `list_decisions(ip="198.51.100.0/24")` performs containment (`contains=false`, the default). `contains=true` returns decisions that contain the value.
+- `list_alerts`, `delete_alerts` and `unban_ip` accept a CIDR in `ip`/`range` and perform containment.
+- `delete_alerts` deletes matching alerts by ID when containment is used.
+- `unban_ip` supports non-IP scopes (`Country`, `AS`, `Session`, `Username`) by resolving active decisions and deleting them by ID.
 
 ## Allowlists
 
@@ -173,7 +222,7 @@ Allowlists are read/check only. The CrowdSec local API exposes no create, update
 - `get_allowlist`
 - `check_allowlist`
 
-`ban_ip` automatically calls `check_allowlist` for IP and range scopes, like cscli.
+`ban_ip` automatically calls `check_allowlist` for IP and range scopes, like cscli. `check_allowlist` accepts IPs and CIDR ranges only; the LAPI bulk check endpoint does not support other scopes. When the target is a CIDR, a match means the CIDR overlaps or contains an allowlisted entry; the output labels it as a CIDR match rather than an exact IP match.
 
 ## MCP client configuration
 
@@ -253,11 +302,74 @@ Authorization: Bearer change-me
 
 The MCP endpoint is `/mcp`. Do not expose this server publicly without TLS and a strong token: it can read security data and, when writes are enabled, ban or unban addresses.
 
+### Shared deployment next to CrowdSec
+
+A common setup is one MCP server next to the LAPI, with remote clients connecting over HTTP:
+
+```bash
+CROWDSEC_URL=http://127.0.0.1:8080 \
+CROWDSEC_MACHINE_ID=crowdsec-mcp \
+CROWDSEC_PASSWORD=change-me \
+CROWDSEC_MCP_TRANSPORT=http \
+CROWDSEC_MCP_HTTP_HOST=0.0.0.0 \
+CROWDSEC_MCP_HTTP_TOKEN=change-me \
+CROWDSEC_MCP_READONLY=false \
+CROWDSEC_MCP_ENABLE_ALERT_DELETE=true \
+npx -y crowdsec-mcp
+```
+
+Clients point their MCP client at `https://mcp.example.com/mcp` and send:
+
+```text
+Authorization: Bearer change-me
+```
+
+The MCP holds the LAPI credentials; users only need the MCP token. Put TLS and a reverse proxy in front, and use one token per MCP instance. This deployment allows `delete_alerts` because the LAPI sees the MCP as local.
+
+### Per-user passthrough (multi-user)
+
+For multiple users with individual LAPI credentials, enable passthrough:
+
+```bash
+CROWDSEC_URL=http://127.0.0.1:8080 \
+CROWDSEC_MCP_TRANSPORT=http \
+CROWDSEC_MCP_HTTP_HOST=0.0.0.0 \
+CROWDSEC_MCP_PASSTHROUGH=true \
+CROWDSEC_MCP_READONLY=false \
+# Optional service gate:
+# CROWDSEC_MCP_HTTP_TOKEN=change-me \
+npx -y crowdsec-mcp
+```
+
+Each request provides exactly one LAPI credential:
+
+```text
+X-CrowdSec-Api-Key: <bouncer API key>     # read decisions only
+# OR
+X-CrowdSec-Token: <watcher JWT>           # full watcher tools / writes
+```
+
+If `CROWDSEC_MCP_HTTP_TOKEN` is configured, every request must also send:
+
+```text
+Authorization: Bearer <CROWDSEC_MCP_HTTP_TOKEN>
+```
+
+Rules:
+- Both `X-CrowdSec-Api-Key` and `X-CrowdSec-Token` → `400`.
+- Neither → `401`.
+- Bouncer keys expose only bouncer-compatible tools; watcher JWTs expose the watcher toolset.
+- Clients are created per request and never reuse another user's credential.
+- The watcher JWT must be refreshed by the user when it expires.
+
+**Why two tokens?** The optional service token gates the MCP endpoint itself, while the LAPI credential authorizes the actual CrowdSec action. The service token is optional because the LAPI credential already authenticates the request, but it is recommended when exposing the MCP: it prevents anonymous probing and gates the local-only `delete_alerts`. Without a service token, `delete_alerts` is hidden unless `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set.
+
 ## Security
 
 - Read-only mode is enabled by default. Keep it that way unless the model really needs writes.
 - Keep credentials in the environment, not in command-line arguments: arguments are visible in the process list.
-- HTTP always requires a bearer token, including on `127.0.0.1`. The server refuses to start in HTTP mode without one.
+- Outside passthrough mode, HTTP always requires a bearer token, including on `127.0.0.1`. The server refuses to start in HTTP mode without one.
+- In passthrough mode, the service token is optional; the LAPI credential is still required on every request. Use TLS and never log request headers.
 - `ban_ip`, `unban_ip` and `delete_alerts` are destructive. Restrict them with `CROWDSEC_MCP_TOOLS` or keep read-only mode.
 - `ban_ip` creates a real CrowdSec alert and decision. It may be forwarded to CAPI depending on your CrowdSec configuration.
 - Use `CROWDSEC_MCP_TOOLS` to expose the smallest useful surface to the model.
@@ -267,25 +379,11 @@ The MCP endpoint is `/mcp`. Do not expose this server publicly without TLS and a
 | Symptom | Cause / fix |
 | --- | --- |
 | `401 Unauthorized` | Missing or invalid HTTP bearer token. In HTTP mode, send `Authorization: Bearer <CROWDSEC_MCP_HTTP_TOKEN>`. |
-| `403 access forbidden from this IP` on `delete_alerts` | CrowdSec only allows alert deletion from the LAPI host. Run the MCP on that host, or use `cscli alerts delete` locally. `unban_ip` is not affected. |
+| `403 access forbidden from this IP` on `delete_alerts` | CrowdSec only allows alert deletion from the LAPI host. Use `unban_ip` for decisions, or enable `delete_alerts` only in a deployment next to the LAPI. |
 | `<ip> is allowlisted by item ...` | The target matches an allowlist. Use `force=true` only if you really want to ban an allowlisted value. |
 | A tool is missing from `listTools` | It may be a write tool while `CROWDSEC_MCP_READONLY=true`, a watcher tool in bouncer mode, or hidden by `CROWDSEC_MCP_TOOLS` / `CROWDSEC_MCP_DISABLE_TOOLS`. |
-| `invalid duration` | Use cscli-style durations such as `30m`, `4h`, `7d`, or `1h30m`. |
+| `invalid duration` | Use durations such as `30m`, `4h`, `7d`, `3650d`, or `1h30m`. |
 | `Duration ... exceeds maximum allowed ...` | The duration is above `CROWDSEC_MCP_MAX_BAN_DURATION`. Lower it or use `force=true`. |
-
-## Output
-
-The MCP protocol itself is JSON-RPC, but tool results are Markdown text, not JSON dumps. Lists are tables with a summary and a truncation hint:
-
-```text
-1 decision total
-
-| Type | Scope | Value        | Origin | Scenario | Expires   | Simulated | Alert ID |
-| ---- | ----- | ------------ | ------ | -------- | --------- | --------- | -------- |
-| ban  | Ip    | 203.0.113.10 | cscli  | manual   | in 3h 12m | no        | 42       |
-```
-
-Dates are shown in ISO form with a relative expiry. Large lists are truncated to `CROWDSEC_MCP_MAX_RESULTS` with an explicit hint to narrow the filters or increase `limit`.
 
 ## Development
 
@@ -342,7 +440,7 @@ CROWDSEC_PASSWORD=<password> \
 pnpm --filter crowdsec-mcp exec vitest run tests/integration/live.test.ts
 ```
 
-Set `CROWDSEC_INTEGRATION_LOCAL_DELETE=1` only when the MCP and LAPI share localhost and alert deletion is expected to succeed. Clean up with:
+`delete_alerts` is not covered by the integration test because it requires the MCP to run next to the LAPI. Clean up with:
 
 ```bash
 docker rm -f crowdsec-mcp-test && docker volume rm crowdsec-mcp-data

@@ -29,13 +29,13 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          run_install: true
+          run_install: false
 
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v6
         name: Setup pnpm cache
@@ -47,14 +47,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install
-          pnpm recursive run build
+          pnpm install --frozen-lockfile
+          pnpm -r run build
 
       - name: build documentation
         run: |
           pnpm run generate:documentation
         env:
           CI: true
+
+      - name: Copy llms.txt
+        run: cp llms.txt docs-typedoc/llms.txt
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:

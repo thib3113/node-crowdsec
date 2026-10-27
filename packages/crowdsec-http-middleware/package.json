@@ -1,11 +1,15 @@
 {
     "name": "crowdsec-http-middleware",
     "version": "0.1.1",
-    "description": "HTTP server middleware that can act as a crowdsec bouncer/watcher",
+    "description": "HTTP server middleware that can act as a CrowdSec bouncer/watcher",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
     "types": "./lib/index.d.ts",
     "type": "module",
+    "sideEffects": false,
+    "files": [
+        "lib"
+    ],
     "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-http-middleware#readme",
     "scripts": {
         "prepack": "npm run build",
@@ -42,18 +46,24 @@
     },
     "author": {
         "email": "thib3113@gmail.com",
-        "name": "Thibaut severac"
+        "name": "Thibaut Severac"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/thib3113/node-crowdsec.git"
+        "url": "git+https://github.com/thib3113/node-crowdsec.git",
+        "directory": "packages/crowdsec-http-middleware"
     },
     "keywords": [
         "crowdsec",
+        "bouncer",
+        "watcher",
+        "http",
+        "middleware",
         "firewall",
-        "security"
+        "security",
+        "typescript"
     ],
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "crowdsec-client": "workspace:^",
         "debug": "^4.4.3",

@@ -1,14 +1,24 @@
 {
   "name": "example-express-bouncer-cjs",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Example CrowdSec bouncer protecting an Express server (CommonJS)",
   "main": "src/index.js",
   "scripts": {
     "start": "node -r source-map-support/register ./src/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "crowdsec",
+    "bouncer",
+    "express",
+    "commonjs",
+    "example"
+  ],
+  "author": {
+    "email": "thib3113@gmail.com",
+    "name": "Thibaut Severac"
+  },
+  "license": "MIT",
   "dependencies": {
     "crowdsec-client": "workspace:^",
     "express": "^5.3.0"

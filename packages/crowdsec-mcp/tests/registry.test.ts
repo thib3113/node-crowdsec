@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { selectTools } from '../src/registry.js';
+import { cleanErrorMessage, errorResult, selectTools } from '../src/registry.js';
 import type { ToolDefinition } from '../src/types.js';
 import { makeConfig, makeContext } from './helpers.js';
 
@@ -73,5 +73,29 @@ describe('registry', () => {
 
     it('rejects unknown tool names', () => {
         expect(() => selectTools(tools, makeContext({ config: makeConfig({ tools: ['does_not_exist'] }) }))).toThrow(/unknown tool/);
+    });
+});
+
+describe('errorResult', () => {
+    it('keeps only the first line to avoid leaking stack traces', () => {
+        const result = errorResult(new Error('boom\n    at /app/packages/internal.ts:1:1'));
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0]).toMatchObject({ type: 'text', text: 'Error: boom' });
+    });
+});
+
+describe('cleanErrorMessage', () => {
+    it('maps CrowdSec internals to business messages', () => {
+        expect(cleanErrorMessage(new Error('CrowdSecError (404) : object not found'))).toBe('Resource not found');
+        expect(cleanErrorMessage(new Error("CrowdSecError (500) : allowlist 'nope' not found"))).toBe("Allowlist 'nope' not found");
+        expect(cleanErrorMessage(new Error("CrowdSecError (500) : decision with id '999999' doesn't exist: unable to delete"))).toBe(
+            'Decision 999999 not found'
+        );
+        expect(cleanErrorMessage(new Error('CrowdSecError (500) : ent: alert not found'))).toBe('Alert not found');
+        expect(cleanErrorMessage(new Error('CrowdSecError (500) : while parsing duration: nope'))).toBe('Invalid duration');
+        expect(cleanErrorMessage(new Error('CrowdSecError (403) : access forbidden from this IP (1.2.3.4)'))).toBe(
+            'Access forbidden from this IP (alert deletion is only allowed from the LAPI host)'
+        );
     });
 });

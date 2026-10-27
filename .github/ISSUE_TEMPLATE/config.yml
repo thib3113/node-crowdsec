@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/thib3113/node-crowdsec/security/advisories/new
+    about: Please report security issues privately, not in a public issue.
+  - name: Documentation
+    url: https://thib3113.github.io/node-crowdsec/
+    about: Read the API documentation.

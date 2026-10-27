@@ -107,9 +107,10 @@ describe('watcher stdio end-to-end', () => {
         const names = result.tools.map((tool) => tool.name);
 
         expect(names).toContain('crowdsec_status');
+        expect(names).toContain('get_decision');
         expect(names).toContain('list_alerts');
         expect(names).toContain('get_alert');
-        expect(names).toContain('delete_alerts');
+        expect(names).not.toContain('delete_alerts');
         expect(names).toContain('list_allowlists');
         expect(names).toContain('get_allowlist');
         expect(names).toContain('check_allowlist');

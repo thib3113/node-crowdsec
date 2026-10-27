@@ -31,6 +31,7 @@ describe('format', () => {
         const now = Date.parse('2026-01-01T12:00:00Z');
 
         expect(expiry(undefined)).toBe('never');
+        expect(expiry('0001-01-01T00:00:00Z', now)).toBe('never');
         expect(expiry('2026-01-01T11:00:00Z', now)).toBe('expired');
         expect(expiry('2026-01-01T13:00:00Z', now)).toBe('in 1h');
     });

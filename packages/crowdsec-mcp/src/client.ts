@@ -1,8 +1,68 @@
 import { readFile } from 'node:fs/promises';
+import type { IncomingHttpHeaders } from 'node:http';
 import { BouncerClient, WatcherClient } from 'crowdsec-client';
 import type { Config } from './config.js';
 import type { AppContext } from './types.js';
 import { createAllowlistsPort, unavailableAllowlistsPort } from './allowlists-port.js';
+import { HttpRequestError } from './http-error.js';
+
+interface TokenWatcherClientOptions {
+    url: string;
+    token: string;
+    strictSSL?: boolean;
+    timeout?: number;
+}
+
+class TokenWatcherClient extends WatcherClient {
+    public constructor(options: TokenWatcherClientOptions) {
+        super({
+            url: options.url,
+            auth: {
+                machineID: 'passthrough',
+                password: 'passthrough'
+            },
+            strictSSL: options.strictSSL,
+            timeout: options.timeout,
+            heartbeat: false
+        });
+
+        this.setAuthenticationHeaders({
+            Authorization: `Bearer ${options.token}`
+        });
+    }
+
+    public override async login(): Promise<void> {
+        try {
+            await this.testConnection();
+        } catch {
+            throw new Error('Invalid CrowdSec token');
+        }
+    }
+}
+
+export type PassthroughAuth = { mode: 'bouncer'; apiKey: string } | { mode: 'watcher'; token: string };
+
+function headerValue(headers: IncomingHttpHeaders, name: string): string | undefined {
+    const value = headers[name];
+    return Array.isArray(value) ? value[0] : value;
+}
+
+export function resolvePassthroughAuth(headers: IncomingHttpHeaders): PassthroughAuth {
+    const apiKey = headerValue(headers, 'x-crowdsec-api-key')?.trim();
+    const token = headerValue(headers, 'x-crowdsec-token')?.trim();
+
+    if (apiKey && token) {
+        throw new HttpRequestError(400, -32602, 'Provide either X-CrowdSec-Api-Key or X-CrowdSec-Token, not both');
+    }
+    if (apiKey) {
+        return { mode: 'bouncer', apiKey };
+    }
+    if (token) {
+        return { mode: 'watcher', token };
+    }
+
+    throw new HttpRequestError(401, -32001, 'Missing X-CrowdSec-Api-Key or X-CrowdSec-Token');
+}
 
 async function loadTls(config: Config) {
     if (!config.tls) {
@@ -73,5 +133,81 @@ export async function createContext(config: Config): Promise<AppContext> {
         config,
         ensureReady,
         stop
+    };
+}
+
+export async function createPassthroughContext(config: Config, headers: IncomingHttpHeaders): Promise<AppContext> {
+    const auth = resolvePassthroughAuth(headers);
+
+    if (auth.mode === 'bouncer') {
+        const bouncer = new BouncerClient({
+            url: config.url,
+            auth: { apiKey: auth.apiKey },
+            strictSSL: config.strictSSL,
+            timeout: config.timeout
+        });
+
+        let loginPromise: Promise<void> | undefined;
+        const ensureReady = async (): Promise<void> => {
+            if (!loginPromise) {
+                loginPromise = bouncer.login();
+            }
+
+            try {
+                await loginPromise;
+            } catch {
+                loginPromise = undefined;
+                throw new Error('Invalid CrowdSec API key');
+            }
+        };
+
+        return {
+            mode: 'bouncer',
+            capabilities: {
+                read: true,
+                write: false,
+                allowlists: false
+            },
+            bouncer,
+            allowlists: unavailableAllowlistsPort(),
+            config,
+            ensureReady,
+            stop: async () => bouncer.stop()
+        };
+    }
+
+    const watcher = new TokenWatcherClient({
+        url: config.url,
+        token: auth.token,
+        strictSSL: config.strictSSL,
+        timeout: config.timeout
+    });
+
+    let loginPromise: Promise<void> | undefined;
+    const ensureReady = async (): Promise<void> => {
+        if (!loginPromise) {
+            loginPromise = watcher.login();
+        }
+
+        try {
+            await loginPromise;
+        } catch (error) {
+            loginPromise = undefined;
+            throw error;
+        }
+    };
+
+    return {
+        mode: 'watcher',
+        capabilities: {
+            read: true,
+            write: true,
+            allowlists: true
+        },
+        watcher,
+        allowlists: createAllowlistsPort(watcher),
+        config,
+        ensureReady,
+        stop: async () => watcher.stop()
     };
 }

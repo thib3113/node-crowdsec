@@ -31,6 +31,7 @@ export interface AppContext {
 }
 
 export type ToolRequirement = 'watcher' | 'allowlists';
+export type ToolFeature = 'alert-delete';
 
 export interface ToolDefinition {
     name: string;
@@ -39,6 +40,7 @@ export interface ToolDefinition {
     inputSchema: ZodType;
     kind: 'read' | 'write';
     requires?: ToolRequirement[];
+    feature?: ToolFeature;
     annotations?: ToolAnnotations;
     handler: (input: Record<string, unknown>, ctx: AppContext) => Promise<CallToolResult | string>;
 }

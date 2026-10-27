@@ -63,7 +63,7 @@ whether that fits :
 Both are Node.js bouncers. Rough comparison to present to the user :
 
 | | `@crowdsec/nodejs-bouncer` (official) | `crowdsec-http-middleware` (this repo) |
-|---|---|---|
+| --- | --- | --- |
 | Default mode | live (one LAPI call per new IP, then cache) | stream (local index, ~µs/request) |
 | Freshness | immediate on cache miss | bounded by `pollingInterval` |
 | LAPI load | grows with unique IPs | constant (one poll per interval) |
@@ -226,7 +226,7 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
 ### Defaults summary (when the user has no opinion)
 
 | Option | Default | Why |
-|---|---|---|
+| --- | --- | --- |
 | `pollingInterval` | 10 s | reasonable freshness for stream mode |
 | `subnetLevel` | `company` (/24) | real attackers are single IPs, not countries |
 | `live.enabled` | `false` | stream mode is enough for most deployments |

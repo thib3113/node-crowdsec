@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vscode
+node_modules
+**/node_modules
+**/dist
+**/lib
+**/coverage
+coverage
+docs
+dev
+examples
+*.log

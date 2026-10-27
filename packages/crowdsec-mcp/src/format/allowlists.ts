@@ -1,4 +1,5 @@
 import type { APITypes } from 'crowdsec-client';
+import { isValidCidr } from '../utils.js';
 import { escapeCell, markdownTable, formatDate, expiry, truncateRows, moreHint, bullets, plural } from './common.js';
 
 export function formatAllowlistList(allowlists: APITypes.GetAllowlistsResponse, maxResults: number): string {
@@ -34,7 +35,11 @@ export function formatAllowlistDetail(allowlist: APITypes.GetAllowlistResponse, 
         ])
     ];
 
-    if (!withContent || !allowlist.items || allowlist.items.length === 0) {
+    if (!withContent) {
+        return `${infoLines.join('\n')}\n\n_Content hidden (with_content=false)._`;
+    }
+
+    if (!allowlist.items || allowlist.items.length === 0) {
         return `${infoLines.join('\n')}\n\n_No items._`;
     }
 
@@ -59,20 +64,22 @@ export function formatAllowlistCheck(targets: string[], results: APITypes.BulkCh
         return '_No targets provided._';
     }
 
+    const uniqueTargets = [...new Set(targets)];
     const lines: string[] = [];
     let allowlistedCount = 0;
 
-    for (const target of targets) {
+    for (const target of uniqueTargets) {
         const result = results.find((r) => r.target === target);
         const allowlists = result?.allowlists ?? [];
         if (allowlists.length > 0) {
             allowlistedCount++;
-            lines.push(`- ${escapeCell(target)}: allowlisted by ${escapeCell(allowlists.join(', '))}`);
+            const matchLabel = isValidCidr(target) ? 'CIDR matches allowlist entry/entries' : 'allowlisted by';
+            lines.push(`- ${escapeCell(target)}: ${matchLabel} ${escapeCell(allowlists.join(', '))}`);
         } else {
             lines.push(`- ${escapeCell(target)}: not allowlisted`);
         }
     }
 
-    const summary = `${plural(allowlistedCount, 'target')} of ${plural(targets.length, 'target')} allowlisted.`;
+    const summary = `${plural(allowlistedCount, 'target')} of ${plural(uniqueTargets.length, 'target')} matched an allowlist.`;
     return `${lines.join('\n')}\n\n${summary}`;
 }

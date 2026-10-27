@@ -2,13 +2,23 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { isAuthorizedHeader, startHttpServer } from '../../src/transports/http.js';
+import type { RequestServerFactory } from '../../src/transports/http.js';
+import { HttpRequestError } from '../../src/http-error.js';
 import { makeConfig } from '../helpers.js';
 
 const TOKEN = 'test-secret-token';
 
-function makeServer(): McpServer {
-    return new McpServer({ name: 'test', version: '1.0.0' });
+function makeServerFactory(): RequestServerFactory {
+    return () => {
+        const server = new McpServer({ name: 'test', version: '1.0.0' });
+        server.registerTool('ping', { description: 'Ping' }, async () => ({
+            content: [{ type: 'text', text: 'pong' }]
+        }));
+        return { server };
+    };
 }
 
 function portOf(server: http.Server): number {
@@ -76,6 +86,10 @@ function initializeBody(): string {
     });
 }
 
+function httpConfig() {
+    return makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } });
+}
+
 describe('isAuthorizedHeader', () => {
     it('rejects a missing header', () => {
         expect(isAuthorizedHeader(undefined, TOKEN)).toBe(false);
@@ -103,15 +117,62 @@ describe('isAuthorizedHeader', () => {
 });
 
 describe('http transport authentication', () => {
-    it('throws when no token is configured (before listening)', async () => {
-        await expect(startHttpServer(makeServer(), makeConfig({ http: { host: '127.0.0.1', port: 0, token: undefined } }))).rejects.toThrow(
-            /bearer token/i
+    it('starts without a service token and passes LAPI headers to the factory', async () => {
+        let received: http.IncomingHttpHeaders | undefined;
+        const factory = makeServerFactory();
+        const server = await startHttpServer(
+            (headers) => {
+                received = headers;
+                return factory();
+            },
+            makeConfig({ http: { host: '127.0.0.1', port: 0, token: undefined } })
         );
+
+        try {
+            const res = await request(portOf(server), {
+                method: 'POST',
+                path: '/mcp',
+                headers: {
+                    'content-type': 'application/json',
+                    accept: 'application/json, text/event-stream',
+                    'x-crowdsec-api-key': 'lapi-key'
+                },
+                body: initializeBody()
+            });
+
+            expect(res.status).toBe(200);
+            expect(received?.['x-crowdsec-api-key']).toBe('lapi-key');
+        } finally {
+            await closeServer(server);
+        }
+    });
+
+    it('maps request setup errors to JSON-RPC status codes', async () => {
+        const server = await startHttpServer(() => {
+            throw new HttpRequestError(401, -32001, 'Missing X-CrowdSec-Api-Key or X-CrowdSec-Token');
+        }, httpConfig());
+
+        try {
+            const res = await request(portOf(server), {
+                method: 'POST',
+                path: '/mcp',
+                headers: {
+                    ...authHeaders(TOKEN),
+                    'content-type': 'application/json',
+                    accept: 'application/json, text/event-stream'
+                },
+                body: initializeBody()
+            });
+
+            expect(res.status).toBe(401);
+            expect(JSON.parse(res.body)).toMatchObject({ error: { code: -32001 } });
+        } finally {
+            await closeServer(server);
+        }
     });
 
     it('returns 401 without a token, even on unknown routes', async () => {
-        const mcp = makeServer();
-        const server = await startHttpServer(mcp, makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } }));
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {
             const port = portOf(server);
 
@@ -129,13 +190,11 @@ describe('http transport authentication', () => {
             expect(noAuthMethod.status).toBe(401);
         } finally {
             await closeServer(server);
-            await mcp.close();
         }
     });
 
     it('returns 401 with a wrong token', async () => {
-        const mcp = makeServer();
-        const server = await startHttpServer(mcp, makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } }));
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {
             const port = portOf(server);
 
@@ -147,13 +206,11 @@ describe('http transport authentication', () => {
             expect(wrongScheme.status).toBe(401);
         } finally {
             await closeServer(server);
-            await mcp.close();
         }
     });
 
     it('accepts a valid token: initialize POST is not 401 and unknown route is 404', async () => {
-        const mcp = makeServer();
-        const server = await startHttpServer(mcp, makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } }));
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {
             const port = portOf(server);
 
@@ -170,25 +227,21 @@ describe('http transport authentication', () => {
             expect(other.status).toBe(404);
         } finally {
             await closeServer(server);
-            await mcp.close();
         }
     });
 
     it('returns 405 for unsupported methods after auth', async () => {
-        const mcp = makeServer();
-        const server = await startHttpServer(mcp, makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } }));
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {
             const put = await request(portOf(server), { method: 'PUT', path: '/mcp', headers: authHeaders(TOKEN) });
             expect(put.status).toBe(405);
         } finally {
             await closeServer(server);
-            await mcp.close();
         }
     });
 
     it('rejects invalid JSON with 400 after auth', async () => {
-        const mcp = makeServer();
-        const server = await startHttpServer(mcp, makeConfig({ transport: 'http', http: { host: '127.0.0.1', port: 0, token: TOKEN } }));
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
         try {
             const res = await request(portOf(server), {
                 method: 'POST',
@@ -200,7 +253,26 @@ describe('http transport authentication', () => {
             expect(JSON.parse(res.body)).toMatchObject({ jsonrpc: '2.0', error: { code: -32700 } });
         } finally {
             await closeServer(server);
-            await mcp.close();
+        }
+    });
+
+    it('supports the SDK client initialize/notifications/tools-list sequence', async () => {
+        const server = await startHttpServer(makeServerFactory(), httpConfig());
+        try {
+            const port = portOf(server);
+            const transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`), {
+                requestInit: {
+                    headers: { Authorization: `Bearer ${TOKEN}` }
+                }
+            });
+            const client = new Client({ name: 'sdk-test', version: '1.0.0' });
+
+            await client.connect(transport);
+            const tools = await client.listTools();
+            expect(Array.isArray(tools.tools)).toBe(true);
+            await client.close();
+        } finally {
+            await closeServer(server);
         }
     });
 });

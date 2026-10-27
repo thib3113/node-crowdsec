@@ -2,10 +2,11 @@
 import debug from 'debug';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { loadConfig, parseCliArgs, printHelp, printVersion } from './config.js';
-import { createContext } from './client.js';
+import { createContext, createPassthroughContext } from './client.js';
 import { createServer, selectTools } from './registry.js';
 import { allTools } from './tools/index.js';
 import { startHttpServer } from './transports/http.js';
+import type { AppContext } from './types.js';
 
 const log = debug('crowdsec-mcp');
 
@@ -23,9 +24,8 @@ async function main(): Promise<void> {
     }
 
     const config = loadConfig(values);
-    const context = await createContext(config);
-    const tools = selectTools(allTools(), context);
-    const server = createServer(tools, context);
+    let context: AppContext | undefined;
+    let stdioServer: ReturnType<typeof createServer> | undefined;
 
     let stopping = false;
     const shutdown = async (signal: string): Promise<void> => {
@@ -36,8 +36,8 @@ async function main(): Promise<void> {
         stopping = true;
         log('received %s, shutting down', signal);
         try {
-            await context.stop();
-            await server.close();
+            await context?.stop();
+            await stdioServer?.close();
         } finally {
             process.exit(0);
         }
@@ -51,13 +51,29 @@ async function main(): Promise<void> {
     });
 
     if (config.transport === 'http') {
-        await startHttpServer(server, config);
+        if (config.passthrough) {
+            await startHttpServer(async (headers) => {
+                const requestContext = await createPassthroughContext(config, headers);
+                const requestTools = selectTools(allTools(), requestContext);
+                return {
+                    server: createServer(requestTools, requestContext),
+                    cleanup: () => requestContext.stop()
+                };
+            }, config);
+        } else {
+            context = await createContext(config);
+            const tools = selectTools(allTools(), context);
+            await startHttpServer(() => ({ server: createServer(tools, context!) }), config);
+        }
         log('HTTP transport listening on %s:%d', config.http.host, config.http.port);
         return;
     }
 
+    context = await createContext(config);
+    const tools = selectTools(allTools(), context);
+    stdioServer = createServer(tools, context);
     const transport = new StdioServerTransport();
-    await server.connect(transport);
+    await stdioServer.connect(transport);
     log('stdio transport ready');
 }
 

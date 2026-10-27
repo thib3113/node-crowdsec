@@ -3,6 +3,14 @@ import { timingSafeEqual } from 'node:crypto';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Config } from '../config.js';
+import { HttpRequestError } from '../http-error.js';
+
+export interface RequestServer {
+    server: McpServer;
+    cleanup?: () => Promise<void>;
+}
+
+export type RequestServerFactory = (headers: http.IncomingHttpHeaders) => RequestServer | Promise<RequestServer>;
 
 const MAX_BODY_SIZE = 4 * 1024 * 1024;
 
@@ -79,24 +87,16 @@ function sendJson(res: http.ServerResponse, status: number, body: string, extraH
     res.end(body);
 }
 
-export async function startHttpServer(server: McpServer, config: Config): Promise<http.Server> {
+export async function startHttpServer(createRequestServer: RequestServerFactory, config: Config): Promise<http.Server> {
     const token = config.http.token;
-    if (!token) {
-        throw new Error('HTTP transport requires a bearer token (config.http.token)');
-    }
-
-    const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-        enableJsonResponse: true
-    });
-
-    await server.connect(transport);
 
     const httpServer = http.createServer(async (req, res) => {
         const { method, url } = req;
 
-        // Auth first: every request (including unknown routes/methods) requires a valid bearer token.
-        if (!isAuthorizedHeader(req.headers.authorization, token)) {
+        // Optional service gate. In passthrough mode the LAPI credential can be
+        // the only credential; if a service token is configured, it is required
+        // in addition to the per-request LAPI credential.
+        if (token && !isAuthorizedHeader(req.headers.authorization, token)) {
             sendJson(res, 401, UNAUTHORIZED_BODY, { 'WWW-Authenticate': 'Bearer' });
             return;
         }
@@ -140,16 +140,98 @@ export async function startHttpServer(server: McpServer, config: Config): Promis
                 return;
             }
 
-            await transport.handleRequest(req, res, parsedBody);
+            let requestServer: RequestServer;
+            try {
+                requestServer = await createRequestServer(req.headers);
+            } catch (error) {
+                if (error instanceof HttpRequestError) {
+                    sendJson(
+                        res,
+                        error.status,
+                        JSON.stringify({
+                            jsonrpc: '2.0',
+                            error: { code: error.code, message: error.message },
+                            id: null
+                        })
+                    );
+                } else {
+                    const message = error instanceof Error ? error.message : String(error);
+                    process.stderr.write(`crowdsec-mcp: request setup failed: ${message}\n`);
+                    sendJson(
+                        res,
+                        500,
+                        JSON.stringify({
+                            jsonrpc: '2.0',
+                            error: { code: -32603, message: 'Internal server error' },
+                            id: null
+                        })
+                    );
+                }
+                return;
+            }
+
+            // Stateless mode: each request must use a fresh server and transport.
+            // Reusing a stateless transport causes message ID collisions and breaks
+            // the initialize/notifications sequence used by MCP clients.
+            const { server, cleanup } = requestServer;
+            const transport = new StreamableHTTPServerTransport({
+                sessionIdGenerator: undefined,
+                enableJsonResponse: true
+            });
+
+            res.on('close', () => {
+                void transport.close();
+                void server.close();
+                if (cleanup) {
+                    void cleanup();
+                }
+            });
+
+            try {
+                await server.connect(transport);
+                await transport.handleRequest(req, res, parsedBody);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                process.stderr.write(`crowdsec-mcp: HTTP request failed: ${message}\n`);
+                if (!res.headersSent) {
+                    sendJson(
+                        res,
+                        500,
+                        JSON.stringify({
+                            jsonrpc: '2.0',
+                            error: { code: -32603, message: 'Internal server error' },
+                            id: null
+                        })
+                    );
+                } else {
+                    res.end();
+                }
+            }
             return;
         }
 
         if (method === 'GET' || method === 'DELETE') {
-            await transport.handleRequest(req, res);
+            sendJson(
+                res,
+                405,
+                JSON.stringify({
+                    jsonrpc: '2.0',
+                    error: { code: -32000, message: 'Method not allowed' },
+                    id: null
+                })
+            );
             return;
         }
 
-        res.writeHead(405).end();
+        sendJson(
+            res,
+            405,
+            JSON.stringify({
+                jsonrpc: '2.0',
+                error: { code: -32000, message: 'Method not allowed' },
+                id: null
+            })
+        );
     });
 
     return new Promise<http.Server>((resolve, reject) => {

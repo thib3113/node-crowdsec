@@ -16,6 +16,9 @@ export function makeConfig(overrides: Partial<Config> = {}): Config {
             token: 'token'
         },
         readonly: true,
+        enableAlertDelete: false,
+        allowAlertDeleteWithoutToken: false,
+        passthrough: false,
         disableTools: [],
         maxResults: 25,
         maxBanDuration: '24h',

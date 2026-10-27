@@ -1,7 +1,8 @@
 import type { APITypes } from 'crowdsec-client';
-import { escapeCell, formatDate, markdownTable, moreHint, plural, relativeTime, truncateRows } from './common.js';
+import { resolveDecisionExpiry } from '../utils.js';
+import { escapeCell, expiry, formatDate, markdownTable, moreHint, plural, relativeTime, truncateRows } from './common.js';
 
-function formatDecisionsSummary(decisions?: APITypes.Alert['decisions']): string {
+function formatDecisionsSummary(decisions: APITypes.Alert['decisions']): string {
     if (!decisions || decisions.length === 0) {
         return '—';
     }
@@ -9,6 +10,10 @@ function formatDecisionsSummary(decisions?: APITypes.Alert['decisions']): string
     const counts = new Map<string, { real: number; simulated: number }>();
 
     for (const d of decisions) {
+        if (!resolveDecisionExpiry(d).active) {
+            continue;
+        }
+
         const type = d.type ?? 'unknown';
         const isSimulated = d.simulated === true;
         const entry = counts.get(type) ?? { real: 0, simulated: 0 };
@@ -33,15 +38,20 @@ function formatDecisionsSummary(decisions?: APITypes.Alert['decisions']): string
     return parts.length > 0 ? parts.join(' ') : '—';
 }
 
-export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: number): string {
-    const { rows, hidden } = truncateRows(alerts, maxResults);
+export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: number, maybeMore = false): string {
+    const sortedAlerts = [...alerts].sort((a, b) => {
+        const aTime = a.created_at ? Date.parse(a.created_at) || 0 : 0;
+        const bTime = b.created_at ? Date.parse(b.created_at) || 0 : 0;
+        return bTime - aTime || (b.id ?? 0) - (a.id ?? 0);
+    });
+    const { rows: displayRows, hidden } = truncateRows(sortedAlerts, maxResults);
 
-    if (rows.length === 0) {
+    if (displayRows.length === 0) {
         return '_No alerts found._';
     }
 
     const headers = ['ID', 'Scope', 'Value', 'Reason', 'Country', 'AS', 'Decisions', 'Created at', 'Kind'];
-    const tableRows = rows.map((alert) => {
+    const tableRows = displayRows.map((alert) => {
         const source = alert.source;
         const country = source.cn ?? '—';
         const as = source.as_name ? `${source.as_number} (${source.as_name})` : (source.as_number ?? '—');
@@ -62,8 +72,13 @@ export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: 
         ];
     });
 
-    const summary = plural(rows.length, 'alert');
-    const hint = moreHint(hidden, 'list_alerts');
+    const summary = plural(displayRows.length, 'alert');
+    const hint =
+        hidden > 0
+            ? moreHint(hidden, 'list_alerts')
+            : maybeMore && sortedAlerts.length >= maxResults
+              ? '\n_More results may be available. Increase `limit` or narrow the filters._'
+              : '';
 
     return `${summary}:\n\n${markdownTable(headers, tableRows)}${hint}`;
 }
@@ -74,10 +89,16 @@ function formatDecisionRow(decision: APITypes.Decision): string[] {
     const value = decision.value ?? '—';
     const origin = decision.origin ?? '—';
     const duration = decision.duration ?? '—';
-    const until = decision.until ? `${formatDate(decision.until)} (${relativeTime(decision.until)})` : '—';
+    const expiryInfo = resolveDecisionExpiry(decision);
+    const until = expiryInfo.expires
+        ? `${formatDate(expiryInfo.expires)} (${expiry(expiryInfo.expires)})`
+        : expiryInfo.active
+          ? '—'
+          : 'expired';
     const simulated = decision.simulated === true ? 'yes' : 'no';
 
     return [
+        escapeCell(decision.id ?? '—'),
         escapeCell(type),
         escapeCell(scope),
         escapeCell(value),
@@ -159,6 +180,7 @@ export function formatAlertDetail(alert: APITypes.Alert): string {
         `- **Machine:** ${alert.machine_id ?? '—'}`,
         `- **Simulation:** ${alert.simulated ? 'yes' : 'no'}`,
         `- **Remediation:** ${alert.remediation ? 'yes' : 'no'}`,
+        `- **Active decisions:** ${(alert.decisions ?? []).filter((d) => resolveDecisionExpiry(d).active).length}`,
         `- **Kind:** ${alert.kind ?? '—'}`,
         `- **Reason:** ${alert.message ?? '—'}`,
         `- **Events count:** ${alert.events_count ?? 0}`,
@@ -170,11 +192,21 @@ export function formatAlertDetail(alert: APITypes.Alert): string {
         `- **UUID:** ${alert.uuid ?? '—'}`
     ];
 
-    // Decisions table
-    if (alert.decisions && alert.decisions.length > 0) {
-        const decisionHeaders = ['Type', 'Scope', 'Value', 'Origin', 'Duration', 'Until', 'Simulated'];
-        const decisionRows = alert.decisions.map(formatDecisionRow);
+    // Decisions table: only active decisions are shown. Deleted/expired decisions
+    // remain embedded in the alert but are hidden to avoid negative durations.
+    const activeDecisions = (alert.decisions ?? []).filter((decision) => resolveDecisionExpiry(decision).active);
+    const inactiveCount = (alert.decisions?.length ?? 0) - activeDecisions.length;
+
+    if (activeDecisions.length > 0) {
+        const decisionHeaders = ['ID', 'Type', 'Scope', 'Value', 'Origin', 'Remaining', 'Until', 'Simulated'];
+        const decisionRows = activeDecisions.map(formatDecisionRow);
         lines.push('', '### Decisions', '', markdownTable(decisionHeaders, decisionRows));
+    } else if ((alert.decisions?.length ?? 0) > 0) {
+        lines.push('', '### Decisions', '', '_No active decisions._');
+    }
+
+    if (inactiveCount > 0) {
+        lines.push('', `_${inactiveCount} inactive decision(s) hidden._`);
     }
 
     // Meta

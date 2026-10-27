@@ -94,6 +94,6 @@ describe('stdio end-to-end', () => {
         const result = await client.callTool({ name: 'list_decisions', arguments: {} });
         const text = result.content.map((item) => ('text' in item ? item.text : '')).join('\n');
 
-        expect(text).toContain('0 decisions total');
+        expect(text).toContain('0 decisions shown');
     });
 });

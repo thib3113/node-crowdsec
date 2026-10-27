@@ -1,16 +1,23 @@
 {
   "name": "dev",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Local development playground for node-crowdsec packages",
   "main": "build/index.js",
   "type": "module",
   "scripts": {
     "debug": "npm run build:deps && tsc && node -r source-map-support/register ./build/index.js",
     "build:deps": "pnpm -F dev... build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "crowdsec",
+    "development"
+  ],
+  "author": {
+    "email": "thib3113@gmail.com",
+    "name": "Thibaut Severac"
+  },
+  "license": "MIT",
   "dependencies": {
     "@types/node": "26.6.5",
     "crowdsec-client": "workspace:^",

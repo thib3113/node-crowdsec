@@ -31,13 +31,13 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          run_install: true
+          run_install: false
 
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v6
         name: Setup pnpm cache
@@ -48,7 +48,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
   list-packages:
     runs-on: ubuntu-latest
@@ -64,11 +64,12 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          run_install: true
+          run_install: false
       - id: set-matrix
         run: |
-          export MATRIX=$(pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c)
-          echo "matrix=${MATRIX}" | tee -a $GITHUB_OUTPUT
+          MATRIX=$(pnpm -s m ls --depth -1 -F "./packages/**" --json | jq -c)
+          export MATRIX
+          echo "matrix=${MATRIX}" | tee -a "$GITHUB_OUTPUT"
 
   # This workflow contains a single job called "build"
   build:
@@ -98,13 +99,13 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          run_install: true
+          run_install: false
 
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v6
         name: Setup pnpm cache
@@ -115,7 +116,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
         shell: bash
 
       - name: Compare npm with local (versions)

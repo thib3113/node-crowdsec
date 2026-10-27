@@ -11,10 +11,6 @@ export function parseDuration(input: string): number {
         throw new Error('duration must not be empty');
     }
 
-    if (/^\d+$/.test(value)) {
-        return Number(value);
-    }
-
     let total = 0;
     let consumed = 0;
     for (const match of value.matchAll(DURATION_PART)) {
@@ -38,7 +34,7 @@ export function parseDuration(input: string): number {
     }
 
     if (consumed !== value.length || total <= 0) {
-        throw new Error(`invalid duration '${input}' (use for example 30m, 4h or 7d)`);
+        throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
     }
 
     return total;
@@ -123,6 +119,171 @@ export function normalizeScope(scope?: string, ip?: string, range?: string): str
     }
 
     return scope.charAt(0).toUpperCase() + scope.slice(1);
+}
+
+const DECISION_SCOPES = new Set(['Ip', 'Range', 'Username', 'Session', 'Country', 'AS']);
+const DECISION_TYPES = new Set(['ban', 'captcha', 'throttle']);
+
+export function assertValidDecisionScope(scope: string): string {
+    const normalized = normalizeScope(scope);
+    if (!DECISION_SCOPES.has(normalized)) {
+        throw new Error(`invalid scope '${scope}' (expected Ip, Range, Username, Session, Country or AS)`);
+    }
+    return normalized;
+}
+
+export function assertValidDecisionType(type: string): string {
+    const normalized = type.toLowerCase();
+    if (!DECISION_TYPES.has(normalized)) {
+        throw new Error(`invalid decision type '${type}' (expected ban, captcha or throttle)`);
+    }
+    return normalized;
+}
+
+const COUNTRY_CODE = /^[A-Z]{2}$/;
+const AS_NUMBER = /^(?:AS)?\d+$/i;
+
+/**
+ * Validate and normalize the value for a non-IP decision scope.
+ * Ip/Range values are validated as IP/CIDR; Country values must be ISO-like
+ * two-letter codes; AS values must be numeric ASNs.
+ */
+export function assertValidScopeValue(scope: string, value: string): string {
+    const normalizedScope = assertValidDecisionScope(scope);
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+        throw new Error('value must not be empty');
+    }
+
+    switch (normalizedScope) {
+        case 'Country': {
+            const code = trimmed.toUpperCase();
+            if (!COUNTRY_CODE.test(code) || code === 'ZZ') {
+                throw new Error(`invalid country code '${value}': use a two-letter ISO 3166 code (e.g. FR, US)`);
+            }
+            return code;
+        }
+        case 'AS': {
+            if (!AS_NUMBER.test(trimmed)) {
+                throw new Error(`invalid AS number '${value}': use a numeric ASN (e.g. 64512)`);
+            }
+            const asn = trimmed.replace(/^AS/i, '');
+            if (Number(asn) <= 0) {
+                throw new Error(`invalid AS number '${value}': use a positive numeric ASN (e.g. 64512)`);
+            }
+            return asn;
+        }
+        case 'Ip':
+            assertValidIp(trimmed);
+            return trimmed;
+        case 'Range':
+            assertValidCidr(trimmed);
+            return trimmed;
+        default:
+            return trimmed;
+    }
+}
+
+export function parsePositiveId(value: string | number, name = 'id'): string {
+    const raw = String(value).trim();
+    if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
+        throw new Error(`${name} must be a positive integer`);
+    }
+    return raw;
+}
+
+export interface ListWindow {
+    /** Number of rows to render. */
+    displayLimit: number;
+    /** Limit to send to the LAPI. 0 means "no limit". */
+    fetchLimit: number;
+    /** True when the LAPI response may contain more rows than it returned. */
+    maybeMore: boolean;
+}
+
+/**
+ * Resolve pagination for list tools.
+ *
+ * An explicit `limit` fetches all matching rows so the hidden count can be
+ * exact. Without an explicit limit we keep the request small and only hint
+ * that more rows may exist.
+ */
+export function resolveListWindow(limit: number | undefined, all: boolean, defaultLimit: number): ListWindow {
+    if (all) {
+        return { displayLimit: Number.MAX_SAFE_INTEGER, fetchLimit: 0, maybeMore: false };
+    }
+
+    const displayLimit = limit ?? defaultLimit;
+    return {
+        displayLimit,
+        fetchLimit: limit === undefined ? displayLimit : 0,
+        maybeMore: limit === undefined
+    };
+}
+
+export function assertValidIp(value: string, name = 'ip'): void {
+    if (!isValidIp(value)) {
+        throw new Error(`${value} is not a valid ${name}`);
+    }
+}
+
+export function assertValidCidr(value: string, name = 'range'): void {
+    if (!isValidCidr(value)) {
+        throw new Error(`${value} is not a valid ${name}`);
+    }
+}
+
+export function isValidTimeFilter(value: string): boolean {
+    try {
+        parseDuration(value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export interface DecisionExpiry {
+    expires?: string;
+    active: boolean;
+}
+
+export function resolveDecisionExpiry(
+    decision: { until?: string; duration?: string },
+    base?: string | Date,
+    now = Date.now()
+): DecisionExpiry {
+    if (decision.until) {
+        const time = Date.parse(decision.until);
+        if (Number.isNaN(time)) {
+            return { active: false };
+        }
+        return { expires: new Date(time).toISOString(), active: time > now };
+    }
+
+    const duration = decision.duration?.trim();
+    if (!duration) {
+        return { active: true };
+    }
+
+    if (duration.startsWith('-')) {
+        return { active: false };
+    }
+
+    let seconds: number;
+    try {
+        seconds = parseDuration(duration);
+    } catch {
+        return { active: false };
+    }
+
+    const baseDate = base ? (base instanceof Date ? base : new Date(base)) : new Date(now);
+    if (Number.isNaN(baseDate.getTime())) {
+        return { active: true };
+    }
+
+    const expires = new Date(baseDate.getTime() + seconds * 1000);
+    return { expires: expires.toISOString(), active: expires.getTime() > now };
 }
 
 export function splitList(value?: string): string[] | undefined {

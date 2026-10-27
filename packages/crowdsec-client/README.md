@@ -1,7 +1,7 @@
 # crowdsec-client
+
 [![NPM version](https://img.shields.io/npm/v/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
 [![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&metric=coverage)](https://sonarcloud.io/summary/new_code?id=thib3113_node-crowdsec)
 [![Downloads](https://img.shields.io/npm/dm/crowdsec-client.svg)](https://www.npmjs.com/package/crowdsec-client)
 [![License](https://img.shields.io/npm/l/crowdsec-client)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
 [![Known Vulnerabilities](https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg)](https://snyk.io/test/github/thib3113/node-crowdsec)
@@ -24,10 +24,10 @@
 ![Dependencies update - renovate](https://img.shields.io/badge/renovate-enabled-green?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjUgNSAzNzAgMzcwIj48Y2lyY2xlIGN4PSIxODkiIGN5PSIxOTAiIHI9IjE4NCIgZmlsbD0iI2ZlMiIvPjxwYXRoIGZpbGw9IiM4YmIiIGQ9Ik0yNTEgMjU2bC0zOC0zOGExNyAxNyAwIDAxMC0yNGw1Ni01NmMyLTIgMi02IDAtN2wtMjAtMjFhNSA1IDAgMDAtNyAwbC0xMyAxMi05LTggMTMtMTNhMTcgMTcgMCAwMTI0IDBsMjEgMjFjNyA3IDcgMTcgMCAyNGwtNTYgNTdhNSA1IDAgMDAwIDdsMzggMzh6Ii8+PHBhdGggZmlsbD0iI2Q1MSIgZD0iTTMwMCAyODhsLTggOGMtNCA0LTExIDQtMTYgMGwtNDYtNDZjLTUtNS01LTEyIDAtMTZsOC04YzQtNCAxMS00IDE1IDBsNDcgNDdjNCA0IDQgMTEgMCAxNXoiLz48cGF0aCBmaWxsPSIjYjMwIiBkPSJNMjg1IDI1OGw3IDdjNCA0IDQgMTEgMCAxNWwtOCA4Yy00IDQtMTEgNC0xNiAwbC02LTdjNCA1IDExIDUgMTUgMGw4LTdjNC01IDQtMTIgMC0xNnoiLz48cGF0aCBmaWxsPSIjYTMwIiBkPSJNMjkxIDI2NGw4IDhjNCA0IDQgMTEgMCAxNmwtOCA3Yy00IDUtMTEgNS0xNSAwbC05LThjNSA1IDEyIDUgMTYgMGw4LThjNC00IDQtMTEgMC0xNXoiLz48cGF0aCBmaWxsPSIjZTYyIiBkPSJNMjYwIDIzM2wtNC00Yy02LTYtMTctNi0yMyAwLTcgNy03IDE3IDAgMjRsNCA0Yy00LTUtNC0xMSAwLTE2bDgtOGM0LTQgMTEtNCAxNSAweiIvPjxwYXRoIGZpbGw9IiNiNDAiIGQ9Ik0yODQgMzA0Yy00IDAtOC0xLTExLTRsLTQ3LTQ3Yy02LTYtNi0xNiAwLTIybDgtOGM2LTYgMTYtNiAyMiAwbDQ3IDQ2YzYgNyA2IDE3IDAgMjNsLTggOGMtMyAzLTcgNC0xMSA0em0tMzktNzZjLTEgMC0zIDAtNCAybC04IDdjLTIgMy0yIDcgMCA5bDQ3IDQ3YTYgNiAwIDAwOSAwbDctOGMzLTIgMy02IDAtOWwtNDYtNDZjLTItMi0zLTItNS0yeiIvPjxwYXRoIGZpbGw9IiMxY2MiIGQ9Ik0xNTIgMTEzbDE4LTE4IDE4IDE4LTE4IDE4em0xLTM1bDE4LTE4IDE4IDE4LTE4IDE4em0tOTAgODlsMTgtMTggMTggMTgtMTggMTh6bTM1LTM2bDE4LTE4IDE4IDE4LTE4IDE4eiIvPjxwYXRoIGZpbGw9IiMxZGQiIGQ9Ik0xMzQgMTMxbDE4LTE4IDE4IDE4LTE4IDE4em0tMzUgMzZsMTgtMTggMTggMTgtMTggMTh6Ii8+PHBhdGggZmlsbD0iIzJiYiIgZD0iTTExNiAxNDlsMTgtMTggMTggMTgtMTggMTh6bTU0LTU0bDE4LTE4IDE4IDE4LTE4IDE4em0tODkgOTBsMTgtMTggMTggMTgtMTggMTh6bTEzOS04NWwyMyAyM2M0IDQgNCAxMSAwIDE2TDE0MiAyNDBjLTQgNC0xMSA0LTE1IDBsLTI0LTI0Yy00LTQtNC0xMSAwLTE1bDEwMS0xMDFjNS01IDEyLTUgMTYgMHoiLz48cGF0aCBmaWxsPSIjM2VlIiBkPSJNMTM0IDk1bDE4LTE4IDE4IDE4LTE4IDE4em0tNTQgMThsMTgtMTcgMTggMTctMTggMTh6bTU1LTUzbDE4LTE4IDE4IDE4LTE4IDE4em05MyA0OGwtOC04Yy00LTUtMTEtNS0xNiAwTDEwMyAyMDFjLTQgNC00IDExIDAgMTVsOCA4Yy00LTQtNC0xMSAwLTE1bDEwMS0xMDFjNS00IDEyLTQgMTYgMHoiLz48cGF0aCBmaWxsPSIjOWVlIiBkPSJNMjcgMTMxbDE4LTE4IDE4IDE4LTE4IDE4em01NC01M2wxOC0xOCAxOCAxOC0xOCAxOHoiLz48cGF0aCBmaWxsPSIjMGFhIiBkPSJNMjMwIDExMGwxMyAxM2M0IDQgNCAxMSAwIDE2TDE0MiAyNDBjLTQgNC0xMSA0LTE1IDBsLTEzLTEzYzQgNCAxMSA0IDE1IDBsMTAxLTEwMWM1LTUgNS0xMSAwLTE2eiIvPjxwYXRoIGZpbGw9IiMxYWIiIGQ9Ik0xMzQgMjQ4Yy00IDAtOC0yLTExLTVsLTIzLTIzYTE2IDE2IDAgMDEwLTIzTDIwMSA5NmExNiAxNiAwIDAxMjIgMGwyNCAyNGM2IDYgNiAxNiAwIDIyTDE0NiAyNDNjLTMgMy03IDUtMTIgNXptNzgtMTQ3bC00IDItMTAxIDEwMWE2IDYgMCAwMDAgOWwyMyAyM2E2IDYgMCAwMDkgMGwxMDEtMTAxYTYgNiAwIDAwMC05bC0yNC0yMy00LTJ6Ii8+PC9zdmc+
 )
 
-
 [![NPM](https://nodei.co/npm/crowdsec-client.png)](https://nodei.co/npm/crowdsec-client/)
 
-This library is a Node.js client to talk with crowdsec rest API .
+This library is a Node.js client for the CrowdSec REST API.
+
 ## Start
 
 install it
@@ -36,14 +36,17 @@ install it
 npm i crowdsec-client
 ```
 
-and then read the documentation in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
+and then read the [documentation](https://thib3113.github.io/node-crowdsec/).
 
 ## Usage
+
 ### as a Bouncer
 
-First, create a client, pointing to your crowdsec instance . With a bouncer api key ([doc](https://doc.crowdsec.net/docs/user_guides/bouncers_configuration/))
+First, create a client pointing to your CrowdSec instance, with a bouncer API key ([doc](https://doc.crowdsec.net/docs/user_guides/bouncers_configuration/)).
 
 ````typescript
+import { BouncerClient } from 'crowdsec-client';
+
 const client = new BouncerClient({
     url: process.env.CROWDSEC_URL,
     auth: {
@@ -59,13 +62,13 @@ Second, ask for a decision
 
 ````typescript
 const stream = client.Decisions.getStream({
-    //the stream will poll the API at the interval . in ms
+    // the stream polls the API at this interval, in ms
     interval: 10000
 });
 
 //or with filters
 const filteredStream = client.Decisions.getStream({
-    //the stream will poll the API at the interval . in ms
+    // the stream polls the API at this interval, in ms
     interval: 10000,
     scopes: ['ip', 'range'],
     origins: ['capi'] ,
@@ -74,44 +77,42 @@ const filteredStream = client.Decisions.getStream({
 });
 ````
 
-now, use this stream
+now, use this stream (`stream` is the object returned by `client.Decisions.getStream()`)
 
 ````typescript
-import * as stream from "stream";
-
 stream.on('added', (decision) => {
-    //will be emited when a new decision is added
+    // emitted when a new decision is added
 });
 
 stream.on('deleted', (decision) => {
-    //will be emitted when a decision is deleted
+    // emitted when a decision is deleted
 });
 
-//you can control the stream
-
-//start the stream
+// start the stream
 stream.resume();
 
-//pause the stream
-stream.pause()
+// pause the stream
+stream.pause();
 
-//check if the stream is paused
-if(stream.paused) {
-
+// check if the stream is paused
+if (stream.paused) {
+    // ...
 }
 ````
 
 ### as a Watcher
 
-First, create a client, pointing to your crowdsec instance . With a machine login/password ([doc](https://doc.crowdsec.net/docs/user_guides/machines_mgmt))
+First, create a client pointing to your CrowdSec instance, with a machine login/password ([doc](https://doc.crowdsec.net/docs/user_guides/machines_mgmt)).
 
 ````typescript
+import { WatcherClient } from 'crowdsec-client';
+
 const client = new WatcherClient({
     url: process.env.CROWDSEC_URL,
     auth: {
         machineID: 'nameOfTheMachine',
         password: 'password',
-        //the crowdsec token is valid for only 1h ... did you want to autorenew it ?
+        // the CrowdSec token is valid for 1h; enable autoRenew to renew it automatically
         autoRenew: true,
     },
     //use this option if you use a self signed ssl certificate
@@ -143,10 +144,16 @@ await client.Alerts.delete({
 });
 ```
 
-More authentications options (like TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki)
+More authentication options (such as TLS) are documented in the [documentation](https://thib3113.github.io/node-crowdsec/).
 
 ## Debug
+
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :
+
 ````dotenv
 DEBUG=crowdsec-client:*
 ````
+
+## License
+
+MIT

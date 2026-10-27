@@ -10,9 +10,41 @@ export function textResult(text: string): CallToolResult {
     return { content: [{ type: 'text', text }] };
 }
 
+export function cleanErrorMessage(error: unknown): string {
+    const raw = error instanceof Error ? error.message : String(error);
+    let message = raw.split(/\r?\n/, 1)[0].trim();
+
+    // The client embeds its internal class name (and sometimes the ORM prefix)
+    // in error messages. Keep only the business message.
+    message = message.replace(/^CrowdSecError \(\d+\)\s*:\s*/i, '');
+    message = message.replace(/^ent:\s*/i, '');
+    message = message.replace(/^object not found$/i, 'Resource not found');
+    message = message.replace(/^alert not found$/i, 'Alert not found');
+    message = message.replace(/^while parsing duration.*/i, 'Invalid duration');
+
+    const allowlist = message.match(/^allowlist '(.+)' not found$/i);
+    if (allowlist) {
+        message = `Allowlist '${allowlist[1]}' not found`;
+    }
+
+    const decision = message.match(/^decision with id '(.+)' doesn't exist.*/i);
+    if (decision) {
+        message = `Decision ${decision[1]} not found`;
+    }
+
+    if (/^access forbidden from this IP/i.test(message)) {
+        message = 'Access forbidden from this IP (alert deletion is only allowed from the LAPI host)';
+    }
+
+    return message || 'unknown error';
+}
+
 export function errorResult(error: unknown): CallToolResult {
-    const message = error instanceof Error ? error.message : String(error);
-    log('tool error: %s', message);
+    const raw = error instanceof Error ? error.message : String(error);
+    // Client errors can embed a full stack in their message. Keep only the first
+    // cleaned line so tool output stays actionable and does not leak internals.
+    const message = cleanErrorMessage(error);
+    log('tool error: %s', raw);
     return {
         content: [{ type: 'text', text: `Error: ${message}` }],
         isError: true
@@ -41,6 +73,19 @@ export function selectTools(tools: ToolDefinition[], ctx: AppContext): ToolDefin
 
         if (tool.requires?.includes('allowlists') && !context.capabilities.allowlists) {
             return false;
+        }
+
+        if (tool.feature === 'alert-delete') {
+            if (!context.config.enableAlertDelete) {
+                return false;
+            }
+
+            // delete_alerts is local-only and destructive. In passthrough mode
+            // without a service token, any LAPI token holder could reach it, so
+            // hide it unless the operator explicitly forces it.
+            if (context.config.passthrough && !context.config.http.token && !context.config.allowAlertDeleteWithoutToken) {
+                return false;
+            }
         }
 
         if (context.config.tools && !context.config.tools.includes(tool.name)) {

@@ -68,6 +68,11 @@ export function expiry(value?: string | Date, now = Date.now()): string {
         return String(value);
     }
 
+    // CrowdSec uses 0001-01-01T00:00:00Z for "no expiration".
+    if (date.getUTCFullYear() <= 1) {
+        return 'never';
+    }
+
     return date.getTime() <= now ? 'expired' : relativeTime(date, now);
 }
 

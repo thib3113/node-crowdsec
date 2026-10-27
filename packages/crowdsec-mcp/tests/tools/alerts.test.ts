@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { alertTools } from '../../src/tools/alerts.js';
 
+const CREATED_AT = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+const UNTIL = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
 function createMockWatcher(alerts: any[], detailAlert?: any) {
     return {
         Alerts: {
@@ -33,7 +36,7 @@ describe('alertTools', () => {
         mockWatcher = createMockWatcher([
             {
                 id: 1,
-                created_at: '2024-01-15T10:30:00Z',
+                created_at: CREATED_AT,
                 machine_id: 'machine-1',
                 simulated: false,
                 remediation: true,
@@ -57,7 +60,7 @@ describe('alertTools', () => {
                         value: '192.168.1.100',
                         origin: 'crowdsec',
                         duration: '4h',
-                        until: '2024-01-15T14:30:00Z',
+                        until: UNTIL,
                         simulated: false
                     },
                     {
@@ -66,7 +69,7 @@ describe('alertTools', () => {
                         value: '192.168.1.100',
                         origin: 'crowdsec',
                         duration: '1h',
-                        until: '2024-01-15T11:30:00Z',
+                        until: UNTIL,
                         simulated: true
                     }
                 ],
@@ -91,7 +94,6 @@ describe('alertTools', () => {
                     ip: '192.168.1.100',
                     scenario: 'crowdsecurity/ssh-bf',
                     type: 'ban',
-                    simulated: true,
                     has_active_decision: true,
                     limit: 10
                 },
@@ -103,11 +105,40 @@ describe('alertTools', () => {
                     ip: '192.168.1.100',
                     scenario: 'crowdsecurity/ssh-bf',
                     decision_type: 'ban',
-                    simulated: true,
                     has_active_decision: true,
-                    limit: 10
+                    limit: 0
                 })
             );
+        });
+
+        it('should report exact hidden counts for an explicit limit', async () => {
+            const manyAlerts = Array.from({ length: 40 }, (_, i) => ({
+                id: i + 1,
+                created_at: CREATED_AT,
+                source: { scope: 'Ip', value: `198.51.100.${i + 1}` },
+                decisions: []
+            }));
+            const watcher = createMockWatcher(manyAlerts);
+            const ctx = createMockContext(watcher, 25);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            const limit40 = await tool.handler({ limit: 40 }, ctx);
+            expect(limit40).toContain('40 alerts:');
+            expect(limit40).not.toContain('more result(s) hidden');
+
+            const limit26 = await tool.handler({ limit: 26 }, ctx);
+            expect(limit26).toContain('26 alerts:');
+            expect(limit26).toContain('14 more result(s) hidden');
+
+            const limit25 = await tool.handler({ limit: 25 }, ctx);
+            expect(limit25).toContain('25 alerts:');
+            expect(limit25).toContain('15 more result(s) hidden');
+
+            const limit1000 = await tool.handler({ limit: 1000 }, ctx);
+            expect(limit1000).toContain('40 alerts:');
+            expect(limit1000).not.toContain('more result(s) hidden');
+
+            expect(watcher.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ limit: 0 }));
         });
 
         it('should use config.maxResults as default limit', async () => {
@@ -119,6 +150,23 @@ describe('alertTools', () => {
                     limit: 25
                 })
             );
+        });
+
+        it('should hint that more results may exist when the default limit is reached', async () => {
+            const manyAlerts = Array.from({ length: 25 }, (_, i) => ({
+                id: i + 1,
+                created_at: CREATED_AT,
+                source: { scope: 'Ip', value: `198.51.100.${i + 1}` },
+                decisions: []
+            }));
+            const watcher = createMockWatcher(manyAlerts);
+            const ctx = createMockContext(watcher, 25);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            const result = await tool.handler({}, ctx);
+
+            expect(result).toContain('25 alerts:');
+            expect(result).toContain('More results may be available');
         });
 
         it('should use limit=0 when all=true', async () => {
@@ -157,10 +205,79 @@ describe('alertTools', () => {
             expect(result).toContain('ban:1 (simul)captcha:1');
         });
 
+        it('should not count expired decisions in the summary', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([
+                {
+                    id: 99,
+                    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                    decisions: [
+                        {
+                            type: 'ban',
+                            scope: 'Ip',
+                            value: '1.2.3.4',
+                            origin: 'cscli',
+                            duration: '-20s',
+                            simulated: false
+                        }
+                    ],
+                    source: { scope: 'Ip', value: '1.2.3.4' },
+                    kind: 'crowdsec'
+                }
+            ]);
+
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+            const result = await tool.handler({}, mockCtx);
+
+            expect(result).not.toMatch(/ban:\d/);
+        });
+
+        it('should map a missing alert to a business error', async () => {
+            mockWatcher.Alerts.getById.mockRejectedValue(new Error('CrowdSecError (404) : object not found'));
+            const getAlert = alertTools.find((t) => t.name === 'get_alert')!;
+
+            await expect(getAlert.handler({ id: 999999 }, mockCtx)).rejects.toThrow('Alert 999999 not found');
+        });
+
+        it('should reject invalid alert ids and invalid time filters', async () => {
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+            const getAlert = alertTools.find((t) => t.name === 'get_alert')!;
+            const deleteAlerts = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ since: 'banana' }, mockCtx)).rejects.toThrow(/invalid since/);
+            await expect(tool.handler({ since: '10y' }, mockCtx)).rejects.toThrow(/use h, m, s or d/);
+            await expect(tool.handler({ since: '2026-01-01T00:00:00Z' }, mockCtx)).rejects.toThrow(/use h, m, s or d/);
+            await expect(tool.handler({ scope: 'Country', value: 'ZZ' }, mockCtx)).rejects.toThrow(/invalid country code/);
+            await expect(getAlert.handler({ id: 'abc' }, mockCtx)).rejects.toThrow(/alert id must be a positive integer/);
+            await expect(deleteAlerts.handler({ all: true, confirm: true, ip: '1.2.3.4' }, mockCtx)).rejects.toThrow(
+                /Cannot combine all=true/
+            );
+        });
+
+        it('should use CIDR containment for list_alerts', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([]);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            await tool.handler({ ip: '198.51.100.0/24' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ip: '198.51.100.0/24',
+                    contains: false
+                })
+            );
+        });
+
+        it('should map a missing alert deletion to a business error', async () => {
+            mockWatcher.Alerts.deleteById.mockRejectedValue(new Error('CrowdSecError (500) : ent: alert not found'));
+            const deleteAlerts = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(deleteAlerts.handler({ id: 999999 }, mockCtx)).rejects.toThrow('Alert 999999 not found');
+        });
+
         it('should show moreHint when results exceed maxResults', async () => {
             const manyAlerts = Array.from({ length: 30 }, (_, i) => ({
                 id: i + 1,
-                created_at: '2024-01-15T10:30:00Z',
+                created_at: CREATED_AT,
                 machine_id: 'machine-1',
                 simulated: false,
                 remediation: true,
@@ -180,6 +297,23 @@ describe('alertTools', () => {
             const result = await tool.handler({}, ctx);
 
             expect(result).toContain('5 more result(s) hidden');
+        });
+
+        it('should show all alerts when all=true', async () => {
+            const manyAlerts = Array.from({ length: 30 }, (_, i) => ({
+                id: i + 1,
+                created_at: CREATED_AT,
+                source: { scope: 'Ip', value: `192.168.1.${i}` },
+                decisions: []
+            }));
+
+            const watcher = createMockWatcher(manyAlerts);
+            const ctx = createMockContext(watcher, 25);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+            const result = await tool.handler({ all: true }, ctx);
+
+            expect(result).toContain('30 alerts:');
+            expect(result).not.toContain('more result(s) hidden');
         });
     });
 
@@ -221,7 +355,7 @@ describe('alertTools', () => {
             expect(result).toContain('### Decisions');
             const decisionHeader = result.split('\n').find((line) => line.includes('Type') && line.includes('Simulated'));
             expect(decisionHeader).toBeDefined();
-            for (const col of ['Type', 'Scope', 'Value', 'Origin', 'Duration', 'Until', 'Simulated']) {
+            for (const col of ['Type', 'Scope', 'Value', 'Origin', 'Remaining', 'Until', 'Simulated']) {
                 expect(decisionHeader).toContain(col);
             }
             expect(result).toContain('ban');
@@ -246,7 +380,7 @@ describe('alertTools', () => {
             const watcher = createMockWatcher([
                 {
                     id: 2,
-                    created_at: '2024-01-15T10:30:00Z',
+                    created_at: CREATED_AT,
                     machine_id: 'machine-1',
                     simulated: false,
                     remediation: false,
@@ -270,11 +404,52 @@ describe('alertTools', () => {
             expect(result).not.toContain('### Decisions');
         });
 
+        it('should mark expired decisions explicitly', async () => {
+            const watcher = createMockWatcher([
+                {
+                    id: 4,
+                    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                    machine_id: 'machine-1',
+                    simulated: false,
+                    remediation: true,
+                    kind: 'crowdsec',
+                    message: 'Test',
+                    events_count: 1,
+                    start_at: '2024-01-15T10:00:00Z',
+                    stop_at: '2024-01-15T10:30:00Z',
+                    uuid: 'alert-uuid-4',
+                    source: { scope: 'Ip', value: '1.2.3.4' },
+                    decisions: [
+                        {
+                            id: 1,
+                            type: 'ban',
+                            scope: 'Ip',
+                            value: '1.2.3.4',
+                            origin: 'cscli',
+                            duration: '-1m25s',
+                            simulated: false
+                        }
+                    ],
+                    meta: [],
+                    events: []
+                }
+            ]);
+            const ctx = createMockContext(watcher);
+            const tool = alertTools.find((t) => t.name === 'get_alert')!;
+
+            const result = await tool.handler({ id: '4' }, ctx);
+
+            expect(result).toContain('_No active decisions._');
+            expect(result).toContain('1 inactive decision(s) hidden.');
+            expect(result).toContain('Active decisions:** 0');
+            expect(result).not.toContain('-1m25s');
+        });
+
         it('should handle alert without meta', async () => {
             const watcher = createMockWatcher([
                 {
                     id: 3,
-                    created_at: '2024-01-15T10:30:00Z',
+                    created_at: CREATED_AT,
                     machine_id: 'machine-1',
                     simulated: false,
                     remediation: false,
@@ -320,6 +495,103 @@ describe('alertTools', () => {
             expect(result).toContain('Deleted 5 alert(s).');
         });
 
+        it('should delete all alerts for a scope when scope is provided alone', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.search.mockResolvedValue([
+                { id: 1, source: { scope: 'Range', value: '198.51.100.0/24' } },
+                { id: 2, source: { scope: 'Ip', value: '198.51.100.1' } }
+            ]);
+            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
+
+            const result = await tool.handler({ scope: 'Range' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith({ scope: 'Range', limit: 0 });
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledWith('1');
+            expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should delete alerts by origin through a search', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.search.mockResolvedValue([{ id: 11 }, { id: 12 }]);
+            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
+
+            const result = await tool.handler({ origin: 'cscli' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    origin: 'cscli',
+                    limit: 0
+                })
+            );
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledTimes(2);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(result).toContain('Deleted 2 alert(s).');
+        });
+
+        it('should delete alerts by decision type and time filters through a search', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.search.mockResolvedValue([{ id: 31 }]);
+            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
+
+            const result = await tool.handler({ type: 'Ban', since: '4h', until: '1h' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    decision_type: 'ban',
+                    since: '4h',
+                    until: '1h',
+                    limit: 0
+                })
+            );
+            expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should delete alerts with active decisions through a search', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.search.mockResolvedValue([{ id: 21 }]);
+            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
+
+            const result = await tool.handler({ has_active_decision: true }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    has_active_decision: true,
+                    limit: 0
+                })
+            );
+            expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should reject unknown parameters', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ unknown: true }, mockCtx)).rejects.toThrow();
+        });
+
+        it('should reject invalid scope values', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ scope: 'Country', value: 'ZZ' }, mockCtx)).rejects.toThrow(/invalid country code/);
+        });
+
+        it('should delete alerts contained in a CIDR', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.search.mockResolvedValue([{ id: 101 }, { id: 102 }]);
+            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
+
+            const result = await tool.handler({ range: '198.51.100.0/24' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ip: '198.51.100.0/24',
+                    contains: false,
+                    limit: 0
+                })
+            );
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledTimes(2);
+            expect(result).toContain('Deleted 2 alert(s).');
+        });
+
         it('should throw when all=true without confirm=true', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
 
@@ -338,7 +610,7 @@ describe('alertTools', () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
 
             await expect(tool.handler({}, mockCtx)).rejects.toThrow(
-                'At least one filter (ip, range, scope, value, scenario) or all=true is required'
+                'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
             );
         });
 

@@ -161,7 +161,22 @@ describe('allowlistTools', () => {
             expect(result).not.toContain('"items"');
         });
 
-        it('should show only info and _No items._ when with_content=false even if items exist', async () => {
+        it('should trim allowlist names before calling the LAPI', async () => {
+            mockAllowlists.get.mockResolvedValue(makeAllowlist(0, { name: 'test-allowlist' }));
+
+            await findTool('get_allowlist').handler({ name: '  test-allowlist  ' }, mockCtx);
+
+            expect(mockAllowlists.get).toHaveBeenCalledWith('test-allowlist', true);
+            await expect(findTool('get_allowlist').handler({ name: '   ' }, mockCtx)).rejects.toThrow(/Allowlist name is required/);
+        });
+
+        it('should map a missing allowlist to a business error', async () => {
+            mockAllowlists.get.mockRejectedValue(new Error("CrowdSecError (500) : allowlist 'nope' not found"));
+
+            await expect(findTool('get_allowlist').handler({ name: 'nope' }, mockCtx)).rejects.toThrow("Allowlist 'nope' not found");
+        });
+
+        it('should show only info and _Content hidden when with_content=false even if items exist', async () => {
             mockAllowlists.get.mockResolvedValue({
                 name: 'test-allowlist',
                 description: 'Test',
@@ -175,7 +190,7 @@ describe('allowlistTools', () => {
 
             expect(mockAllowlists.get).toHaveBeenCalledWith('test-allowlist', false);
             expect(result).toContain('**test-allowlist**');
-            expect(result).toContain('_No items._');
+            expect(result).toContain('_Content hidden (with_content=false)._');
             expect(result).not.toContain('Value | Comment');
         });
 
@@ -242,7 +257,7 @@ describe('allowlistTools', () => {
             expect(mockAllowlists.check).toHaveBeenCalledWith('192.168.1.1');
             expect(mockAllowlists.bulkCheck).not.toHaveBeenCalled();
             expect(result).toContain('192.168.1.1: allowlisted by test-allowlist: Local network');
-            expect(result).toContain('1 target of 1 target allowlisted.');
+            expect(result).toContain('1 target of 1 target matched an allowlist.');
         });
 
         it('should fall back to a generic label when a single check has no reason', async () => {
@@ -251,7 +266,7 @@ describe('allowlistTools', () => {
             const result = (await findTool('check_allowlist').handler({ value: '192.168.1.1' }, mockCtx)) as string;
 
             expect(result).toContain('192.168.1.1: allowlisted by allowlist');
-            expect(result).toContain('1 target of 1 target allowlisted.');
+            expect(result).toContain('1 target of 1 target matched an allowlist.');
         });
 
         it('should check a single value that is not allowlisted', async () => {
@@ -260,7 +275,26 @@ describe('allowlistTools', () => {
             const result = (await findTool('check_allowlist').handler({ value: '8.8.8.8' }, mockCtx)) as string;
 
             expect(result).toContain('8.8.8.8: not allowlisted');
-            expect(result).toContain('0 targets of 1 target allowlisted.');
+            expect(result).toContain('0 targets of 1 target matched an allowlist.');
+        });
+
+        it('should distinguish a CIDR match from an exact IP match', async () => {
+            mockAllowlists.check.mockResolvedValue({
+                allowlisted: true,
+                reason: '192.0.2.10'
+            } satisfies APITypes.CheckAllowlistResponse);
+
+            const result = (await findTool('check_allowlist').handler({ value: '192.0.2.0/24' }, mockCtx)) as string;
+
+            expect(result).toContain('192.0.2.0/24: CIDR matches allowlist entry/entries 192.0.2.10');
+        });
+
+        it('should trim checked values before calling the LAPI', async () => {
+            mockAllowlists.check.mockResolvedValue({ allowlisted: false } satisfies APITypes.CheckAllowlistResponse);
+
+            await findTool('check_allowlist').handler({ value: ' 192.168.1.1 ' }, mockCtx);
+
+            expect(mockAllowlists.check).toHaveBeenCalledWith('192.168.1.1');
         });
 
         it('should treat bulk targets missing from results as not allowlisted', async () => {
@@ -278,9 +312,9 @@ describe('allowlistTools', () => {
 
             expect(mockAllowlists.bulkCheck).toHaveBeenCalledWith(['192.168.1.1', '10.0.0.0/8', '8.8.8.8']);
             expect(result).toContain('192.168.1.1: allowlisted by allowlist1: Local');
-            expect(result).toContain('10.0.0.0/8: allowlisted by allowlist1: Private, allowlist2: RFC1918');
+            expect(result).toContain('10.0.0.0/8: CIDR matches allowlist entry/entries allowlist1: Private, allowlist2: RFC1918');
             expect(result).toContain('8.8.8.8: not allowlisted');
-            expect(result).toContain('2 targets of 3 targets allowlisted.');
+            expect(result).toContain('2 targets of 3 targets matched an allowlist.');
         });
 
         it('should preserve input order of bulk targets in output', async () => {
@@ -301,6 +335,27 @@ describe('allowlistTools', () => {
             expect(lines[0]).toContain('192.168.1.1');
             expect(lines[1]).toContain('10.0.0.1');
             expect(lines[2]).toContain('172.16.0.1');
+        });
+
+        it('should deduplicate bulk targets', async () => {
+            mockAllowlists.bulkCheck.mockResolvedValue({
+                results: [{ target: '192.0.2.10', allowlists: ['test'] }]
+            } satisfies APITypes.BulkCheckAllowlistResponse);
+
+            const result = (await findTool('check_allowlist').handler(
+                { values: ['192.0.2.10', '192.0.2.10', '8.8.8.8'] },
+                mockCtx
+            )) as string;
+
+            expect(mockAllowlists.bulkCheck).toHaveBeenCalledWith(['192.0.2.10', '8.8.8.8']);
+            expect(result.split('\n').filter((line) => line.startsWith('-'))).toHaveLength(2);
+            expect(result).toContain('1 target of 2 targets matched an allowlist');
+        });
+
+        it('should reject value and values together', async () => {
+            await expect(findTool('check_allowlist').handler({ value: '192.0.2.10', values: ['192.0.2.11'] }, mockCtx)).rejects.toThrow();
+            expect(mockAllowlists.check).not.toHaveBeenCalled();
+            expect(mockAllowlists.bulkCheck).not.toHaveBeenCalled();
         });
 
         it('should reject an empty values array', async () => {

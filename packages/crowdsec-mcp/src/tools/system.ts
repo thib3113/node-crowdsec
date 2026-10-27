@@ -26,7 +26,7 @@ export const statusTool: ToolDefinition = {
                 `Capabilities: read=yes, write=${ctx.capabilities.write ? 'yes' : 'no'}, allowlists=${ctx.capabilities.allowlists ? 'yes' : 'no'}`,
                 `Read-only: ${ctx.config.readonly ? 'yes' : 'no'}`,
                 `Default result limit: ${ctx.config.maxResults}`,
-                `Maximum ban duration: ${ctx.config.maxBanDuration}`,
+                `Maximum ban duration: ${ctx.config.maxBanDuration} (force=true can override)`,
                 `Active tools: ${(ctx.activeTools ?? []).join(', ') || 'none'}`
             ])
         ];

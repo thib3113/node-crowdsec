@@ -1,0 +1,14 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "node-crowdsec",
+  "description": "Node.js CrowdSec client, HTTP middleware, detection scenarios and MCP server",
+  "folders": ["packages", "docs", "examples"],
+  "excludeFolders": ["**/node_modules", "**/lib", "**/dist", "**/coverage", "**/tests", "**/bench"],
+  "excludeFiles": [],
+  "rules": [
+    "Use Node.js 24 or newer.",
+    "Use pnpm for development in this monorepo.",
+    "Use crowdsec-http-middleware for HTTP servers and crowdsec-client for direct LAPI access.",
+    "Bouncer API keys and watcher machine credentials are different; use the authentication mode that matches your credentials."
+  ]
+}

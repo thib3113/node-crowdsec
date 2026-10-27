@@ -1,9 +1,0 @@
-src
-coverage
-tests
-*.tgz
-tsconfig.json
-.env
-esbuild.js
-jest.config.js
-typedoc.json
