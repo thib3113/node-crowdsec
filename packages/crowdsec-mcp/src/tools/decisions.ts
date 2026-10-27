@@ -25,6 +25,7 @@ import {
 } from '../format/decisions.js';
 import { cleanErrorMessage } from '../registry.js';
 import type { AppContext, ToolDefinition } from '../types.js';
+import type { AlertsSearchQuery } from '../utils.js';
 
 function collectDecisionIds(alerts: APITypes.GetAlertsResponse): number[] {
     const ids = new Set<number>();
@@ -38,8 +39,16 @@ function collectDecisionIds(alerts: APITypes.GetAlertsResponse): number[] {
     return [...ids];
 }
 
-async function searchActiveDecisionIds(ctx: AppContext, query: APITypes.Alerts.SearchAlerts.RequestQuery): Promise<number[]> {
-    const alerts = await ctx.watcher!.Alerts.search({ ...query, has_active_decision: true, limit: 0 });
+async function searchActiveDecisionIds(ctx: AppContext, query: AlertsSearchQuery): Promise<number[]> {
+    // `contains: false` means "decisions contained within the value" and is
+    // required for CIDR containment; the LAPI defaults to the opposite.
+    const searchQuery: AlertsSearchQuery = {
+        ...query,
+        contains: query.contains ?? false,
+        has_active_decision: true,
+        limit: 0
+    };
+    const alerts = await ctx.watcher!.Alerts.search(searchQuery);
     return collectDecisionIds(alerts);
 }
 
@@ -76,9 +85,7 @@ const ListDecisionsInput = z
             .boolean()
             .optional()
             .default(false)
-            .describe(
-                'Bouncer mode only: false: decisions contained within the value (CIDR containment); true: decisions that contain the value'
-            ),
+            .describe('false: decisions contained within the value (CIDR containment); true: decisions that contain the value'),
         no_simulated: z.boolean().optional().default(false).describe('Exclude simulated decisions'),
         all: z.boolean().optional().default(false).describe('Return all results without limit'),
         limit: z.number().int().positive().optional().describe('Maximum number of results to return')
@@ -331,6 +338,26 @@ async function unbanByQuery(ctx: AppContext, query: UnbanQuery) {
     return formatUnbanResult(result.nbDeleted ?? 0);
 }
 
+type ListDecisionsFilters = z.infer<typeof ListDecisionsInput>;
+
+function validateListDecisionsFilters(input: ListDecisionsFilters): void {
+    if (input.ip && !isValidIp(input.ip) && !isValidCidr(input.ip)) {
+        throw new Error(`${input.ip} is not a valid ip or CIDR range`);
+    }
+    if (input.range) {
+        assertValidCidr(input.range);
+    }
+    if (input.scope) {
+        assertValidDecisionScope(input.scope);
+    }
+    if (input.since && !isValidTimeFilter(input.since)) {
+        throw new Error(`invalid since '${input.since}': use h, m, s or d (e.g. 4h, 30d)`);
+    }
+    if (input.until && !isValidTimeFilter(input.until)) {
+        throw new Error(`invalid until '${input.until}': use h, m, s or d (e.g. 4h, 30d)`);
+    }
+}
+
 export const decisionTools: ToolDefinition[] = [
     {
         name: 'list_decisions',
@@ -342,32 +369,16 @@ export const decisionTools: ToolDefinition[] = [
         handler: async (input, ctx) => {
             await ctx.ensureReady();
 
-            const { ip, range, scope, value, type, origin, scenario, since, until, contains, no_simulated, all, limit } =
-                ListDecisionsInput.parse(input);
-
-            if (ip && !isValidIp(ip) && !isValidCidr(ip)) {
-                throw new Error(`${ip} is not a valid ip or CIDR range`);
-            }
-            if (range) {
-                assertValidCidr(range);
-            }
-            if (scope) {
-                assertValidDecisionScope(scope);
-            }
+            const parsed = ListDecisionsInput.parse(input);
+            validateListDecisionsFilters(parsed);
+            const { ip, range, scope, value, type, origin, scenario, since, until, contains, no_simulated, all, limit } = parsed;
             const decisionType = type ? assertValidDecisionType(type) : undefined;
-            if (since && !isValidTimeFilter(since)) {
-                throw new Error(`invalid since '${since}': use h, m, s or d (e.g. 4h, 30d)`);
-            }
-            if (until && !isValidTimeFilter(until)) {
-                throw new Error(`invalid until '${until}': use h, m, s or d (e.g. 4h, 30d)`);
-            }
-
             const window = resolveListWindow(limit, all, ctx.config.maxResults);
             const normalizedSince = since ? toGoDuration(since) : undefined;
             const normalizedUntil = until ? toGoDuration(until) : undefined;
 
             if (ctx.mode === 'watcher' && ctx.watcher) {
-                const query = {
+                const query: AlertsSearchQuery = {
                     ip,
                     range,
                     scope,
@@ -378,9 +389,10 @@ export const decisionTools: ToolDefinition[] = [
                     since: normalizedSince,
                     until: normalizedUntil,
                     simulated: no_simulated ? false : undefined,
+                    contains,
                     has_active_decision: true,
                     limit: window.fetchLimit
-                } as APITypes.Alerts.SearchAlerts.RequestQuery;
+                };
 
                 const alerts = await ctx.watcher.Alerts.search(query);
 

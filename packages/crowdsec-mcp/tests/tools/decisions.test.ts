@@ -186,7 +186,8 @@ describe('decisionTools', () => {
 
             expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ip: '198.51.100.0/24'
+                    ip: '198.51.100.0/24',
+                    contains: false
                 })
             );
         });
@@ -354,6 +355,7 @@ describe('decisionTools', () => {
                     scenario: 'test',
                     since: '24h',
                     until: '1h',
+                    contains: true,
                     no_simulated: true
                 },
                 ctx as any
@@ -370,6 +372,7 @@ describe('decisionTools', () => {
                     origin: 'cscli',
                     since: '24h',
                     until: '1h',
+                    contains: true,
                     simulated: false,
                     has_active_decision: true
                 })
@@ -823,6 +826,7 @@ describe('decisionTools', () => {
             expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ip: '198.51.100.0/24',
+                    contains: false,
                     has_active_decision: true,
                     limit: 0
                 })

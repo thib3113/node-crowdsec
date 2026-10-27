@@ -15,6 +15,7 @@ import {
     resolveListWindow,
     toGoDuration
 } from '../utils.js';
+import type { AlertsSearchQuery } from '../utils.js';
 
 async function deleteAlertIds(ctx: AppContext, ids: number[]): Promise<number> {
     const responses = await Promise.all(ids.map((id) => ctx.watcher!.Alerts.deleteById(String(id))));
@@ -175,7 +176,7 @@ async function deleteAlertsById(ctx: AppContext, id: string | number): Promise<s
 async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAlertInput, cidr: string): Promise<string> {
     // The delete endpoint matches exact filter values; search first so alerts
     // whose source IP is contained in the range are also removed.
-    const alerts = await ctx.watcher!.Alerts.search({
+    const query: AlertsSearchQuery = {
         ip: cidr,
         scope: filters.normalizedScope,
         value: filters.normalizedValue,
@@ -184,9 +185,11 @@ async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAler
         decision_type: filters.decisionType,
         since: filters.since ? toGoDuration(filters.since) : undefined,
         until: filters.until ? toGoDuration(filters.until) : undefined,
+        contains: false,
         has_active_decision: filters.has_active_decision,
         limit: 0
-    });
+    };
+    const alerts = await ctx.watcher!.Alerts.search(query);
 
     return deleteAlertsByIds(
         ctx,
@@ -197,7 +200,7 @@ async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAler
 async function deleteAlertsBySearch(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
     // `decision_type` is not supported by the delete endpoint, so this is the
     // only filter that still requires a search followed by id deletions.
-    const alerts = await ctx.watcher!.Alerts.search({
+    const query: AlertsSearchQuery = {
         ip: filters.ip,
         range: filters.range,
         scope: filters.normalizedScope,
@@ -207,9 +210,11 @@ async function deleteAlertsBySearch(ctx: AppContext, filters: NormalizedDeleteAl
         decision_type: filters.decisionType,
         since: filters.since ? toGoDuration(filters.since) : undefined,
         until: filters.until ? toGoDuration(filters.until) : undefined,
+        contains: false,
         has_active_decision: filters.has_active_decision,
         limit: 0
-    });
+    };
+    const alerts = await ctx.watcher!.Alerts.search(query);
 
     return deleteAlertsByIds(
         ctx,
@@ -281,7 +286,7 @@ export const alertTools: ToolDefinition[] = [
             }
 
             const window = resolveListWindow(limit, all === true, ctx.config.maxResults);
-            const query: APITypes.Alerts.SearchAlerts.RequestQuery = {
+            const query: AlertsSearchQuery = {
                 ip,
                 range,
                 scope,
@@ -291,6 +296,7 @@ export const alertTools: ToolDefinition[] = [
                 origin,
                 since: since ? toGoDuration(since) : undefined,
                 until: until ? toGoDuration(until) : undefined,
+                contains: false,
                 has_active_decision,
                 limit: window.fetchLimit
             };

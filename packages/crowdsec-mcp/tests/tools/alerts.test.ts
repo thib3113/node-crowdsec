@@ -263,7 +263,8 @@ describe('alertTools', () => {
 
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ip: '198.51.100.0/24'
+                    ip: '198.51.100.0/24',
+                    contains: false
                 })
             );
         });
@@ -570,6 +571,7 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ip: '198.51.100.0/24',
+                    contains: false,
                     limit: 0
                 })
             );
