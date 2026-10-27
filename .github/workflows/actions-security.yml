@@ -29,4 +29,4 @@ jobs:
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       - name: Audit workflows
-        run: uvx zizmor==1.31.1 --min-severity high --format=github .github/workflows
+        run: uvx --no-build zizmor==1.31.1 --min-severity high --format=github .github/workflows

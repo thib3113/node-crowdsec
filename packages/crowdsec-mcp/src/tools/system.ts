@@ -16,7 +16,8 @@ export const statusTool: ToolDefinition = {
     handler: async (_input, ctx) => {
         await ctx.ensureReady();
 
-        const auth = ctx.mode === 'watcher' ? `watcher${ctx.config.machineId ? ` (${ctx.config.machineId})` : ''}` : 'bouncer';
+        const machineSuffix = ctx.mode === 'watcher' && ctx.config.machineId ? ` (${ctx.config.machineId})` : '';
+        const auth = ctx.mode === 'watcher' ? `watcher${machineSuffix}` : 'bouncer';
         const lines = [
             'CrowdSec MCP is connected.',
             '',

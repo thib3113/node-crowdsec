@@ -1,13 +1,15 @@
 import { formatDuration } from '../utils.js';
 
+const BACKSLASH = String.fromCharCode(92);
+
 export function escapeCell(value: unknown): string {
     if (value === undefined || value === null || value === '') {
         return '—';
     }
 
     return String(value)
-        .replaceAll('\\', '\\\\')
-        .replaceAll('|', '\\|')
+        .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
+        .replaceAll('|', BACKSLASH + '|')
         .replace(/[\r\n]+/g, ' ');
 }
 

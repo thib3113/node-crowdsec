@@ -22,12 +22,12 @@ export function cleanErrorMessage(error: unknown): string {
     message = message.replace(/^alert not found$/i, 'Alert not found');
     message = message.replace(/^while parsing duration.*/i, 'Invalid duration');
 
-    const allowlist = message.match(/^allowlist '(.+)' not found$/i);
+    const allowlist = /^allowlist '(.+)' not found$/i.exec(message);
     if (allowlist) {
         message = `Allowlist '${allowlist[1]}' not found`;
     }
 
-    const decision = message.match(/^decision with id '(.+)' doesn't exist.*/i);
+    const decision = /^decision with id '(.+)' doesn't exist.*/i.exec(message);
     if (decision) {
         message = `Decision ${decision[1]} not found`;
     }

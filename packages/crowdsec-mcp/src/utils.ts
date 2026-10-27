@@ -1,6 +1,6 @@
 import { isIP } from 'node:net';
 
-const DURATION_PART = /(\d+(?:\.\d+)?)(d|h|m|s)/g;
+const DURATION_PART = /(\d+(?:\.\d+)?)([dhms])/g;
 
 /**
  * Parse a cscli-like duration (4h, 30m, 7d, 1h30m) into seconds.

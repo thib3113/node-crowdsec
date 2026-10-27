@@ -52,6 +52,6 @@ jobs:
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       - name: Scan MCP server
-        run: uvx snyk-agent-scan==0.6.9 scan mcp.json --ci --dangerously-run-mcp-servers --no-skills
+        run: uvx --no-build snyk-agent-scan==0.6.9 scan mcp.json --ci --dangerously-run-mcp-servers --no-skills
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

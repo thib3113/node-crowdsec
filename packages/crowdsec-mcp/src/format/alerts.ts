@@ -121,7 +121,7 @@ function formatMeta(meta?: APITypes.Alert['meta']): string {
         try {
             const parsed = JSON.parse(value);
             if (Array.isArray(parsed)) {
-                value = parsed.map((v) => String(v)).join(', ');
+                value = parsed.map(String).join(', ');
             } else if (typeof parsed === 'object' && parsed !== null) {
                 value = JSON.stringify(parsed);
             }
