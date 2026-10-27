@@ -9,14 +9,11 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 #
+# Push/PR analysis runs in CI.yml after the Snyk SARIF upload.
+# Keep this workflow for the weekly scheduled scan only.
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
   schedule:
     - cron: '43 8 * * 5'
 
