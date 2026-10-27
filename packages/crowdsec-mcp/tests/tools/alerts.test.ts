@@ -495,19 +495,12 @@ describe('alertTools', () => {
             expect(result).toContain('Deleted 5 alert(s).');
         });
 
-        it('should delete all alerts for a scope when scope is provided alone', async () => {
+        it('should reject scope without value', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            mockWatcher.Alerts.search.mockResolvedValue([
-                { id: 1, source: { scope: 'Range', value: '198.51.100.0/24' } },
-                { id: 2, source: { scope: 'Ip', value: '198.51.100.1' } }
-            ]);
-            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
 
-            const result = await tool.handler({ scope: 'Range' }, mockCtx);
-
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith({ scope: 'Range', limit: 0 });
-            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledWith('1');
-            expect(result).toContain('Deleted 1 alert(s).');
+            await expect(tool.handler({ scope: 'Range' }, mockCtx)).rejects.toThrow(/scope and value must be provided together/);
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
         });
 
         it('should delete alerts by origin through a search', async () => {

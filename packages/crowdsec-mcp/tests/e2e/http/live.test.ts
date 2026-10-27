@@ -1,0 +1,242 @@
+import { setTimeout as delay } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+const enabled = process.env.CROWDSEC_MCP_HTTP_E2E === '1';
+const mcpUrl = process.env.CROWDSEC_MCP_HTTP_URL;
+const openMcpUrl = process.env.CROWDSEC_MCP_HTTP_OPEN_URL;
+const bouncerKey = process.env.CROWDSEC_BOUNCER_KEY;
+const watcherToken = process.env.CROWDSEC_WATCHER_TOKEN ?? '';
+const serviceToken = process.env.CROWDSEC_MCP_HTTP_TOKEN;
+const expectedIp = process.env.CROWDSEC_MCP_HTTP_E2E_IP ?? '203.0.113.66';
+const testIp = '198.51.100.42';
+const testIp2 = '198.51.100.44';
+const testIp3 = '198.51.100.45';
+
+type Headers = Record<string, string>;
+
+function textOf(result: Awaited<ReturnType<Client['callTool']>>): string {
+    return result.content.map((item) => ('text' in item ? item.text : '')).join('\n');
+}
+
+async function post(url: string, headers: Headers): Promise<Response> {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            ...headers
+        },
+        body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'initialize',
+            params: {
+                protocolVersion: '2025-06-18',
+                capabilities: {},
+                clientInfo: { name: 'crowdsec-mcp-http-e2e', version: '0.0.0' }
+            }
+        })
+    });
+}
+
+async function withClient(url: string, headers: Headers, callback: (client: Client) => Promise<void>): Promise<void> {
+    const transport = new StreamableHTTPClientTransport(new URL(url), {
+        requestInit: { headers }
+    });
+    const client = new Client({ name: 'crowdsec-mcp-http-e2e', version: '0.0.0' });
+
+    await client.connect(transport);
+    try {
+        await callback(client);
+    } finally {
+        await client.close();
+    }
+}
+
+async function waitForAlert(client: Client, ip: string, timeoutMs = 90000): Promise<string> {
+    const deadline = Date.now() + timeoutMs;
+    let last = '';
+
+    while (Date.now() < deadline) {
+        last = textOf(await client.callTool({ name: 'list_alerts', arguments: { ip, limit: 10 } }));
+        if (last.includes(ip)) {
+            return last;
+        }
+        await delay(2000);
+    }
+
+    throw new Error(`no generated alert for ${ip} within ${timeoutMs}ms; last output:\n${last}`);
+}
+
+async function waitForDecision(client: Client, ip: string, timeoutMs = 30000): Promise<string> {
+    const deadline = Date.now() + timeoutMs;
+    let last = '';
+
+    while (Date.now() < deadline) {
+        last = textOf(await client.callTool({ name: 'list_decisions', arguments: { ip, limit: 10 } }));
+        if (last.includes(ip)) {
+            return last;
+        }
+        await delay(1000);
+    }
+
+    throw new Error(`no decision for ${ip} within ${timeoutMs}ms; last output:\n${last}`);
+}
+
+describe.skipIf(!enabled || !mcpUrl || !openMcpUrl || !bouncerKey || !watcherToken || !serviceToken)(
+    'HTTP MCP passthrough end-to-end',
+    () => {
+        it('rejects missing LAPI credentials', async () => {
+            const response = await post(mcpUrl!, {});
+            expect(response.status).toBe(401);
+            await response.text();
+        });
+
+        it('requires the optional service token when configured', async () => {
+            const response = await post(mcpUrl!, { 'x-crowdsec-token': watcherToken });
+            expect(response.status).toBe(401);
+            await response.text();
+        });
+
+        it('rejects both bouncer and watcher credentials', async () => {
+            const response = await post(mcpUrl!, {
+                authorization: `Bearer ${serviceToken}`,
+                'x-crowdsec-api-key': bouncerKey!,
+                'x-crowdsec-token': watcherToken
+            });
+            expect(response.status).toBe(400);
+            await response.text();
+        });
+
+        it('exposes bouncer tools and reads decisions', async () => {
+            await withClient(mcpUrl!, { authorization: `Bearer ${serviceToken}`, 'x-crowdsec-api-key': bouncerKey! }, async (client) => {
+                const names = (await client.listTools()).tools.map((tool) => tool.name);
+                expect(names).toContain('crowdsec_status');
+                expect(names).toContain('list_decisions');
+                expect(names).not.toContain('list_alerts');
+                expect(names).not.toContain('ban_ip');
+
+                const status = textOf(await client.callTool({ name: 'crowdsec_status', arguments: {} }));
+                expect(status).toContain('Authentication: bouncer');
+
+                await client.callTool({ name: 'list_decisions', arguments: { limit: 5 } });
+            });
+        });
+
+        it('exposes watcher tools and receives alerts generated by nginx logs', async () => {
+            await withClient(mcpUrl!, { authorization: `Bearer ${serviceToken}`, 'x-crowdsec-token': watcherToken }, async (client) => {
+                const names = (await client.listTools()).tools.map((tool) => tool.name);
+                expect(names).toContain('list_alerts');
+                expect(names).toContain('get_alert');
+                expect(names).toContain('list_allowlists');
+                expect(names).toContain('ban_ip');
+                expect(names).toContain('delete_alerts');
+
+                const alerts = await waitForAlert(client, expectedIp);
+                expect(alerts).toContain(expectedIp);
+
+                const status = textOf(await client.callTool({ name: 'crowdsec_status', arguments: {} }));
+                expect(status).toContain('Authentication: watcher');
+            });
+        }, 120000);
+
+        it('bans, deletes the alert and verifies local-only deletion', async () => {
+            await withClient(mcpUrl!, { authorization: `Bearer ${serviceToken}`, 'x-crowdsec-token': watcherToken }, async (client) => {
+                try {
+                    const ban = textOf(
+                        await client.callTool({
+                            name: 'ban_ip',
+                            arguments: { ip: testIp, duration: '5m', reason: 'http e2e' }
+                        })
+                    );
+                    expect(ban).toContain('Decision added successfully');
+                    expect(ban).toContain(testIp);
+
+                    const decisions = await waitForDecision(client, testIp);
+                    expect(decisions).toContain(testIp);
+                    expect(decisions).not.toContain(expectedIp);
+
+                    const filteredAlerts = textOf(await client.callTool({ name: 'list_alerts', arguments: { ip: testIp, limit: 10 } }));
+                    expect(filteredAlerts).toContain(testIp);
+                    expect(filteredAlerts).not.toContain(expectedIp);
+
+                    const deleted = textOf(await client.callTool({ name: 'delete_alerts', arguments: { ip: testIp } }));
+                    expect(deleted).toMatch(/Deleted \d+ alert/);
+
+                    const alertsAfter = textOf(await client.callTool({ name: 'list_alerts', arguments: { ip: testIp, limit: 10 } }));
+                    expect(alertsAfter).not.toContain(testIp);
+
+                    const decisionsAfter = textOf(await client.callTool({ name: 'list_decisions', arguments: { ip: testIp, limit: 10 } }));
+                    expect(decisionsAfter).not.toContain(testIp);
+                } finally {
+                    await client.callTool({ name: 'unban_ip', arguments: { ip: testIp } }).catch(() => undefined);
+                }
+            });
+        }, 60000);
+
+        it('filters decisions by CIDR and unbans a range without a timeout', async () => {
+            await withClient(mcpUrl!, { authorization: `Bearer ${serviceToken}`, 'x-crowdsec-token': watcherToken }, async (client) => {
+                try {
+                    const ban2 = textOf(
+                        await client.callTool({
+                            name: 'ban_ip',
+                            arguments: { ip: testIp2, duration: '5m', reason: 'http e2e range' }
+                        })
+                    );
+                    const ban3 = textOf(
+                        await client.callTool({
+                            name: 'ban_ip',
+                            arguments: { ip: testIp3, duration: '5m', reason: 'http e2e range' }
+                        })
+                    );
+                    expect(ban2).toContain('Decision added successfully');
+                    expect(ban3).toContain('Decision added successfully');
+
+                    await waitForDecision(client, testIp2);
+                    await waitForDecision(client, testIp3);
+
+                    const cidr = '198.51.100.44/31';
+                    const byIp = textOf(await client.callTool({ name: 'list_decisions', arguments: { ip: cidr, limit: 10 } }));
+                    expect(byIp).toContain(testIp2);
+                    expect(byIp).toContain(testIp3);
+                    expect(byIp).not.toContain(expectedIp);
+
+                    const byRange = textOf(await client.callTool({ name: 'list_decisions', arguments: { range: cidr, limit: 10 } }));
+                    expect(byRange).toContain(testIp2);
+                    expect(byRange).toContain(testIp3);
+                    expect(byRange).not.toContain(expectedIp);
+
+                    const unban = textOf(await client.callTool({ name: 'unban_ip', arguments: { range: cidr } }));
+                    expect(unban).toMatch(/2 decision\(s\) deleted/);
+
+                    const after = textOf(await client.callTool({ name: 'list_decisions', arguments: { ip: cidr, limit: 10 } }));
+                    expect(after).not.toContain(testIp2);
+                    expect(after).not.toContain(testIp3);
+                } finally {
+                    await client.callTool({ name: 'delete_alerts', arguments: { ip: '198.51.100.44/31' } }).catch(() => undefined);
+                    await Promise.all(
+                        [testIp2, testIp3].map((ip) => client.callTool({ name: 'unban_ip', arguments: { ip } }).catch(() => undefined))
+                    );
+                }
+            });
+        }, 60000);
+
+        it('works without a service token when passthrough credentials are provided', async () => {
+            const noAuth = await post(openMcpUrl!, {});
+            expect(noAuth.status).toBe(401);
+            await noAuth.text();
+
+            await withClient(openMcpUrl!, { 'x-crowdsec-token': watcherToken }, async (client) => {
+                const names = (await client.listTools()).tools.map((tool) => tool.name);
+                expect(names).toContain('list_alerts');
+                expect(names).toContain('ban_ip');
+                expect(names).toContain('delete_alerts');
+
+                const status = textOf(await client.callTool({ name: 'crowdsec_status', arguments: {} }));
+                expect(status).toContain('Authentication: watcher');
+            });
+        });
+    }
+);

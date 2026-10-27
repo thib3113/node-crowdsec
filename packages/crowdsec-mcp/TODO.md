@@ -81,19 +81,19 @@ If `delete_alerts` is not needed, a regular Docker bridge network is enough.
 - [x] Add a `docker-mcp.yml` workflow publishing
       `ghcr.io/thib3113/crowdsec-mcp` (on dependency changes and tags).
 - [x] Keep the CrowdSec image unmodified.
-- [ ] Verify `delete_alerts` from the sidecar deployment.
-- [ ] Verify passthrough with bouncer keys and watcher JWTs.
-- [ ] Verify the service-token gate and the
+- [x] Verify `delete_alerts` from the sidecar deployment.
+- [x] Verify passthrough with bouncer keys and watcher JWTs.
+- [x] Verify the service-token gate and the
       `ALLOW_ALERT_DELETE_WITHOUT_TOKEN` override.
 
 ## Release prerequisites
 
 - [ ] Publish `crowdsec-client@1.3.0` (allowlists, delete query params,
       `getById` typing). It is currently not on npm.
-- [ ] Resolve the `follow-redirects` Snyk finding before the client release.
-- [ ] Decide whether to wait for `axios@1.21.0` on npm or use a temporary
-      override.
-- [ ] Publish `crowdsec-mcp` (only a placeholder `0.0.1-alpha.0` exists).
+- [x] Resolve the `follow-redirects` Snyk finding before the client release.
+- [x] Update `crowdsec-client` to `axios@1.21.0` (`follow-redirects@1.16.2`).
+- [ ] Publish `crowdsec-mcp` (package is `0.1.0`; an npm placeholder
+      `0.0.1-alpha.0` may still exist).
 - [ ] Ensure the release workflow rewrites `workspace:^` correctly. `npm pack`
       keeps `workspace:^`; use `pnpm publish` (or replace the dependency with a
       published semver range).

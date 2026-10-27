@@ -2,6 +2,8 @@ import debug from 'debug';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { AppContext, ToolDefinition } from './types.js';
+import { buildInstructions, docResources } from './docs.js';
+import { crowdsecPrompts, isPromptAvailable } from './prompts.js';
 import { NAME, VERSION } from './version.js';
 
 const log = debug('crowdsec-mcp:registry');
@@ -110,14 +112,14 @@ export function selectTools(tools: ToolDefinition[], ctx: AppContext): ToolDefin
 }
 
 export function createServer(tools: ToolDefinition[], ctx: AppContext): McpServer {
-    const server = new McpServer({ name: NAME, version: VERSION });
     ctx.activeTools = tools.map((tool) => tool.name);
+    const server = new McpServer({ name: NAME, version: VERSION }, { instructions: buildInstructions(ctx) });
 
     for (const tool of tools) {
         const handler = async (input: unknown): Promise<CallToolResult> => {
             try {
                 await ctx.ensureReady();
-                const result = await tool.handler((input ?? {}) as Record<string, unknown>, ctx);
+                const result = await tool.handler(input ?? {}, ctx);
                 return typeof result === 'string' ? textResult(result) : result;
             } catch (error) {
                 return errorResult(error);
@@ -129,13 +131,40 @@ export function createServer(tools: ToolDefinition[], ctx: AppContext): McpServe
             {
                 title: tool.title,
                 description: tool.description,
-                inputSchema: tool.inputSchema as never,
+                inputSchema: tool.inputSchema,
                 annotations: tool.annotations
             },
-            handler as never
+            handler
         );
     }
 
+    for (const resource of docResources) {
+        server.registerResource(
+            resource.name,
+            resource.uri,
+            {
+                title: resource.title,
+                description: resource.description,
+                mimeType: 'text/markdown'
+            },
+            async (uri) => ({
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'text/markdown',
+                        text: resource.render(ctx)
+                    }
+                ]
+            })
+        );
+    }
+
+    const prompts = crowdsecPrompts.filter((prompt) => isPromptAvailable(prompt, ctx));
+    for (const prompt of prompts) {
+        prompt.register(server, ctx);
+    }
+
     log('registered %d tool(s): %s', tools.length, tools.map((tool) => tool.name).join(', '));
+    log('registered %d resource(s) and %d prompt(s)', docResources.length, prompts.length);
     return server;
 }

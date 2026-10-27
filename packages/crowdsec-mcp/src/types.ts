@@ -42,5 +42,5 @@ export interface ToolDefinition {
     requires?: ToolRequirement[];
     feature?: ToolFeature;
     annotations?: ToolAnnotations;
-    handler: (input: Record<string, unknown>, ctx: AppContext) => Promise<CallToolResult | string>;
+    handler: (input: unknown, ctx: AppContext) => Promise<CallToolResult | string>;
 }

@@ -100,7 +100,7 @@ If both a bouncer key and machine credentials are present, set `CROWDSEC_AUTH` e
 | `CROWDSEC_MCP_PASSTHROUGH` | Use per-request LAPI credentials (HTTP only) | `false` |
 | `CROWDSEC_MCP_HTTP_HOST` | HTTP bind host | `127.0.0.1` |
 | `CROWDSEC_MCP_HTTP_PORT` | HTTP bind port | `3939` |
-| `CROWDSEC_MCP_HTTP_TOKEN` | HTTP bearer token | required for HTTP |
+| `CROWDSEC_MCP_HTTP_TOKEN` | HTTP bearer token | required for HTTP; optional in passthrough |
 | `CROWDSEC_MCP_READONLY` | Hide write tools | `true` |
 | `CROWDSEC_MCP_ENABLE_ALERT_DELETE` | Expose `delete_alerts` (requires the MCP next to the LAPI) | `false` |
 | `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN` | In passthrough, allow `delete_alerts` without a service token (dangerous) | `false` |
@@ -113,7 +113,7 @@ Secrets should stay in the environment. Command-line arguments are available for
 
 ### CLI arguments
 
-Every environment variable above has a kebab-case argument equivalent: `--url`, `--auth`, `--api-key`, `--machine-id`, `--password`, `--tls-cert`, `--tls-key`, `--tls-ca`, `--insecure`, `--timeout`, `--transport`, `--http-host`, `--http-port`, `--http-token`, `--readonly`, `--write`, `--passthrough`, `--enable-alert-delete`, `--allow-alert-delete-without-token`, `--tools`, `--disable-tools`, `--max-results`, `--max-ban-duration`.
+Most environment variables above have a kebab-case argument equivalent: `--url`, `--auth`, `--api-key`, `--machine-id`, `--password`, `--tls-cert`, `--tls-key`, `--tls-ca`, `--timeout`, `--transport`, `--http-host`, `--http-port`, `--http-token`, `--passthrough`, `--enable-alert-delete`, `--allow-alert-delete-without-token`, `--tools`, `--disable-tools`, `--max-results`, `--max-ban-duration`. Exceptions: `CROWDSEC_STRICT_SSL` uses `--insecure`, and `CROWDSEC_MCP_READONLY` uses `--readonly`/`--write`.
 
 Use `--help` for the full list.
 
@@ -160,6 +160,37 @@ CROWDSEC_MCP_DISABLE_TOOLS=delete_alerts,ban_ip
 
 The allowlist wins over the denylist, and read-only mode always wins over both. Unknown names in `CROWDSEC_MCP_TOOLS` make the server fail at startup, so typos are visible immediately.
 
+## Documentation for the model
+
+The server ships its own CrowdSec documentation, so an agent can work without prior knowledge of the product:
+
+- **Server instructions** are sent at initialization. They carry the current authentication mode, write access, limits, availability of alerts/allowlists/alert deletion, and the working rules (investigate before acting, confirm before writing, never invent IDs).
+- **Resources** can be read on demand:
+    - `crowdsec://docs/overview`: components, detection lifecycle, and what this MCP exposes.
+    - `crowdsec://docs/concepts`: alert vs decision, scopes, types, durations, origins, allowlists, bouncer vs watcher.
+    - `crowdsec://docs/triage`: alert to decision workflow with guardrails and `cscli` equivalents.
+- **Prompts** provide ready-made workflows:
+    - `triage_alerts`: review recent alerts, correlate them with active decisions, propose or apply remediation.
+    - `investigate_ip`: summarise the detection history and remediation state of one IP.
+    - `banned_from_country`: list the IPs with an active decision that are geolocated in a given country. The LAPI alert search has no country filter, so the selection is done on the alert `Country` column, filled by MaxMind enrichment.
+
+The content adapts to the configuration: a bouncer only gets `investigate_ip` (the other prompts need alerts), and a read-only server gets analysis-only prompts.
+
+### Upstream CrowdSec documentation
+
+| Topic | Link |
+| --- | --- |
+| Introduction | <https://docs.crowdsec.net/docs/intro/> |
+| Concepts | <https://docs.crowdsec.net/docs/concepts/> |
+| Local API | <https://docs.crowdsec.net/docs/local_api/intro/> |
+| Remediation components (bouncers) | <https://docs.crowdsec.net/u/bouncers/intro/> |
+| Scenarios | <https://docs.crowdsec.net/docs/log_processor/scenarios/intro/> |
+| Central API and community blocklist | <https://docs.crowdsec.net/docs/central_api/community_blocklist/> |
+| Centralized allowlists | <https://docs.crowdsec.net/docs/local_api/centralized_allowlists/> |
+| `cscli alerts` | <https://docs.crowdsec.net/docs/cscli/cscli_alerts/> |
+| `cscli decisions` | <https://docs.crowdsec.net/docs/cscli/cscli_decisions/> |
+| `cscli allowlists` | <https://docs.crowdsec.net/docs/cscli/cscli_allowlists/> |
+
 ## Write operations
 
 ### `ban_ip`
@@ -205,7 +236,7 @@ A remote watcher receives `403 access forbidden from this IP`. Use `unban_ip` to
 
 In passthrough mode, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP from exposing the local-only destructive path.
 
-`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. Filters `id`, `origin`, `type`, `since`, `until` and `has_active_decision` are resolved through an alert search followed by deletion by ID, because the LAPI DELETE endpoint does not support all of them directly. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
+`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. Filters `id`, `origin`, `type`, `since`, `until` and `has_active_decision` are resolved through an alert search followed by deletion by ID, because the LAPI DELETE endpoint does not support all of them directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
 
 ### CIDR semantics
 
@@ -445,6 +476,26 @@ pnpm --filter crowdsec-mcp exec vitest run tests/integration/live.test.ts
 ```bash
 docker rm -f crowdsec-mcp-test && docker volume rm crowdsec-mcp-data
 ```
+
+### HTTP transport and passthrough E2E
+
+This E2E starts a disposable CrowdSec LAPI, an nginx log generator, and two MCP HTTP servers:
+
+- `mcp` on `23939` with a service token;
+- `mcp-open` on `23940` without a service token;
+- both share CrowdSec's network namespace, so `delete_alerts` works.
+
+Requirements: Docker Compose v2, `pnpm`, `jq` and `openssl`. The script builds the client and MCP first unless `E2E_SKIP_BUILD=1` is set.
+
+```bash
+pnpm --filter crowdsec-mcp test:e2e:http
+```
+
+The test waits for alerts generated by nginx logs, then exercises bouncer/watcher tool filtering, per-request credentials, service-token gating, CIDR filtering of decisions, `ban_ip`, `unban_ip` by range, and local-only `delete_alerts`.
+
+Ports can be overridden with `E2E_LAPI_PORT`, `E2E_MCP_PORT`, and `E2E_MCP_OPEN_PORT`. Use `E2E_KEEP=1` to keep the stack for debugging. The stack is removed automatically, including volumes, unless `E2E_KEEP=1` is set.
+
+The GitHub Actions workflow is `.github/workflows/mcp-http-e2e.yml`; it runs on MCP/client/workflow changes, on pushes to `main`, and on manual dispatch.
 
 ## License
 

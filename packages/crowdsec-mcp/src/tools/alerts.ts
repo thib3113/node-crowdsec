@@ -127,6 +127,10 @@ function normalizeDeleteInput(input: DeleteAlertInput): NormalizedDeleteAlertInp
     }
     assertDeleteTargets(input);
 
+    if (input.scope && !input.value) {
+        throw new Error('scope and value must be provided together for delete_alerts');
+    }
+
     const normalizedScope = input.scope ? assertValidDecisionScope(input.scope) : undefined;
     const normalizedValue = normalizedScope && input.value ? assertValidScopeValue(normalizedScope, input.value) : input.value;
 
@@ -165,21 +169,6 @@ async function deleteAlertsById(ctx: AppContext, id: string | number): Promise<s
         }
         throw error;
     }
-}
-
-async function deleteAlertsByScope(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
-    const alerts = await ctx.watcher!.Alerts.search({
-        scope: filters.normalizedScope,
-        origin: filters.origin,
-        has_active_decision: filters.has_active_decision,
-        limit: 0
-    });
-    const alertIds = alerts
-        .filter((alert) => alert.source?.scope?.toLowerCase() === filters.normalizedScope?.toLowerCase())
-        .map((alert) => alert.id)
-        .filter((alertId): alertId is number => typeof alertId === 'number');
-
-    return deleteAlertsByIds(ctx, alertIds);
 }
 
 async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAlertInput, cidr: string): Promise<string> {
@@ -350,9 +339,6 @@ export const alertTools: ToolDefinition[] = [
             }
             if (filters.all === true) {
                 return deleteAllAlerts(ctx);
-            }
-            if (filters.normalizedScope && !filters.value) {
-                return deleteAlertsByScope(ctx, filters);
             }
 
             const cidr = filters.range ?? (filters.ip && isValidCidr(filters.ip) ? filters.ip : undefined);
