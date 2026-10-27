@@ -4,6 +4,7 @@ import { escapeCell, expiry, formatDate, markdownTable, moreHint, plural, relati
 describe('format', () => {
     it('escapes markdown table cells', () => {
         expect(escapeCell('a|b\nc')).toBe('a\\|b c');
+        expect(escapeCell('a\\b')).toBe('a\\\\b');
         expect(escapeCell(undefined)).toBe('—');
     });
 

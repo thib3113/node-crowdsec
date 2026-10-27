@@ -5,7 +5,10 @@ export function escapeCell(value: unknown): string {
         return '—';
     }
 
-    return String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+    return String(value)
+        .replaceAll('\\', '\\\\')
+        .replaceAll('|', '\\|')
+        .replace(/[\r\n]+/g, ' ');
 }
 
 export function markdownTable(headers: string[], rows: string[][]): string {
