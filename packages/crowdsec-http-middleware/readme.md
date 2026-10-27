@@ -89,8 +89,8 @@ the generated API reference is in the [technical documentation](https://thib3113
 ## Default scenarios
 
 This package supports a default setup with default scenarios.
-Install `crowdsec-http-middleware` and `crowdsec-client-scenarios`, and omit the
-`scenarios` option to load the defaults:
+You can use the default mode by installing `crowdsec-http-middleware` and
+`crowdsec-client-scenarios`, and omitting the `scenarios` option:
 
 ```
 npm i crowdsec-http-middleware crowdsec-client-scenarios
@@ -194,9 +194,7 @@ const watcherOptions = {
     password: 'myPassword',
     // send heartbeat to LAPI ? it allow the LAPI to see the watcher "online"
     heartbeat: true,
-    // omit `scenarios` to load the default scenarios (requires
-    // crowdsec-client-scenarios); an empty array disables all scenarios
-    // scenarios: [],
+    // scenarios: [], // omit to use the default scenarios; [] disables them
     // options passed to the scenarios
     scenariosOptions: {}
 }
