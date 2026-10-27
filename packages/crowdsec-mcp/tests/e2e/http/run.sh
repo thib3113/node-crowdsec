@@ -20,12 +20,12 @@ cleanup() {
     local status=$?
     trap - EXIT
 
-    if [ "$status" -ne 0 ]; then
+    if [[ "$status" -ne 0 ]]; then
         compose ps || true
         compose logs --no-color --tail=200 || true
     fi
 
-    if [ "${E2E_KEEP:-0}" != "1" ]; then
+    if [[ "${E2E_KEEP:-0}" != "1" ]]; then
         compose down -v --remove-orphans >/dev/null 2>&1 || true
     else
         echo "E2E_KEEP=1: stack left running"
@@ -38,7 +38,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then
+if [[ "${E2E_SKIP_BUILD:-0}" != "1" ]]; then
     (cd "$REPO_ROOT" && pnpm --filter crowdsec-client build && pnpm --filter crowdsec-mcp build)
 fi
 
@@ -82,7 +82,7 @@ wait_for_mcp() {
         local code
         code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$url" \
             -H 'content-type: application/json' -d '{}' 2>/dev/null || true)
-        if [ "$code" = "401" ]; then
+        if [[ "$code" = "401" ]]; then
             return 0
         fi
         sleep 1
@@ -107,7 +107,7 @@ if ! compose exec -T crowdsec cscli machines add "$MACHINE_ID" --password "$MACH
     exit 1
 fi
 
-if [ -z "$BOUNCER_KEY" ]; then
+if [[ -z "$BOUNCER_KEY" ]]; then
     echo "Failed to create E2E bouncer" >&2
     exit 1
 fi
@@ -117,7 +117,7 @@ LOGIN_JSON=$(curl -sS -X POST "http://127.0.0.1:${E2E_LAPI_PORT}/v1/watchers/log
     --data "{\"machine_id\":\"$MACHINE_ID\",\"password\":\"$MACHINE_PASSWORD\"}" 2>/dev/null || true)
 WATCHER_TOKEN=$(printf '%s' "$LOGIN_JSON" | jq -r '.token // empty')
 
-if [ -z "$WATCHER_TOKEN" ]; then
+if [[ -z "$WATCHER_TOKEN" ]]; then
     echo "E2E watcher login failed (machine: $MACHINE_ID)" >&2
     compose exec -T crowdsec cscli machines list || true
     exit 1

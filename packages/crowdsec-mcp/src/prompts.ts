@@ -113,20 +113,26 @@ function renderTriageAlerts(args: TriageAlertsArgs, ctx: AppContext): string {
 
 function renderInvestigateIp(args: InvestigateIpArgs, ctx: AppContext): string {
     const { ip } = args;
-    const steps: string[] = [];
+    const isBouncer = ctx.mode === 'bouncer';
+
+    let steps: string[];
     let summary: string;
     let recommendation: string;
 
-    if (ctx.mode === 'bouncer') {
-        steps.push(`1. Call list_decisions with ip="${ip}" to see whether it is currently blocked.`);
-        steps.push('2. Alerts and allowlists need watcher credentials: state this limitation if it matters.');
+    if (isBouncer) {
+        steps = [
+            `1. Call list_decisions with ip="${ip}" to see whether it is currently blocked.`,
+            '2. Alerts and allowlists need watcher credentials: state this limitation if it matters.'
+        ];
         summary = 'Summarise: active decisions (type, origin and remaining duration).';
         recommendation = 'Then recommend an action for a watcher-capable operator (ban, unban or no action), and justify it.';
     } else {
-        steps.push(`1. Call list_alerts with ip="${ip}" and since="30d" to get the detection history.`);
-        steps.push(`2. Call list_decisions with ip="${ip}" to see whether it is currently blocked.`);
-        steps.push(`3. Call check_allowlist with value="${ip}" to detect an exemption.`);
-        steps.push('4. If nothing matches, say so explicitly instead of guessing.');
+        steps = [
+            `1. Call list_alerts with ip="${ip}" and since="30d" to get the detection history.`,
+            `2. Call list_decisions with ip="${ip}" to see whether it is currently blocked.`,
+            `3. Call check_allowlist with value="${ip}" to detect an exemption.`,
+            '4. If nothing matches, say so explicitly instead of guessing.'
+        ];
         summary = 'Summarise: scenarios triggered, event volume, time span, active decisions and allowlist status.';
         recommendation = 'Then recommend ban_ip (with scope, type and duration), unban_ip, or no action, and justify it.';
     }

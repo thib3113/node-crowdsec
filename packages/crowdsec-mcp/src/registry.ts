@@ -147,15 +147,16 @@ export function createServer(tools: ToolDefinition[], ctx: AppContext): McpServe
                 description: resource.description,
                 mimeType: 'text/markdown'
             },
-            async (uri) => ({
-                contents: [
-                    {
-                        uri: uri.href,
-                        mimeType: 'text/markdown',
-                        text: resource.render(ctx)
-                    }
-                ]
-            })
+            (uri) =>
+                Promise.resolve({
+                    contents: [
+                        {
+                            uri: uri.href,
+                            mimeType: 'text/markdown',
+                            text: resource.render(ctx)
+                        }
+                    ]
+                })
         );
     }
 
