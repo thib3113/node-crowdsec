@@ -77,8 +77,10 @@ async function main(): Promise<void> {
     log('stdio transport ready');
 }
 
-main().catch((error: unknown) => {
+try {
+    await main();
+} catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`crowdsec-mcp: ${message}\n`);
     process.exit(1);
-});
+}

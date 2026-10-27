@@ -37,16 +37,17 @@ export function makeContext(overrides: Partial<AppContext> = {}): AppContext {
             allowlists: true
         },
         allowlists: {
-            list: async () => [],
-            get: async () => ({}),
-            check: async () => ({ allowlisted: false }),
-            bulkCheck: async () => ({ results: [] })
+            list: () => Promise.resolve([]),
+            get: () => Promise.resolve({}),
+            check: () => Promise.resolve({ allowlisted: false }),
+            bulkCheck: () => Promise.resolve({ results: [] })
         },
         config: makeConfig(),
-        ensureReady: async () => {
+        ensureReady: () => {
             readyCalls++;
+            return Promise.resolve();
         },
-        stop: async () => undefined,
+        stop: () => Promise.resolve(),
         ...overrides
     };
 

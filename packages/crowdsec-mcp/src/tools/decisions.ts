@@ -46,12 +46,8 @@ async function searchActiveDecisionIds(
 }
 
 async function deleteDecisionIds(ctx: AppContext, ids: number[]): Promise<number> {
-    let deleted = 0;
-    for (const id of ids) {
-        const result = await ctx.watcher!.Decisions.deleteById(String(id));
-        deleted += Number(result.nbDeleted ?? 0);
-    }
-    return deleted;
+    const results = await Promise.all(ids.map((id) => ctx.watcher!.Decisions.deleteById(String(id))));
+    return results.reduce((total, result) => total + Number(result.nbDeleted ?? 0), 0);
 }
 
 async function fetchActiveDecisions(ctx: AppContext): Promise<APITypes.Decision[]> {
@@ -125,6 +121,212 @@ const UnbanIpInput = z
         confirm: z.boolean().optional().default(false).describe('Confirm deletion when all=true')
     })
     .strict();
+
+type BanInput = z.infer<typeof BanIpInput>;
+type UnbanInput = z.infer<typeof UnbanIpInput>;
+
+function validateBanTarget(input: BanInput): void {
+    const hasIp = Boolean(input.ip);
+    const hasRange = Boolean(input.range);
+    const hasScope = Boolean(input.scope);
+    const hasValue = Boolean(input.value);
+
+    if ((hasIp || hasRange) && (hasScope || hasValue)) {
+        throw new Error('Provide only one of ip, range, or scope+value');
+    }
+    if (hasIp && hasRange) {
+        throw new Error('Provide only one of ip, range, or scope+value');
+    }
+    if (hasScope !== hasValue) {
+        throw new Error('scope and value must be provided together');
+    }
+    if (!hasIp && !hasRange && !hasScope) {
+        throw new Error('Must provide ip, range, or scope+value');
+    }
+}
+
+function resolveBanTarget(input: BanInput): { scope: string; targetValue: string } {
+    if (input.ip) {
+        return { scope: normalizeScope(undefined, input.ip), targetValue: input.ip };
+    }
+    if (input.range) {
+        return { scope: normalizeScope(undefined, undefined, input.range), targetValue: input.range };
+    }
+
+    const scope = assertValidDecisionScope(input.scope!);
+    return { scope, targetValue: assertValidScopeValue(scope, input.value!) };
+}
+
+async function ensureBanAllowed(ctx: AppContext, scope: string, targetValue: string, force: boolean): Promise<void> {
+    if (force || (scope !== 'Ip' && scope !== 'Range')) {
+        return;
+    }
+
+    const checkResult = await ctx.allowlists.check(targetValue);
+    if (checkResult.allowlisted && checkResult.reason) {
+        throw new Error(`${targetValue} is allowlisted by item ${checkResult.reason}, use force=true to add the decision anyway`);
+    }
+}
+
+function ensureBanDuration(ctx: AppContext, duration: string, durationSeconds: number, force: boolean): void {
+    if (force || durationSeconds <= ctx.config.maxBanDurationSeconds) {
+        return;
+    }
+
+    const maxDuration = formatDuration(ctx.config.maxBanDurationSeconds);
+    throw new Error(`Duration ${duration} exceeds maximum allowed ${maxDuration}. Use force=true to override.`);
+}
+
+function buildBanAlert(decisionType: string, scope: string, targetValue: string, duration: string, reason: string) {
+    const now = new Date().toISOString();
+
+    return {
+        capacity: 0,
+        decisions: [
+            {
+                origin: 'cscli',
+                type: decisionType,
+                scope,
+                value: targetValue,
+                duration,
+                scenario: reason
+            }
+        ],
+        events: [],
+        events_count: 1,
+        leakspeed: '0',
+        message: reason,
+        scenario: reason,
+        scenario_hash: '',
+        scenario_version: '',
+        simulated: false,
+        source: {
+            scope,
+            value: targetValue,
+            ip: scope === 'Ip' ? targetValue : '',
+            range: scope === 'Range' ? targetValue : '',
+            as_name: '',
+            as_number: '',
+            cn: ''
+        },
+        start_at: now,
+        stop_at: now,
+        created_at: now,
+        remediation: true,
+        kind: 'cscli'
+    };
+}
+
+function validateUnbanTargets(ip?: string, range?: string, scope?: string, value?: string): void {
+    if (scope && value && (ip || range)) {
+        throw new Error('Provide only one of ip, range, or scope+value');
+    }
+    if (value && !scope && (ip || range)) {
+        throw new Error('Provide only one of ip, range, or value');
+    }
+}
+
+async function unbanDecisionIds(ctx: AppContext, ids: number[]): Promise<string> {
+    if (ids.length === 0) {
+        return formatUnbanResult(0);
+    }
+    return formatUnbanResult(await deleteDecisionIds(ctx, ids));
+}
+
+async function unbanAll(ctx: AppContext, input: UnbanInput): Promise<string> {
+    if (!input.confirm) {
+        throw new Error('Deleting all decisions requires confirm=true');
+    }
+    if (input.id !== undefined || input.ip || input.range || input.scope || input.value || input.type || input.scenario) {
+        throw new Error('Cannot combine all=true with id or filters; use all=true with confirm=true alone to delete everything');
+    }
+
+    return unbanDecisionIds(ctx, await searchActiveDecisionIds(ctx, {}));
+}
+
+async function unbanById(ctx: AppContext, id: string | number): Promise<string> {
+    const decisionId = parsePositiveId(id, 'decision id');
+    const activeIds = await searchActiveDecisionIds(ctx, {});
+    if (!activeIds.includes(Number(decisionId))) {
+        throw new Error(`Decision ${decisionId} not found`);
+    }
+
+    try {
+        const result = await ctx.watcher!.Decisions.deleteById(decisionId);
+        const nbDeleted = Number(result.nbDeleted ?? 0);
+        if (nbDeleted === 0) {
+            throw new Error(`Decision ${decisionId} not found`);
+        }
+        return formatUnbanResult(nbDeleted);
+    } catch (error) {
+        const message = cleanErrorMessage(error);
+        if (/not found|doesn't exist/i.test(message)) {
+            throw new Error(`Decision ${decisionId} not found`);
+        }
+        throw error;
+    }
+}
+
+async function unbanByScope(ctx: AppContext, scope: string, type: string | undefined, scenario: string | undefined) {
+    const normalized = assertValidDecisionScope(scope);
+    const decisions = await fetchActiveDecisions(ctx);
+    const ids = decisions
+        .filter(
+            (decision) =>
+                decision.scope?.toLowerCase() === normalized.toLowerCase() &&
+                (!type || decision.type?.toLowerCase() === type) &&
+                (!scenario || decision.scenario === scenario)
+        )
+        .map((decision) => decision.id)
+        .filter((id): id is number => typeof id === 'number');
+
+    return unbanDecisionIds(ctx, ids);
+}
+
+async function unbanByScopeValue(
+    ctx: AppContext,
+    scope: string,
+    value: string,
+    type: string | undefined,
+    scenario: string | undefined
+): Promise<string> {
+    const normalized = assertValidDecisionScope(scope);
+    const normalizedValue = assertValidScopeValue(normalized, value);
+
+    if (normalized === 'Ip') {
+        return unbanByQuery(ctx, { ip: normalizedValue, type, scenario });
+    }
+
+    const ids = await searchActiveDecisionIds(ctx, {
+        ip: normalized === 'Range' ? normalizedValue : undefined,
+        contains: false,
+        scope: normalized === 'Range' ? undefined : normalized,
+        value: normalized === 'Range' ? undefined : normalizedValue,
+        decision_type: type,
+        scenario
+    });
+
+    return unbanDecisionIds(ctx, ids);
+}
+
+async function unbanByRange(ctx: AppContext, range: string, type: string | undefined, scenario: string | undefined) {
+    const ids = await searchActiveDecisionIds(ctx, {
+        ip: range,
+        contains: false,
+        decision_type: type,
+        scenario
+    });
+    return unbanDecisionIds(ctx, ids);
+}
+
+async function unbanByQuery(ctx: AppContext, query: { ip?: string; value?: string; type?: string; scenario?: string }) {
+    if (!query.ip && !query.value && !query.type && !query.scenario) {
+        throw new Error('Must provide id, at least one filter, or all=true with confirm=true');
+    }
+
+    const result = await ctx.watcher!.Decisions.delete(query);
+    return formatUnbanResult(result.nbDeleted ?? 0);
+}
 
 export const decisionTools: ToolDefinition[] = [
     {
@@ -244,106 +446,19 @@ export const decisionTools: ToolDefinition[] = [
                 throw new Error('Watcher client not available');
             }
 
-            const { ip, range, scope: inputScope, value, duration, type, reason, force } = BanIpInput.parse(input);
+            const banInput = BanIpInput.parse(input);
+            validateBanTarget(banInput);
 
-            const hasIp = Boolean(ip);
-            const hasRange = Boolean(range);
-            const hasScope = Boolean(inputScope);
-            const hasValue = Boolean(value);
-
-            if ((hasIp || hasRange) && (hasScope || hasValue)) {
-                throw new Error('Provide only one of ip, range, or scope+value');
-            }
-            if (hasIp && hasRange) {
-                throw new Error('Provide only one of ip, range, or scope+value');
-            }
-            if (hasScope !== hasValue) {
-                throw new Error('scope and value must be provided together');
-            }
-            if (!hasIp && !hasRange && !hasScope) {
-                throw new Error('Must provide ip, range, or scope+value');
-            }
-
-            const decisionType = assertValidDecisionType(type);
-            let scope: string;
-            let targetValue: string;
-
-            if (ip) {
-                scope = normalizeScope(undefined, ip);
-                targetValue = ip;
-            } else if (range) {
-                scope = normalizeScope(undefined, undefined, range);
-                targetValue = range;
-            } else {
-                scope = assertValidDecisionScope(inputScope!);
-                targetValue = assertValidScopeValue(scope, value!);
-            }
-
-            if (!targetValue) {
-                throw new Error('Value is required for the given scope');
-            }
-
-            // Parse and validate duration before sending anything to the LAPI.
-            const normalizedDuration = String(duration).trim();
+            const decisionType = assertValidDecisionType(banInput.type);
+            const { scope, targetValue } = resolveBanTarget(banInput);
+            const normalizedDuration = String(banInput.duration).trim();
             const durationSeconds = parseDuration(normalizedDuration);
 
-            // Check allowlist first, like cscli, then enforce the local duration guard.
-            if (!force && (scope === 'Ip' || scope === 'Range')) {
-                const checkResult = await ctx.allowlists.check(targetValue);
-                if (checkResult.allowlisted && checkResult.reason) {
-                    throw new Error(
-                        `${targetValue} is allowlisted by item ${checkResult.reason}, use force=true to add the decision anyway`
-                    );
-                }
-            }
+            await ensureBanAllowed(ctx, scope, targetValue, banInput.force);
+            ensureBanDuration(ctx, normalizedDuration, durationSeconds, banInput.force);
 
-            // Check max duration unless forced
-            if (!force && durationSeconds > ctx.config.maxBanDurationSeconds) {
-                const maxDuration = formatDuration(ctx.config.maxBanDurationSeconds);
-                throw new Error(`Duration ${normalizedDuration} exceeds maximum allowed ${maxDuration}. Use force=true to override.`);
-            }
-
-            // Build the alert payload exactly as cscli does
-            const now = new Date().toISOString();
-            const defaultReason = `manual '${decisionType}' from 'crowdsec-mcp'`;
-            const alertReason = reason?.trim() ? reason : defaultReason;
-
-            const alert = {
-                capacity: 0,
-                decisions: [
-                    {
-                        origin: 'cscli',
-                        type: decisionType,
-                        scope,
-                        value: targetValue,
-                        duration: normalizedDuration,
-                        scenario: alertReason
-                    }
-                ],
-                events: [],
-                events_count: 1,
-                leakspeed: '0',
-                message: alertReason,
-                scenario: alertReason,
-                scenario_hash: '',
-                scenario_version: '',
-                simulated: false,
-                source: {
-                    scope,
-                    value: targetValue,
-                    ip: scope === 'Ip' ? targetValue : '',
-                    range: scope === 'Range' ? targetValue : '',
-                    as_name: '',
-                    as_number: '',
-                    cn: ''
-                },
-                start_at: now,
-                stop_at: now,
-                created_at: now,
-                remediation: true,
-                kind: 'cscli'
-            };
-
+            const alertReason = banInput.reason?.trim() ? banInput.reason : `manual '${decisionType}' from 'crowdsec-mcp'`;
+            const alert = buildBanAlert(decisionType, scope, targetValue, normalizedDuration, alertReason);
             const alertIds = await ctx.watcher.Alerts.pushAlerts([alert]);
 
             return formatBanResult(alertIds, {
@@ -370,145 +485,47 @@ export const decisionTools: ToolDefinition[] = [
                 throw new Error('Watcher client not available');
             }
 
-            const { id, ip, range, scope, value, type, scenario, all, confirm } = UnbanIpInput.parse(input);
+            const unbanInput = UnbanIpInput.parse(input);
 
-            if (all) {
-                if (!confirm) {
-                    throw new Error('Deleting all decisions requires confirm=true');
-                }
-
-                if (id !== undefined || ip || range || scope || value || type || scenario) {
-                    throw new Error(
-                        'Cannot combine all=true with id or filters; use all=true with confirm=true alone to delete everything'
-                    );
-                }
-
-                const ids = await searchActiveDecisionIds(ctx, {});
-                if (ids.length === 0) {
-                    return formatUnbanResult(0);
-                }
-                return formatUnbanResult(await deleteDecisionIds(ctx, ids));
+            if (unbanInput.all) {
+                return unbanAll(ctx, unbanInput);
             }
 
-            if (id !== undefined) {
-                if (ip || range || scope || value || type || scenario) {
+            if (unbanInput.id !== undefined) {
+                if (unbanInput.ip || unbanInput.range || unbanInput.scope || unbanInput.value || unbanInput.type || unbanInput.scenario) {
                     throw new Error('Cannot combine id with filters');
                 }
-
-                const decisionId = parsePositiveId(id, 'decision id');
-                const activeIds = await searchActiveDecisionIds(ctx, {});
-                if (!activeIds.includes(Number(decisionId))) {
-                    throw new Error(`Decision ${decisionId} not found`);
-                }
-
-                try {
-                    const result = await ctx.watcher.Decisions.deleteById(decisionId);
-                    const nbDeleted = Number(result.nbDeleted ?? 0);
-                    if (nbDeleted === 0) {
-                        throw new Error(`Decision ${decisionId} not found`);
-                    }
-                    return formatUnbanResult(nbDeleted);
-                } catch (error) {
-                    const message = cleanErrorMessage(error);
-                    if (/not found|doesn't exist/i.test(message)) {
-                        throw new Error(`Decision ${decisionId} not found`);
-                    }
-                    throw error;
-                }
+                return unbanById(ctx, unbanInput.id);
             }
 
-            if (scope && value && (ip || range)) {
-                throw new Error('Provide only one of ip, range, or scope+value');
-            }
-            if (value && !scope && (ip || range)) {
-                throw new Error('Provide only one of ip, range, or value');
-            }
+            validateUnbanTargets(unbanInput.ip, unbanInput.range, unbanInput.scope, unbanInput.value);
 
-            if (ip) {
-                assertValidIp(ip);
+            if (unbanInput.ip) {
+                assertValidIp(unbanInput.ip);
             }
-            if (range) {
-                assertValidCidr(range);
+            if (unbanInput.range) {
+                assertValidCidr(unbanInput.range);
             }
 
-            const normalizedType = type ? assertValidDecisionType(type) : undefined;
+            const normalizedType = unbanInput.type ? assertValidDecisionType(unbanInput.type) : undefined;
 
-            if (scope && !value) {
-                const normalized = assertValidDecisionScope(scope);
-                const decisions = await fetchActiveDecisions(ctx);
-                const ids = decisions
-                    .filter(
-                        (decision) =>
-                            decision.scope?.toLowerCase() === normalized.toLowerCase() &&
-                            (!normalizedType || decision.type?.toLowerCase() === normalizedType) &&
-                            (!scenario || decision.scenario === scenario)
-                    )
-                    .map((decision) => decision.id)
-                    .filter((id): id is number => typeof id === 'number');
-
-                if (ids.length === 0) {
-                    return formatUnbanResult(0);
-                }
-                return formatUnbanResult(await deleteDecisionIds(ctx, ids));
+            if (unbanInput.scope && !unbanInput.value) {
+                return unbanByScope(ctx, unbanInput.scope, normalizedType, unbanInput.scenario);
+            }
+            if (unbanInput.scope && unbanInput.value) {
+                return unbanByScopeValue(ctx, unbanInput.scope, unbanInput.value, normalizedType, unbanInput.scenario);
+            }
+            if (unbanInput.range) {
+                return unbanByRange(ctx, unbanInput.range, normalizedType, unbanInput.scenario);
             }
 
             const query: { ip?: string; value?: string; type?: string; scenario?: string } = {};
-            if (ip) query.ip = ip;
-            if (value) query.value = value;
+            if (unbanInput.ip) query.ip = unbanInput.ip;
+            if (unbanInput.value) query.value = unbanInput.value;
             if (normalizedType) query.type = normalizedType;
-            if (scenario) query.scenario = scenario;
+            if (unbanInput.scenario) query.scenario = unbanInput.scenario;
 
-            if (scope && value) {
-                const normalized = assertValidDecisionScope(scope);
-                const normalizedValue = assertValidScopeValue(normalized, value);
-                if (normalized === 'Ip') {
-                    query.ip = normalizedValue;
-                    delete query.value;
-                } else if (normalized === 'Range') {
-                    const ids = await searchActiveDecisionIds(ctx, {
-                        ip: normalizedValue,
-                        contains: false,
-                        decision_type: normalizedType,
-                        scenario
-                    });
-                    if (ids.length === 0) {
-                        return formatUnbanResult(0);
-                    }
-                    return formatUnbanResult(await deleteDecisionIds(ctx, ids));
-                } else {
-                    const ids = await searchActiveDecisionIds(ctx, {
-                        scope: normalized,
-                        value: normalizedValue,
-                        decision_type: normalizedType,
-                        scenario
-                    });
-                    if (ids.length === 0) {
-                        return formatUnbanResult(0);
-                    }
-                    return formatUnbanResult(await deleteDecisionIds(ctx, ids));
-                }
-            }
-
-            if (range) {
-                const ids = await searchActiveDecisionIds(ctx, {
-                    ip: range,
-                    contains: false,
-                    decision_type: normalizedType,
-                    scenario
-                });
-                if (ids.length === 0) {
-                    return formatUnbanResult(0);
-                }
-                return formatUnbanResult(await deleteDecisionIds(ctx, ids));
-            }
-
-            const hasFilter = query.ip || query.value || query.type || query.scenario;
-            if (!hasFilter) {
-                throw new Error('Must provide id, at least one filter, or all=true with confirm=true');
-            }
-
-            const result = await ctx.watcher.Decisions.delete(query);
-            return formatUnbanResult(result.nbDeleted ?? 0);
+            return unbanByQuery(ctx, query);
         }
     }
 ];

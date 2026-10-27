@@ -1,6 +1,15 @@
 import { isIP } from 'node:net';
 
-const DURATION_PART = /(\d+(?:\.\d+)?)([dhms])/g;
+const DURATION_UNITS: Record<string, number> = {
+    d: 86400,
+    h: 3600,
+    m: 60,
+    s: 1
+};
+
+function isDigit(char: string | undefined): boolean {
+    return char !== undefined && char >= '0' && char <= '9';
+}
 
 /**
  * Parse a cscli-like duration (4h, 30m, 7d, 1h30m) into seconds.
@@ -12,28 +21,42 @@ export function parseDuration(input: string): number {
     }
 
     let total = 0;
-    let consumed = 0;
-    for (const match of value.matchAll(DURATION_PART)) {
-        const amount = Number(match[1]);
-        const unit = match[2];
-        consumed += match[0].length;
-        switch (unit) {
-            case 'd':
-                total += amount * 86400;
-                break;
-            case 'h':
-                total += amount * 3600;
-                break;
-            case 'm':
-                total += amount * 60;
-                break;
-            case 's':
-                total += amount;
-                break;
+    let index = 0;
+
+    while (index < value.length) {
+        const start = index;
+        while (isDigit(value[index])) {
+            index++;
         }
+
+        if (index === start) {
+            throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
+        }
+
+        if (value[index] === '.') {
+            index++;
+            const fractionStart = index;
+            while (isDigit(value[index])) {
+                index++;
+            }
+            if (index === fractionStart) {
+                throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
+            }
+        }
+
+        const amount = Number(value.slice(start, index));
+        const unit = value[index];
+        const multiplier = unit === undefined ? undefined : DURATION_UNITS[unit];
+
+        if (multiplier === undefined) {
+            throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
+        }
+
+        total += amount * multiplier;
+        index++;
     }
 
-    if (consumed !== value.length || total <= 0) {
+    if (total <= 0) {
         throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
     }
 
@@ -277,7 +300,15 @@ export function resolveDecisionExpiry(
         return { active: false };
     }
 
-    const baseDate = base ? (base instanceof Date ? base : new Date(base)) : new Date(now);
+    let baseDate: Date;
+    if (base instanceof Date) {
+        baseDate = base;
+    } else if (base === undefined) {
+        baseDate = new Date(now);
+    } else {
+        baseDate = new Date(base);
+    }
+
     if (Number.isNaN(baseDate.getTime())) {
         return { active: true };
     }

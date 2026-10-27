@@ -116,61 +116,69 @@ function firstDefined(...values: Array<string | undefined>): string | undefined 
     return values.find((value) => value !== undefined && value !== '');
 }
 
-export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.env): Config {
+function requireUrl(values: CliValues, env: NodeJS.ProcessEnv): string {
     const url = firstDefined(values.url as string | undefined, env.CROWDSEC_URL);
     if (!url) {
         throw new Error('CROWDSEC_URL (or --url) is required');
     }
-
     if (!/^https?:\/\//i.test(url)) {
         throw new Error(`CROWDSEC_URL must start with http:// or https://, got '${url}'`);
     }
+    return url;
+}
 
-    const apiKey = firstDefined(values['api-key'] as string | undefined, env.CROWDSEC_API_KEY);
-    const machineId = firstDefined(values['machine-id'] as string | undefined, env.CROWDSEC_MACHINE_ID);
-    const password = firstDefined(values.password as string | undefined, env.CROWDSEC_PASSWORD);
-    const tlsCert = firstDefined(values['tls-cert'] as string | undefined, env.CROWDSEC_TLS_CERT);
-    const tlsKey = firstDefined(values['tls-key'] as string | undefined, env.CROWDSEC_TLS_KEY);
-    const tlsCa = firstDefined(values['tls-ca'] as string | undefined, env.CROWDSEC_TLS_CA);
-
-    const passthrough = values.passthrough === true || readBoolean(env.CROWDSEC_MCP_PASSTHROUGH, 'CROWDSEC_MCP_PASSTHROUGH', false);
-
-    const requestedAuth = firstDefined(values.auth as string | undefined, env.CROWDSEC_AUTH)?.toLowerCase();
-    if (requestedAuth !== undefined && requestedAuth !== 'bouncer' && requestedAuth !== 'watcher') {
+function resolveAuth(
+    requestedAuth: string | undefined,
+    apiKey: string | undefined,
+    machineId: string | undefined,
+    password: string | undefined,
+    passthrough: boolean
+): AuthMode {
+    if (requestedAuth === 'bouncer' || requestedAuth === 'watcher') {
+        return requestedAuth;
+    }
+    if (requestedAuth !== undefined) {
         throw new Error(`CROWDSEC_AUTH must be 'bouncer' or 'watcher', got '${requestedAuth}'`);
     }
-
-    let auth: AuthMode;
-    if (requestedAuth) {
-        auth = requestedAuth;
-    } else if (apiKey) {
-        auth = 'bouncer';
-    } else if (machineId || password) {
-        auth = 'watcher';
-    } else if (passthrough) {
+    if (apiKey) {
+        return 'bouncer';
+    }
+    if (machineId || password) {
+        return 'watcher';
+    }
+    if (passthrough) {
         // The env credentials are not used in passthrough mode; keep a valid
         // mode for the shared Config shape.
-        auth = 'watcher';
-    } else {
-        throw new Error('unable to detect authentication mode: set CROWDSEC_API_KEY or CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD');
+        return 'watcher';
     }
+    throw new Error('unable to detect authentication mode: set CROWDSEC_API_KEY or CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD');
+}
 
-    const tlsValues = [tlsCert, tlsKey, tlsCa];
-    const tlsCount = tlsValues.filter(Boolean).length;
+function resolveTls(cert: string | undefined, key: string | undefined, ca: string | undefined): Config['tls'] {
+    const tlsCount = [cert, key, ca].filter(Boolean).length;
     if (tlsCount !== 0 && tlsCount !== 3) {
         throw new Error('TLS authentication requires CROWDSEC_TLS_CERT, CROWDSEC_TLS_KEY and CROWDSEC_TLS_CA together');
     }
+    return tlsCount === 3 ? { cert: cert!, key: key!, ca: ca! } : undefined;
+}
 
-    const tls = tlsCount === 3 ? { cert: tlsCert!, key: tlsKey!, ca: tlsCa! } : undefined;
-
+function validateCredentials(
+    passthrough: boolean,
+    auth: AuthMode,
+    apiKey: string | undefined,
+    tls: Config['tls'],
+    machineId: string | undefined,
+    password: string | undefined
+): void {
     if (!passthrough && auth === 'bouncer' && !apiKey && !tls) {
         throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
     }
-
     if (!passthrough && auth === 'watcher' && !tls && (!machineId || !password)) {
         throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
     }
+}
 
+function resolveTransport(values: CliValues, env: NodeJS.ProcessEnv, passthrough: boolean): 'stdio' | 'http' {
     const transport = (firstDefined(values.transport as string | undefined, env.CROWDSEC_MCP_TRANSPORT) ?? 'stdio').toLowerCase();
     if (transport !== 'stdio' && transport !== 'http') {
         throw new Error(`CROWDSEC_MCP_TRANSPORT must be 'stdio' or 'http', got '${transport}'`);
@@ -178,26 +186,67 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     if (passthrough && transport !== 'http') {
         throw new Error('passthrough mode requires CROWDSEC_MCP_TRANSPORT=http');
     }
+    return transport;
+}
 
-    const httpToken = firstDefined(values['http-token'] as string | undefined, env.CROWDSEC_MCP_HTTP_TOKEN);
+function validateHttpToken(transport: 'stdio' | 'http', httpToken: string | undefined, passthrough: boolean): void {
     if (transport === 'http' && !httpToken && !passthrough) {
         throw new Error('HTTP transport requires CROWDSEC_MCP_HTTP_TOKEN (or --http-token)');
     }
+}
+
+function readBooleanOption(cliValue: boolean | undefined, envValue: string | undefined, name: string, defaultValue: boolean): boolean {
+    return cliValue === true ? true : readBoolean(envValue, name, defaultValue);
+}
+
+function resolveReadonly(values: CliValues, env: NodeJS.ProcessEnv): boolean {
+    if (values.write === true) {
+        return false;
+    }
+    if (values.readonly === true) {
+        return true;
+    }
+    return readBoolean(env.CROWDSEC_MCP_READONLY, 'CROWDSEC_MCP_READONLY', true);
+}
+
+export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.env): Config {
+    const url = requireUrl(values, env);
+    const apiKey = firstDefined(values['api-key'] as string | undefined, env.CROWDSEC_API_KEY);
+    const machineId = firstDefined(values['machine-id'] as string | undefined, env.CROWDSEC_MACHINE_ID);
+    const password = firstDefined(values.password as string | undefined, env.CROWDSEC_PASSWORD);
+    const passthrough = values.passthrough === true || readBoolean(env.CROWDSEC_MCP_PASSTHROUGH, 'CROWDSEC_MCP_PASSTHROUGH', false);
+
+    const requestedAuth = firstDefined(values.auth as string | undefined, env.CROWDSEC_AUTH)?.toLowerCase();
+    const auth = resolveAuth(requestedAuth, apiKey, machineId, password, passthrough);
+
+    const tls = resolveTls(
+        firstDefined(values['tls-cert'] as string | undefined, env.CROWDSEC_TLS_CERT),
+        firstDefined(values['tls-key'] as string | undefined, env.CROWDSEC_TLS_KEY),
+        firstDefined(values['tls-ca'] as string | undefined, env.CROWDSEC_TLS_CA)
+    );
+    validateCredentials(passthrough, auth, apiKey, tls, machineId, password);
+
+    const transport = resolveTransport(values, env, passthrough);
+    const httpToken = firstDefined(values['http-token'] as string | undefined, env.CROWDSEC_MCP_HTTP_TOKEN);
+    validateHttpToken(transport, httpToken, passthrough);
 
     if (values.readonly === true && values.write === true) {
         throw new Error('--readonly and --write cannot be used together');
     }
 
-    const readonlyDefault = readBoolean(env.CROWDSEC_MCP_READONLY, 'CROWDSEC_MCP_READONLY', true);
-    const readonly = values.write === true ? false : values.readonly === true ? true : readonlyDefault;
-    const enableAlertDelete =
-        values['enable-alert-delete'] === true
-            ? true
-            : readBoolean(env.CROWDSEC_MCP_ENABLE_ALERT_DELETE, 'CROWDSEC_MCP_ENABLE_ALERT_DELETE', false);
-    const allowAlertDeleteWithoutToken =
-        values['allow-alert-delete-without-token'] === true
-            ? true
-            : readBoolean(env.CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN, 'CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN', false);
+    const readonly = resolveReadonly(values, env);
+    const enableAlertDelete = readBooleanOption(
+        values['enable-alert-delete'] === true,
+        env.CROWDSEC_MCP_ENABLE_ALERT_DELETE,
+        'CROWDSEC_MCP_ENABLE_ALERT_DELETE',
+        false
+    );
+    const allowAlertDeleteWithoutToken = readBooleanOption(
+        values['allow-alert-delete-without-token'] === true,
+        env.CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN,
+        'CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN',
+        false
+    );
 
     const strictSSL = values.insecure === true ? false : readBoolean(env.CROWDSEC_STRICT_SSL, 'CROWDSEC_STRICT_SSL', true);
     const timeout = readInteger((values.timeout as string | undefined) ?? env.CROWDSEC_TIMEOUT, 'CROWDSEC_TIMEOUT', 10000, 1, 600000);

@@ -678,7 +678,11 @@ describe('decisionTools', () => {
             expect(result).toContain('2h');
         });
 
-        it('should use default duration 4h when not provided', async () => {
+        it.each([
+            ['duration', '4h'],
+            ['type', 'ban'],
+            ['reason', "manual 'ban' from 'crowdsec-mcp'"]
+        ])('should use default %s when not provided', async (_label, expected) => {
             const ctx = createMockContext();
             ctx.watcher!.Alerts.pushAlerts.mockResolvedValue(['alert-123']);
             ctx.allowlists.check.mockResolvedValue({ allowlisted: false });
@@ -686,29 +690,7 @@ describe('decisionTools', () => {
 
             const result = await tool!.handler({ ip: '1.2.3.4' }, ctx as any);
 
-            expect(result).toContain('4h');
-        });
-
-        it('should use default type ban when not provided', async () => {
-            const ctx = createMockContext();
-            ctx.watcher!.Alerts.pushAlerts.mockResolvedValue(['alert-123']);
-            ctx.allowlists.check.mockResolvedValue({ allowlisted: false });
-            const tool = findTool('ban_ip');
-
-            const result = await tool!.handler({ ip: '1.2.3.4' }, ctx as any);
-
-            expect(result).toContain('ban');
-        });
-
-        it('should use default reason when not provided', async () => {
-            const ctx = createMockContext();
-            ctx.watcher!.Alerts.pushAlerts.mockResolvedValue(['alert-123']);
-            ctx.allowlists.check.mockResolvedValue({ allowlisted: false });
-            const tool = findTool('ban_ip');
-
-            const result = await tool!.handler({ ip: '1.2.3.4' }, ctx as any);
-
-            expect(result).toContain("manual 'ban' from 'crowdsec-mcp'");
+            expect(result).toContain(expected);
         });
 
         it('should pass custom reason to alert', async () => {

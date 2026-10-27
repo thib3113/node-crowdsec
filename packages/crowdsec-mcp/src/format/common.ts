@@ -1,13 +1,15 @@
 import { formatDuration } from '../utils.js';
 
-const BACKSLASH = String.fromCharCode(92);
+const BACKSLASH = String.fromCodePoint(92);
 
 export function escapeCell(value: unknown): string {
     if (value === undefined || value === null || value === '') {
         return '—';
     }
 
-    return String(value)
+    const text = typeof value === 'object' ? (JSON.stringify(value) ?? String(value)) : String(value);
+
+    return text
         .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
         .replaceAll('|', BACKSLASH + '|')
         .replace(/[\r\n]+/g, ' ');
@@ -79,6 +81,14 @@ export function expiry(value?: string | Date, now = Date.now()): string {
     }
 
     return date.getTime() <= now ? 'expired' : relativeTime(date, now);
+}
+
+export function formatDecisionExpiry(expiryInfo: { expires?: string; active: boolean }): string {
+    if (expiryInfo.expires) {
+        return `${formatDate(expiryInfo.expires)} (${expiry(expiryInfo.expires)})`;
+    }
+
+    return expiryInfo.active ? '—' : 'expired';
 }
 
 export function truncateRows<T>(rows: T[], maxResults: number): { rows: T[]; hidden: number } {

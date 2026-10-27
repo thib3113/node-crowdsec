@@ -1,15 +1,17 @@
 {
     "$schema": "https://json.schemastore.org/tsconfig",
-    "extends": "@tsconfig/node-lts",
     "compilerOptions": {
-        "esModuleInterop": true,
+        "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator", "ESNext.Promise"],
+        "target": "es2024",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
+        "types": ["node"],
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
         "sourceMap": true,
         "declaration": true,
-        "strict": true,
-        "isolatedModules": true,
-        "types": ["node"]
+        "isolatedModules": true
     },
     "exclude": ["node_modules", "tests", "build"]
 }

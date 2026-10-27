@@ -104,9 +104,7 @@ export async function createContext(config: Config): Promise<AppContext> {
     let loginPromise: Promise<void> | undefined;
 
     const ensureReady = async (): Promise<void> => {
-        if (!loginPromise) {
-            loginPromise = (watcher ?? bouncer)!.login();
-        }
+        loginPromise ??= (watcher ?? bouncer)!.login();
 
         try {
             await loginPromise;
@@ -136,7 +134,7 @@ export async function createContext(config: Config): Promise<AppContext> {
     };
 }
 
-export async function createPassthroughContext(config: Config, headers: IncomingHttpHeaders): Promise<AppContext> {
+export function createPassthroughContext(config: Config, headers: IncomingHttpHeaders): AppContext {
     const auth = resolvePassthroughAuth(headers);
 
     if (auth.mode === 'bouncer') {
@@ -149,9 +147,7 @@ export async function createPassthroughContext(config: Config, headers: Incoming
 
         let loginPromise: Promise<void> | undefined;
         const ensureReady = async (): Promise<void> => {
-            if (!loginPromise) {
-                loginPromise = bouncer.login();
-            }
+            loginPromise ??= bouncer.login();
 
             try {
                 await loginPromise;
@@ -172,7 +168,7 @@ export async function createPassthroughContext(config: Config, headers: Incoming
             allowlists: unavailableAllowlistsPort(),
             config,
             ensureReady,
-            stop: async () => bouncer.stop()
+            stop: () => bouncer.stop()
         };
     }
 
@@ -185,9 +181,7 @@ export async function createPassthroughContext(config: Config, headers: Incoming
 
     let loginPromise: Promise<void> | undefined;
     const ensureReady = async (): Promise<void> => {
-        if (!loginPromise) {
-            loginPromise = watcher.login();
-        }
+        loginPromise ??= watcher.login();
 
         try {
             await loginPromise;
@@ -208,6 +202,6 @@ export async function createPassthroughContext(config: Config, headers: Incoming
         allowlists: createAllowlistsPort(watcher),
         config,
         ensureReady,
-        stop: async () => watcher.stop()
+        stop: () => watcher.stop()
     };
 }

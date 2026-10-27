@@ -14,18 +14,6 @@ export type RequestServerFactory = (headers: http.IncomingHttpHeaders) => Reques
 
 const MAX_BODY_SIZE = 4 * 1024 * 1024;
 
-const UNAUTHORIZED_BODY = JSON.stringify({
-    jsonrpc: '2.0',
-    error: { code: -32001, message: 'Unauthorized' },
-    id: null
-});
-
-const NOT_FOUND_BODY = JSON.stringify({
-    jsonrpc: '2.0',
-    error: { code: -32000, message: 'Not found' },
-    id: null
-});
-
 export function isAuthorizedHeader(header: string | undefined, token: string): boolean {
     if (!header) {
         return false;
@@ -87,151 +75,133 @@ function sendJson(res: http.ServerResponse, status: number, body: string, extraH
     res.end(body);
 }
 
+function sendRpcError(
+    res: http.ServerResponse,
+    status: number,
+    code: number,
+    message: string,
+    extraHeaders?: Record<string, string>
+): void {
+    sendJson(
+        res,
+        status,
+        JSON.stringify({
+            jsonrpc: '2.0',
+            error: { code, message },
+            id: null
+        }),
+        extraHeaders
+    );
+}
+
+async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse): Promise<unknown | undefined> {
+    let raw: string;
+    try {
+        raw = await readBody(req);
+    } catch {
+        sendRpcError(res, 413, -32000, 'Payload too large');
+        return undefined;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch {
+        sendRpcError(res, 400, -32700, 'Parse error');
+        return undefined;
+    }
+}
+
+function sendSetupError(res: http.ServerResponse, error: unknown): void {
+    if (error instanceof HttpRequestError) {
+        sendRpcError(res, error.status, error.code, error.message);
+        return;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`crowdsec-mcp: request setup failed: ${message}\n`);
+    sendRpcError(res, 500, -32603, 'Internal server error');
+}
+
+async function handlePost(req: http.IncomingMessage, res: http.ServerResponse, createRequestServer: RequestServerFactory): Promise<void> {
+    const parsedBody = await readJsonBody(req, res);
+    if (parsedBody === undefined) {
+        return;
+    }
+
+    let requestServer: RequestServer;
+    try {
+        requestServer = await createRequestServer(req.headers);
+    } catch (error) {
+        sendSetupError(res, error);
+        return;
+    }
+
+    // Stateless mode: each request must use a fresh server and transport.
+    // Reusing a stateless transport causes message ID collisions and breaks
+    // the initialize/notifications sequence used by MCP clients.
+    const { server, cleanup } = requestServer;
+    const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true
+    });
+
+    res.on('close', () => {
+        void transport.close();
+        void server.close();
+        if (cleanup) {
+            void cleanup();
+        }
+    });
+
+    try {
+        await server.connect(transport);
+        await transport.handleRequest(req, res, parsedBody);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`crowdsec-mcp: HTTP request failed: ${message}\n`);
+        if (!res.headersSent) {
+            sendRpcError(res, 500, -32603, 'Internal server error');
+        } else {
+            res.end();
+        }
+    }
+}
+
+async function handleRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    createRequestServer: RequestServerFactory,
+    token: string | undefined
+): Promise<void> {
+    const { method, url } = req;
+
+    // Optional service gate. In passthrough mode the LAPI credential can be
+    // the only credential; if a service token is configured, it is required
+    // in addition to the per-request LAPI credential.
+    if (token && !isAuthorizedHeader(req.headers.authorization, token)) {
+        sendRpcError(res, 401, -32001, 'Unauthorized', { 'WWW-Authenticate': 'Bearer' });
+        return;
+    }
+
+    const pathname = url?.split('?')[0];
+    if (pathname !== '/mcp') {
+        sendRpcError(res, 404, -32000, 'Not found');
+        return;
+    }
+
+    if (method === 'POST') {
+        await handlePost(req, res, createRequestServer);
+        return;
+    }
+
+    sendRpcError(res, 405, -32000, 'Method not allowed');
+}
+
 export async function startHttpServer(createRequestServer: RequestServerFactory, config: Config): Promise<http.Server> {
     const token = config.http.token;
 
-    const httpServer = http.createServer(async (req, res) => {
-        const { method, url } = req;
-
-        // Optional service gate. In passthrough mode the LAPI credential can be
-        // the only credential; if a service token is configured, it is required
-        // in addition to the per-request LAPI credential.
-        if (token && !isAuthorizedHeader(req.headers.authorization, token)) {
-            sendJson(res, 401, UNAUTHORIZED_BODY, { 'WWW-Authenticate': 'Bearer' });
-            return;
-        }
-
-        const pathname = url?.split('?')[0];
-        if (pathname !== '/mcp') {
-            sendJson(res, 404, NOT_FOUND_BODY);
-            return;
-        }
-
-        if (method === 'POST') {
-            let raw: string;
-            try {
-                raw = await readBody(req);
-            } catch {
-                sendJson(
-                    res,
-                    413,
-                    JSON.stringify({
-                        jsonrpc: '2.0',
-                        error: { code: -32000, message: 'Payload too large' },
-                        id: null
-                    })
-                );
-                return;
-            }
-
-            let parsedBody: unknown;
-            try {
-                parsedBody = JSON.parse(raw);
-            } catch {
-                sendJson(
-                    res,
-                    400,
-                    JSON.stringify({
-                        jsonrpc: '2.0',
-                        error: { code: -32700, message: 'Parse error' },
-                        id: null
-                    })
-                );
-                return;
-            }
-
-            let requestServer: RequestServer;
-            try {
-                requestServer = await createRequestServer(req.headers);
-            } catch (error) {
-                if (error instanceof HttpRequestError) {
-                    sendJson(
-                        res,
-                        error.status,
-                        JSON.stringify({
-                            jsonrpc: '2.0',
-                            error: { code: error.code, message: error.message },
-                            id: null
-                        })
-                    );
-                } else {
-                    const message = error instanceof Error ? error.message : String(error);
-                    process.stderr.write(`crowdsec-mcp: request setup failed: ${message}\n`);
-                    sendJson(
-                        res,
-                        500,
-                        JSON.stringify({
-                            jsonrpc: '2.0',
-                            error: { code: -32603, message: 'Internal server error' },
-                            id: null
-                        })
-                    );
-                }
-                return;
-            }
-
-            // Stateless mode: each request must use a fresh server and transport.
-            // Reusing a stateless transport causes message ID collisions and breaks
-            // the initialize/notifications sequence used by MCP clients.
-            const { server, cleanup } = requestServer;
-            const transport = new StreamableHTTPServerTransport({
-                sessionIdGenerator: undefined,
-                enableJsonResponse: true
-            });
-
-            res.on('close', () => {
-                void transport.close();
-                void server.close();
-                if (cleanup) {
-                    void cleanup();
-                }
-            });
-
-            try {
-                await server.connect(transport);
-                await transport.handleRequest(req, res, parsedBody);
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                process.stderr.write(`crowdsec-mcp: HTTP request failed: ${message}\n`);
-                if (!res.headersSent) {
-                    sendJson(
-                        res,
-                        500,
-                        JSON.stringify({
-                            jsonrpc: '2.0',
-                            error: { code: -32603, message: 'Internal server error' },
-                            id: null
-                        })
-                    );
-                } else {
-                    res.end();
-                }
-            }
-            return;
-        }
-
-        if (method === 'GET' || method === 'DELETE') {
-            sendJson(
-                res,
-                405,
-                JSON.stringify({
-                    jsonrpc: '2.0',
-                    error: { code: -32000, message: 'Method not allowed' },
-                    id: null
-                })
-            );
-            return;
-        }
-
-        sendJson(
-            res,
-            405,
-            JSON.stringify({
-                jsonrpc: '2.0',
-                error: { code: -32000, message: 'Method not allowed' },
-                id: null
-            })
-        );
+    const httpServer = http.createServer((req, res) => {
+        void handleRequest(req, res, createRequestServer, token);
     });
 
     return new Promise<http.Server>((resolve, reject) => {

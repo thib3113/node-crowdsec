@@ -1,9 +1,7 @@
 import type { WatcherClient } from 'crowdsec-client';
 import type { AllowlistsPort } from './types.js';
 
-const unavailable = async (): Promise<never> => {
-    throw new Error('allowlists are not available in bouncer mode');
-};
+const unavailable = (): Promise<never> => Promise.reject(new Error('allowlists are not available in bouncer mode'));
 
 export function createAllowlistsPort(watcher: WatcherClient): AllowlistsPort {
     return {

@@ -1,6 +1,16 @@
 import type { APITypes } from 'crowdsec-client';
 import { resolveDecisionExpiry } from '../utils.js';
-import { escapeCell, expiry, formatDate, markdownTable, moreHint, plural, relativeTime, truncateRows } from './common.js';
+import { escapeCell, formatDate, formatDecisionExpiry, markdownTable, moreHint, plural, relativeTime, truncateRows } from './common.js';
+
+function formatListHint(hidden: number, maybeMore: boolean, total: number, maxResults: number): string {
+    if (hidden > 0) {
+        return moreHint(hidden, 'list_alerts');
+    }
+    if (maybeMore && total >= maxResults) {
+        return '\n_More results may be available. Increase `limit` or narrow the filters._';
+    }
+    return '';
+}
 
 function formatDecisionsSummary(decisions: APITypes.Alert['decisions']): string {
     if (!decisions || decisions.length === 0) {
@@ -73,12 +83,7 @@ export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: 
     });
 
     const summary = plural(displayRows.length, 'alert');
-    const hint =
-        hidden > 0
-            ? moreHint(hidden, 'list_alerts')
-            : maybeMore && sortedAlerts.length >= maxResults
-              ? '\n_More results may be available. Increase `limit` or narrow the filters._'
-              : '';
+    const hint = formatListHint(hidden, maybeMore, sortedAlerts.length, maxResults);
 
     return `${summary}:\n\n${markdownTable(headers, tableRows)}${hint}`;
 }
@@ -90,11 +95,7 @@ function formatDecisionRow(decision: APITypes.Decision): string[] {
     const origin = decision.origin ?? '—';
     const duration = decision.duration ?? '—';
     const expiryInfo = resolveDecisionExpiry(decision);
-    const until = expiryInfo.expires
-        ? `${formatDate(expiryInfo.expires)} (${expiry(expiryInfo.expires)})`
-        : expiryInfo.active
-          ? '—'
-          : 'expired';
+    const until = formatDecisionExpiry(expiryInfo);
     const simulated = decision.simulated === true ? 'yes' : 'no';
 
     return [
@@ -209,11 +210,8 @@ export function formatAlertDetail(alert: APITypes.Alert): string {
         lines.push('', `_${inactiveCount} inactive decision(s) hidden._`);
     }
 
-    // Meta
-    lines.push(formatMeta(alert.meta));
-
-    // Events
-    lines.push(formatEvents(alert.events));
+    // Meta and events
+    lines.push(formatMeta(alert.meta), formatEvents(alert.events));
 
     return lines.join('\n');
 }

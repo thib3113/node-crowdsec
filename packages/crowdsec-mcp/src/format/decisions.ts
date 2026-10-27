@@ -1,6 +1,6 @@
 import type { APITypes } from 'crowdsec-client';
 import { resolveDecisionExpiry } from '../utils.js';
-import { escapeCell, expiry, formatDate, markdownTable, plural, truncateRows } from './common.js';
+import { escapeCell, expiry, formatDate, formatDecisionExpiry, markdownTable, plural, truncateRows } from './common.js';
 
 export interface DecisionRow {
     type: string;
@@ -14,11 +14,15 @@ export interface DecisionRow {
     decisionId?: number;
 }
 
-export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResults: number, maybeMore = false): string {
+function decisionKey(decision: APITypes.Decision): string {
+    return decision.id !== undefined
+        ? `id:${decision.id}`
+        : `${decision.simulated ?? false}:${decision.type}:${decision.scope}:${decision.value}`;
+}
+
+function collectDecisionRows(alerts: APITypes.GetAlertsResponse, now: number): DecisionRow[] {
     const rows: DecisionRow[] = [];
     const seen = new Set<string>();
-    const now = Date.now();
-
     const sortedAlerts = [...alerts].sort((a, b) => {
         const aTime = a.created_at ? Date.parse(a.created_at) || 0 : 0;
         const bTime = b.created_at ? Date.parse(b.created_at) || 0 : 0;
@@ -26,20 +30,13 @@ export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResult
     });
 
     for (const alert of sortedAlerts) {
-        if (!alert.decisions || alert.decisions.length === 0) {
-            continue;
-        }
-
-        for (const decision of alert.decisions) {
+        for (const decision of alert.decisions ?? []) {
             const expiryInfo = resolveDecisionExpiry(decision, undefined, now);
             if (!expiryInfo.active) {
                 continue;
             }
 
-            const key =
-                decision.id !== undefined
-                    ? `id:${decision.id}`
-                    : `${decision.simulated ?? false}:${decision.type}:${decision.scope}:${decision.value}`;
+            const key = decisionKey(decision);
             if (seen.has(key)) {
                 continue;
             }
@@ -59,6 +56,11 @@ export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResult
         }
     }
 
+    return rows;
+}
+
+export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResults: number, maybeMore = false): string {
+    const rows = collectDecisionRows(alerts, Date.now());
     const { rows: displayRows, hidden } = truncateRows(rows, maxResults);
 
     const table = markdownTable(
@@ -124,11 +126,7 @@ export function formatBouncerDecisionList(decisions: APITypes.GetDecisionsRespon
 
 export function formatDecisionDetail(decision: APITypes.Decision, alert?: APITypes.Alert): string {
     const expiryInfo = resolveDecisionExpiry(decision);
-    const expires = expiryInfo.expires
-        ? `${formatDate(expiryInfo.expires)} (${expiry(expiryInfo.expires)})`
-        : expiryInfo.active
-          ? '—'
-          : 'expired';
+    const expires = formatDecisionExpiry(expiryInfo);
 
     const lines = [
         `### Decision #${decision.id ?? '—'}`,

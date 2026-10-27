@@ -16,12 +16,8 @@ import {
 } from '../utils.js';
 
 async function deleteAlertIds(ctx: AppContext, ids: number[]): Promise<number> {
-    let deleted = 0;
-    for (const id of ids) {
-        const response = await ctx.watcher!.Alerts.deleteById(String(id));
-        deleted += Number(response.nbDeleted ?? 0);
-    }
-    return deleted;
+    const responses = await Promise.all(ids.map((id) => ctx.watcher!.Alerts.deleteById(String(id))));
+    return responses.reduce((total, response) => total + Number(response.nbDeleted ?? 0), 0);
 }
 
 const ListAlertsInput = z
@@ -65,6 +61,181 @@ const DeleteAlertsInput = z
         confirm: z.boolean().optional().describe('Confirm deletion when using all=true')
     })
     .strict();
+
+type DeleteAlertInput = z.infer<typeof DeleteAlertsInput>;
+
+interface NormalizedDeleteAlertInput extends DeleteAlertInput {
+    decisionType?: string;
+    normalizedScope?: string;
+    normalizedValue?: string;
+}
+
+function validateDeleteTimes(since?: string, until?: string): void {
+    if (since && !isValidTimeFilter(since)) {
+        throw new Error(`invalid since '${since}': use h, m, s or d (e.g. 4h, 30d)`);
+    }
+    if (until && !isValidTimeFilter(until)) {
+        throw new Error(`invalid until '${until}': use h, m, s or d (e.g. 4h, 30d)`);
+    }
+}
+
+function hasDeleteFilters(input: DeleteAlertInput, decisionType?: string): boolean {
+    return Boolean(
+        input.ip ||
+        input.range ||
+        input.scope ||
+        input.value ||
+        input.scenario ||
+        input.origin ||
+        decisionType ||
+        input.since ||
+        input.until ||
+        input.has_active_decision !== undefined
+    );
+}
+
+function assertAllDelete(input: DeleteAlertInput, decisionType?: string): void {
+    if (input.confirm !== true) {
+        throw new Error('Deleting all alerts requires confirm=true');
+    }
+    if (input.id !== undefined || hasDeleteFilters(input, decisionType)) {
+        throw new Error('Cannot combine all=true with id or filters; use all=true with confirm=true alone to delete everything');
+    }
+}
+
+function assertDeleteTargets(input: DeleteAlertInput): void {
+    if (input.scope && (input.ip || input.range)) {
+        throw new Error('Provide only one of ip, range, or scope');
+    }
+    if (input.ip && input.range) {
+        throw new Error('Provide only one of ip or range');
+    }
+    if (input.ip && !isValidIp(input.ip) && !isValidCidr(input.ip)) {
+        throw new Error(`${input.ip} is not a valid ip or CIDR range`);
+    }
+    if (input.range) {
+        assertValidCidr(input.range);
+    }
+}
+
+function normalizeDeleteInput(input: DeleteAlertInput): NormalizedDeleteAlertInput {
+    validateDeleteTimes(input.since, input.until);
+    const decisionType = input.type ? assertValidDecisionType(input.type) : undefined;
+
+    if (input.all === true) {
+        assertAllDelete(input, decisionType);
+    }
+    assertDeleteTargets(input);
+
+    const normalizedScope = input.scope ? assertValidDecisionScope(input.scope) : undefined;
+    const normalizedValue = normalizedScope && input.value ? assertValidScopeValue(normalizedScope, input.value) : input.value;
+
+    if (input.id !== undefined && hasDeleteFilters(input, decisionType)) {
+        throw new Error('Cannot combine id with filters or all=true');
+    }
+    if (input.id === undefined && input.all !== true && !hasDeleteFilters(input, decisionType)) {
+        throw new Error(
+            'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
+        );
+    }
+
+    return { ...input, decisionType, normalizedScope, normalizedValue };
+}
+
+function formatDeletedCount(count: number): string {
+    return count === 0 ? 'No matching alerts found.' : `Deleted ${count} alert(s).`;
+}
+
+async function deleteAlertsByIds(ctx: AppContext, ids: number[]): Promise<string> {
+    if (ids.length === 0) {
+        return 'No matching alerts found.';
+    }
+    return formatDeletedCount(await deleteAlertIds(ctx, ids));
+}
+
+async function deleteAlertsById(ctx: AppContext, id: string | number): Promise<string> {
+    const alertId = parsePositiveId(id, 'alert id');
+    try {
+        const result = await ctx.watcher!.Alerts.deleteById(alertId);
+        return formatDeletedCount(Number(result.nbDeleted ?? 0));
+    } catch (error) {
+        const message = cleanErrorMessage(error);
+        if (/not found/i.test(message)) {
+            throw new Error(`Alert ${alertId} not found`);
+        }
+        throw error;
+    }
+}
+
+async function deleteAlertsByScope(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
+    const alerts = await ctx.watcher!.Alerts.search({
+        scope: filters.normalizedScope,
+        origin: filters.origin,
+        has_active_decision: filters.has_active_decision,
+        limit: 0
+    });
+    const alertIds = alerts
+        .filter((alert) => alert.source?.scope?.toLowerCase() === filters.normalizedScope?.toLowerCase())
+        .map((alert) => alert.id)
+        .filter((alertId): alertId is number => typeof alertId === 'number');
+
+    return deleteAlertsByIds(ctx, alertIds);
+}
+
+async function deleteAlertsByCidr(ctx: AppContext, filters: NormalizedDeleteAlertInput, cidr: string): Promise<string> {
+    const alerts = await ctx.watcher!.Alerts.search({
+        ip: cidr,
+        contains: false,
+        scope: filters.normalizedScope,
+        value: filters.normalizedValue,
+        scenario: filters.scenario,
+        origin: filters.origin,
+        has_active_decision: filters.has_active_decision,
+        limit: 0
+    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
+
+    return deleteAlertsByIds(
+        ctx,
+        alerts.map((alert) => alert.id).filter((id): id is number => typeof id === 'number')
+    );
+}
+
+async function deleteAlertsBySearch(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
+    const alerts = await ctx.watcher!.Alerts.search({
+        ip: filters.ip,
+        contains: false,
+        scope: filters.normalizedScope,
+        value: filters.normalizedValue,
+        scenario: filters.scenario,
+        origin: filters.origin,
+        decision_type: filters.decisionType,
+        since: filters.since,
+        until: filters.until,
+        has_active_decision: filters.has_active_decision,
+        limit: 0
+    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
+
+    return deleteAlertsByIds(
+        ctx,
+        alerts.map((alert) => alert.id).filter((id): id is number => typeof id === 'number')
+    );
+}
+
+async function deleteAlertsDirect(ctx: AppContext, filters: NormalizedDeleteAlertInput): Promise<string> {
+    const result = await ctx.watcher!.Alerts.delete({
+        ip: filters.ip,
+        scope: filters.normalizedScope,
+        value: filters.normalizedValue,
+        scenario: filters.scenario
+    });
+
+    return formatDeletedCount(Number(result.nbDeleted ?? 0));
+}
+
+async function deleteAllAlerts(ctx: AppContext): Promise<string> {
+    const result = await ctx.watcher!.Alerts.delete({});
+    return formatDeletedCount(Number(result.nbDeleted ?? 0));
+}
 
 export const alertTools: ToolDefinition[] = [
     {
@@ -172,171 +343,27 @@ export const alertTools: ToolDefinition[] = [
         },
         handler: async (input, ctx) => {
             await ctx.ensureReady();
-            const { id, ip, range, scope, value, scenario, origin, type, since, until, has_active_decision, all, confirm } =
-                DeleteAlertsInput.parse(input);
+            const filters = normalizeDeleteInput(DeleteAlertsInput.parse(input));
 
-            if (since && !isValidTimeFilter(since)) {
-                throw new Error(`invalid since '${since}': use h, m, s or d (e.g. 4h, 30d)`);
+            if (filters.id !== undefined) {
+                return deleteAlertsById(ctx, filters.id);
             }
-            if (until && !isValidTimeFilter(until)) {
-                throw new Error(`invalid until '${until}': use h, m, s or d (e.g. 4h, 30d)`);
+            if (filters.all === true) {
+                return deleteAllAlerts(ctx);
             }
-
-            const decisionType = type ? assertValidDecisionType(type) : undefined;
-
-            if (all === true) {
-                if (confirm !== true) {
-                    throw new Error('Deleting all alerts requires confirm=true');
-                }
-                if (
-                    id !== undefined ||
-                    ip ||
-                    range ||
-                    scope ||
-                    value ||
-                    scenario ||
-                    origin ||
-                    decisionType ||
-                    since ||
-                    until ||
-                    has_active_decision !== undefined
-                ) {
-                    throw new Error(
-                        'Cannot combine all=true with id or filters; use all=true with confirm=true alone to delete everything'
-                    );
-                }
+            if (filters.normalizedScope && !filters.value) {
+                return deleteAlertsByScope(ctx, filters);
             }
 
-            if (scope && (ip || range)) {
-                throw new Error('Provide only one of ip, range, or scope');
+            const cidr = filters.range ?? (filters.ip && isValidCidr(filters.ip) ? filters.ip : undefined);
+            if (cidr) {
+                return deleteAlertsByCidr(ctx, filters, cidr);
+            }
+            if (filters.origin || filters.decisionType || filters.since || filters.until || filters.has_active_decision !== undefined) {
+                return deleteAlertsBySearch(ctx, filters);
             }
 
-            if (ip && range) {
-                throw new Error('Provide only one of ip or range');
-            }
-            if (ip && !isValidIp(ip) && !isValidCidr(ip)) {
-                throw new Error(`${ip} is not a valid ip or CIDR range`);
-            }
-            if (range) {
-                assertValidCidr(range);
-            }
-
-            const normalizedScope = scope ? assertValidDecisionScope(scope) : undefined;
-            const normalizedValue = normalizedScope && value ? assertValidScopeValue(normalizedScope, value) : value;
-
-            let result: APITypes.Alerts.DeleteAlerts.ResponseBody;
-
-            if (id !== undefined) {
-                if (ip || range || scope || value || scenario || origin || decisionType || since || until || all === true) {
-                    throw new Error('Cannot combine id with filters or all=true');
-                }
-
-                const alertId = parsePositiveId(id, 'alert id');
-                try {
-                    result = await ctx.watcher!.Alerts.deleteById(alertId);
-                } catch (error) {
-                    const message = cleanErrorMessage(error);
-                    if (/not found/i.test(message)) {
-                        throw new Error(`Alert ${alertId} not found`);
-                    }
-                    throw error;
-                }
-            } else {
-                const hasFilter =
-                    ip ||
-                    range ||
-                    scope ||
-                    value ||
-                    scenario ||
-                    origin ||
-                    decisionType ||
-                    since ||
-                    until ||
-                    has_active_decision !== undefined;
-                if (!hasFilter && all !== true) {
-                    throw new Error(
-                        'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
-                    );
-                }
-
-                if (normalizedScope && !value) {
-                    const alerts = await ctx.watcher!.Alerts.search({
-                        scope: normalizedScope,
-                        origin,
-                        has_active_decision,
-                        limit: 0
-                    });
-                    const alertIds = alerts
-                        .filter((alert) => alert.source?.scope?.toLowerCase() === normalizedScope.toLowerCase())
-                        .map((alert) => alert.id)
-                        .filter((alertId): alertId is number => typeof alertId === 'number');
-
-                    if (alertIds.length === 0) {
-                        return 'No matching alerts found.';
-                    }
-
-                    const deleted = await deleteAlertIds(ctx, alertIds);
-                    return deleted === 0 ? 'No matching alerts found.' : `Deleted ${deleted} alert(s).`;
-                }
-
-                const cidr = range ?? (ip && isValidCidr(ip) ? ip : undefined);
-                if (cidr) {
-                    const alerts = await ctx.watcher!.Alerts.search({
-                        ip: cidr,
-                        contains: false,
-                        scope: normalizedScope,
-                        value: normalizedValue,
-                        scenario,
-                        origin,
-                        has_active_decision,
-                        limit: 0
-                    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
-
-                    const alertIds = alerts.map((alert) => alert.id).filter((id): id is number => typeof id === 'number');
-                    if (alertIds.length === 0) {
-                        return 'No matching alerts found.';
-                    }
-
-                    const deleted = await deleteAlertIds(ctx, alertIds);
-                    return deleted === 0 ? 'No matching alerts found.' : `Deleted ${deleted} alert(s).`;
-                }
-
-                if (origin || decisionType || since || until || has_active_decision !== undefined) {
-                    const alerts = await ctx.watcher!.Alerts.search({
-                        ip,
-                        contains: false,
-                        scope: normalizedScope,
-                        value: normalizedValue,
-                        scenario,
-                        origin,
-                        decision_type: decisionType,
-                        since,
-                        until,
-                        has_active_decision,
-                        limit: 0
-                    } as APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean });
-
-                    const alertIds = alerts.map((alert) => alert.id).filter((id): id is number => typeof id === 'number');
-                    if (alertIds.length === 0) {
-                        return 'No matching alerts found.';
-                    }
-
-                    const deleted = await deleteAlertIds(ctx, alertIds);
-                    return deleted === 0 ? 'No matching alerts found.' : `Deleted ${deleted} alert(s).`;
-                }
-
-                const query: APITypes.Alerts.DeleteAlerts.RequestQuery = {
-                    ip,
-                    scope: normalizedScope,
-                    value: normalizedValue,
-                    scenario
-                };
-
-                result = await ctx.watcher!.Alerts.delete(query);
-            }
-
-            const count = Number(result.nbDeleted ?? 0);
-            return count === 0 ? 'No matching alerts found.' : `Deleted ${count} alert(s).`;
+            return deleteAlertsDirect(ctx, filters);
         }
     }
 ];
