@@ -11,6 +11,34 @@ function isDigit(char: string | undefined): boolean {
     return char !== undefined && char >= '0' && char <= '9';
 }
 
+interface DurationNumber {
+    amount: number;
+    next: number;
+}
+
+function readDurationNumber(value: string, start: number): DurationNumber | undefined {
+    let index = start;
+    while (isDigit(value[index])) {
+        index++;
+    }
+    if (index === start) {
+        return undefined;
+    }
+
+    if (value[index] === '.') {
+        index++;
+        const fractionStart = index;
+        while (isDigit(value[index])) {
+            index++;
+        }
+        if (index === fractionStart) {
+            return undefined;
+        }
+    }
+
+    return { amount: Number(value.slice(start, index)), next: index };
+}
+
 /**
  * Parse a cscli-like duration (4h, 30m, 7d, 1h30m) into seconds.
  */
@@ -24,36 +52,19 @@ export function parseDuration(input: string): number {
     let index = 0;
 
     while (index < value.length) {
-        const start = index;
-        while (isDigit(value[index])) {
-            index++;
-        }
-
-        if (index === start) {
+        const parsed = readDurationNumber(value, index);
+        if (!parsed) {
             throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
         }
 
-        if (value[index] === '.') {
-            index++;
-            const fractionStart = index;
-            while (isDigit(value[index])) {
-                index++;
-            }
-            if (index === fractionStart) {
-                throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
-            }
-        }
-
-        const amount = Number(value.slice(start, index));
-        const unit = value[index];
+        const unit = value[parsed.next];
         const multiplier = unit === undefined ? undefined : DURATION_UNITS[unit];
-
         if (multiplier === undefined) {
             throw new Error(`invalid duration '${input}': use 30m, 4h or 7d`);
         }
 
-        total += amount * multiplier;
-        index++;
+        total += parsed.amount * multiplier;
+        index = parsed.next + 1;
     }
 
     if (total <= 0) {

@@ -94,20 +94,22 @@ function sendRpcError(
     );
 }
 
-async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse): Promise<unknown | undefined> {
+type JsonBodyResult = { ok: true; body: unknown } | { ok: false };
+
+async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse): Promise<JsonBodyResult> {
     let raw: string;
     try {
         raw = await readBody(req);
     } catch {
         sendRpcError(res, 413, -32000, 'Payload too large');
-        return undefined;
+        return { ok: false };
     }
 
     try {
-        return JSON.parse(raw);
+        return { ok: true, body: JSON.parse(raw) };
     } catch {
         sendRpcError(res, 400, -32700, 'Parse error');
-        return undefined;
+        return { ok: false };
     }
 }
 
@@ -123,8 +125,8 @@ function sendSetupError(res: http.ServerResponse, error: unknown): void {
 }
 
 async function handlePost(req: http.IncomingMessage, res: http.ServerResponse, createRequestServer: RequestServerFactory): Promise<void> {
-    const parsedBody = await readJsonBody(req, res);
-    if (parsedBody === undefined) {
+    const bodyResult = await readJsonBody(req, res);
+    if (!bodyResult.ok) {
         return;
     }
 
@@ -155,7 +157,7 @@ async function handlePost(req: http.IncomingMessage, res: http.ServerResponse, c
 
     try {
         await server.connect(transport);
-        await transport.handleRequest(req, res, parsedBody);
+        await transport.handleRequest(req, res, bodyResult.body);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(`crowdsec-mcp: HTTP request failed: ${message}\n`);

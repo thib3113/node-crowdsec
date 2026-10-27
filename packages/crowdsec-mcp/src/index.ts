@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     if (config.transport === 'http') {
         if (config.passthrough) {
             await startHttpServer(async (headers) => {
-                const requestContext = await createPassthroughContext(config, headers);
+                const requestContext = createPassthroughContext(config, headers);
                 const requestTools = selectTools(allTools(), requestContext);
                 return {
                     server: createServer(requestTools, requestContext),

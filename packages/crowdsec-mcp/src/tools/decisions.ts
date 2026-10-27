@@ -226,6 +226,21 @@ function validateUnbanTargets(ip?: string, range?: string, scope?: string, value
     }
 }
 
+function assertUnbanIdHasNoFilters(input: UnbanInput): void {
+    if (input.ip || input.range || input.scope || input.value || input.type || input.scenario) {
+        throw new Error('Cannot combine id with filters');
+    }
+}
+
+function buildUnbanQuery(input: UnbanInput, type: string | undefined): { ip?: string; value?: string; type?: string; scenario?: string } {
+    const query: { ip?: string; value?: string; type?: string; scenario?: string } = {};
+    if (input.ip) query.ip = input.ip;
+    if (input.value) query.value = input.value;
+    if (type) query.type = type;
+    if (input.scenario) query.scenario = input.scenario;
+    return query;
+}
+
 async function unbanDecisionIds(ctx: AppContext, ids: number[]): Promise<string> {
     if (ids.length === 0) {
         return formatUnbanResult(0);
@@ -492,9 +507,7 @@ export const decisionTools: ToolDefinition[] = [
             }
 
             if (unbanInput.id !== undefined) {
-                if (unbanInput.ip || unbanInput.range || unbanInput.scope || unbanInput.value || unbanInput.type || unbanInput.scenario) {
-                    throw new Error('Cannot combine id with filters');
-                }
+                assertUnbanIdHasNoFilters(unbanInput);
                 return unbanById(ctx, unbanInput.id);
             }
 
@@ -519,13 +532,7 @@ export const decisionTools: ToolDefinition[] = [
                 return unbanByRange(ctx, unbanInput.range, normalizedType, unbanInput.scenario);
             }
 
-            const query: { ip?: string; value?: string; type?: string; scenario?: string } = {};
-            if (unbanInput.ip) query.ip = unbanInput.ip;
-            if (unbanInput.value) query.value = unbanInput.value;
-            if (normalizedType) query.type = normalizedType;
-            if (unbanInput.scenario) query.scenario = unbanInput.scenario;
-
-            return unbanByQuery(ctx, query);
+            return unbanByQuery(ctx, buildUnbanQuery(unbanInput, normalizedType));
         }
     }
 ];

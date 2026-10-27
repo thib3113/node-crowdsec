@@ -2,14 +2,34 @@ import { formatDuration } from '../utils.js';
 
 const BACKSLASH = String.fromCodePoint(92);
 
+function stringifyCell(value: unknown): string {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    if (typeof value === 'string') {
+        return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+        return String(value);
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value) ?? '';
+    }
+    if (typeof value === 'symbol') {
+        return value.toString();
+    }
+    if (typeof value === 'function') {
+        return value.name || 'function';
+    }
+    return '';
+}
+
 export function escapeCell(value: unknown): string {
     if (value === undefined || value === null || value === '') {
         return '—';
     }
 
-    const text = typeof value === 'object' ? (JSON.stringify(value) ?? String(value)) : String(value);
-
-    return text
+    return stringifyCell(value)
         .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
         .replaceAll('|', BACKSLASH + '|')
         .replace(/[\r\n]+/g, ' ');
