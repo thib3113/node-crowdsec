@@ -52,6 +52,7 @@ function canDeleteAlerts(ctx: AppContext): boolean {
 function availabilityLines(ctx: AppContext): string[] {
     return [
         `- Alerts (list_alerts, get_alert): ${ctx.mode === 'watcher' ? 'available' : 'unavailable (watcher credentials required)'}.`,
+        `- Decisions (list_decisions): available. get_decision: ${ctx.mode === 'watcher' ? 'available' : 'unavailable (watcher credentials required)'}.`,
         `- Allowlists: ${ctx.capabilities.allowlists ? 'available' : 'unavailable in this mode'}.`,
         `- delete_alerts: ${canDeleteAlerts(ctx) ? 'available (destructive, only works on the LAPI host)' : 'hidden'}.`
     ];
@@ -67,7 +68,7 @@ function workingRules(ctx: AppContext): string[] {
 
     if (ctx.mode === 'bouncer') {
         add(
-            'Only active decisions are visible: list_decisions then get_decision. Say when alerts or allowlists would need watcher credentials.'
+            'Only active decisions are visible: use list_decisions. get_decision, alerts and allowlists need watcher credentials: say so instead of calling them.'
         );
         add('A decision origin of CAPI comes from the community blocklist and is not necessarily local to this engine.');
         add('Never invent decision IDs. If a lookup returns nothing, say so instead of guessing.');
@@ -149,7 +150,7 @@ const OVERVIEW = (ctx: AppContext): string =>
         '## What this MCP server exposes',
         '',
         '- Alerts: detection history (list_alerts, get_alert).',
-        '- Decisions: active remediation (list_decisions, get_decision, ban_ip, unban_ip).',
+        '- Decisions: active remediation (list_decisions; get_decision, ban_ip and unban_ip require watcher credentials).',
         '- Allowlists: exemptions that prevent remediation (list_allowlists, get_allowlist, check_allowlist).',
         '- crowdsec_status: connection mode, capabilities and limits.',
         '',
@@ -221,7 +222,7 @@ function triageModeLines(ctx: AppContext): string[] {
             '## Mode caveats',
             '',
             'This server runs in bouncer mode: alerts and allowlists are unavailable, only active decisions can be read.',
-            'Work from list_decisions and get_decision, and say when an investigation would need watcher credentials.'
+            'Work from list_decisions, and say when get_decision, alerts or allowlists would need watcher credentials.'
         ];
     }
 
@@ -249,7 +250,7 @@ const TRIAGE = (ctx: AppContext): string =>
         '',
         '## 2. Check the current remediation',
         '',
-        'Use list_decisions with the same ip/range to see what is already blocked, and get_decision for context.',
+        'Use list_decisions with the same ip/range to see what is already blocked, and get_decision (watcher only) for context.',
         'An already active ban is often enough: avoid stacking duplicate decisions.',
         '',
         '## 3. Decide',

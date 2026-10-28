@@ -269,31 +269,32 @@ describe('allowlistTools', () => {
     });
 
     describe('check_allowlist', () => {
-        it('should check a single allowlisted value via check()', async () => {
-            mockAllowlists.check.mockResolvedValue({
-                allowlisted: true,
-                reason: 'test-allowlist: Local network'
-            } satisfies APITypes.CheckAllowlistResponse);
+        it('should check a single allowlisted value via bulkCheck()', async () => {
+            mockAllowlists.bulkCheck.mockResolvedValue({
+                results: [{ target: '192.168.1.1', allowlists: ['test-allowlist: Local network'] }]
+            } satisfies APITypes.BulkCheckAllowlistResponse);
 
             const result = (await findTool('check_allowlist').handler({ value: '192.168.1.1' }, mockCtx)) as string;
 
-            expect(mockAllowlists.check).toHaveBeenCalledWith('192.168.1.1');
-            expect(mockAllowlists.bulkCheck).not.toHaveBeenCalled();
+            expect(mockAllowlists.bulkCheck).toHaveBeenCalledWith(['192.168.1.1']);
+            expect(mockAllowlists.check).not.toHaveBeenCalled();
             expect(result).toContain('192.168.1.1: allowlisted by test-allowlist: Local network');
             expect(result).toContain('1 target of 1 target matched an allowlist.');
         });
 
-        it('should fall back to a generic label when a single check has no reason', async () => {
-            mockAllowlists.check.mockResolvedValue({ allowlisted: true, reason: undefined } satisfies APITypes.CheckAllowlistResponse);
+        it('should treat a single target missing from results as not allowlisted', async () => {
+            mockAllowlists.bulkCheck.mockResolvedValue({ results: [] } satisfies APITypes.BulkCheckAllowlistResponse);
 
             const result = (await findTool('check_allowlist').handler({ value: '192.168.1.1' }, mockCtx)) as string;
 
-            expect(result).toContain('192.168.1.1: allowlisted by allowlist');
-            expect(result).toContain('1 target of 1 target matched an allowlist.');
+            expect(result).toContain('192.168.1.1: not allowlisted');
+            expect(result).toContain('0 targets of 1 target matched an allowlist.');
         });
 
         it('should check a single value that is not allowlisted', async () => {
-            mockAllowlists.check.mockResolvedValue({ allowlisted: false, reason: undefined } satisfies APITypes.CheckAllowlistResponse);
+            mockAllowlists.bulkCheck.mockResolvedValue({
+                results: [{ target: '8.8.8.8', allowlists: [] }]
+            } satisfies APITypes.BulkCheckAllowlistResponse);
 
             const result = (await findTool('check_allowlist').handler({ value: '8.8.8.8' }, mockCtx)) as string;
 
@@ -302,10 +303,9 @@ describe('allowlistTools', () => {
         });
 
         it('should distinguish a CIDR match from an exact IP match', async () => {
-            mockAllowlists.check.mockResolvedValue({
-                allowlisted: true,
-                reason: '192.0.2.10'
-            } satisfies APITypes.CheckAllowlistResponse);
+            mockAllowlists.bulkCheck.mockResolvedValue({
+                results: [{ target: '192.0.2.0/24', allowlists: ['192.0.2.10'] }]
+            } satisfies APITypes.BulkCheckAllowlistResponse);
 
             const result = (await findTool('check_allowlist').handler({ value: '192.0.2.0/24' }, mockCtx)) as string;
 
@@ -313,11 +313,11 @@ describe('allowlistTools', () => {
         });
 
         it('should trim checked values before calling the LAPI', async () => {
-            mockAllowlists.check.mockResolvedValue({ allowlisted: false } satisfies APITypes.CheckAllowlistResponse);
+            mockAllowlists.bulkCheck.mockResolvedValue({ results: [] } satisfies APITypes.BulkCheckAllowlistResponse);
 
             await findTool('check_allowlist').handler({ value: ' 192.168.1.1 ' }, mockCtx);
 
-            expect(mockAllowlists.check).toHaveBeenCalledWith('192.168.1.1');
+            expect(mockAllowlists.bulkCheck).toHaveBeenCalledWith(['192.168.1.1']);
         });
 
         it('should treat bulk targets missing from results as not allowlisted', async () => {

@@ -24,6 +24,26 @@ function stringifyCell(value: unknown): string {
     return '';
 }
 
+const ORIGIN_CASING: Record<string, string> = {
+    capi: 'CAPI',
+    console: 'console',
+    crowdsec: 'crowdsec',
+    cscli: 'cscli',
+    'cscli-import': 'cscli-import',
+    lists: 'lists'
+};
+
+/**
+ * Restore the canonical CrowdSec casing for an origin. The bouncer `Decision`
+ * class lowercases origins, while the watcher API keeps `CAPI` as-is.
+ */
+export function formatOrigin(value?: string): string | undefined {
+    if (!value) {
+        return value;
+    }
+    return ORIGIN_CASING[value.toLowerCase()] ?? value;
+}
+
 export function escapeCell(value: unknown): string {
     if (value === undefined || value === null || value === '') {
         return '—';

@@ -54,7 +54,10 @@ const DurationArg = z
         }
     }, 'Use a duration with a unit, e.g. 30m, 4h or 7d');
 
-const CountArg = z.string().trim().regex(/^\d+$/, 'Use a positive integer');
+const CountArg = z
+    .string()
+    .trim()
+    .regex(/^[1-9]\d*$/, 'Use a positive integer');
 
 const IpArg = z.string().trim().refine(isValidIp, { message: 'Use a valid IPv4 or IPv6 address' });
 

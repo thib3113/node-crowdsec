@@ -1,6 +1,6 @@
 import type { APITypes } from 'crowdsec-client';
-import { resolveDecisionExpiry } from '../utils.js';
-import { escapeCell, expiry, formatDate, formatDecisionExpiry, markdownTable, plural, truncateRows } from './common.js';
+import { normalizeScope, resolveDecisionExpiry } from '../utils.js';
+import { escapeCell, expiry, formatDate, formatDecisionExpiry, formatOrigin, markdownTable, plural, truncateRows } from './common.js';
 
 export interface DecisionRow {
     type: string;
@@ -106,13 +106,14 @@ export function formatBouncerDecisionList(decisions: APITypes.GetDecisionsRespon
         displayRows.map((d) => {
             const endAt = (d as { endAt?: Date }).endAt;
             const expires = d.until ?? (endAt instanceof Date ? endAt.toISOString() : resolveDecisionExpiry(d).expires);
+            const scope = d.scope ? normalizeScope(d.scope) : undefined;
 
             return [
                 escapeCell(d.id),
                 escapeCell(d.type),
-                escapeCell(d.scope),
+                escapeCell(scope),
                 escapeCell(d.value),
-                escapeCell(d.origin),
+                escapeCell(formatOrigin(d.origin)),
                 escapeCell(d.scenario),
                 escapeCell(expiry(expires)),
                 escapeCell(d.simulated ? 'yes' : 'no')

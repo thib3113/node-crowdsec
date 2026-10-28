@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { IncomingHttpHeaders } from 'node:http';
-import { BouncerClient, WatcherClient } from 'crowdsec-client';
+import { BouncerClient, CrowdsecClientError, WatcherClient } from 'crowdsec-client';
 import type { Config } from './config.js';
 import type { AppContext } from './types.js';
 import { createAllowlistsPort, unavailableAllowlistsPort } from './allowlists-port.js';
@@ -11,6 +11,20 @@ interface TokenWatcherClientOptions {
     token: string;
     strictSSL?: boolean;
     timeout?: number;
+}
+
+function isAuthenticationFailure(error: unknown): boolean {
+    // CrowdSec answers 403 for an invalid key/token and 401 for a missing one.
+    // The client wraps 403 as UNEXPECTED_KEY and any other status as
+    // UNEXPECTED_STATUS_CODE, so the status has to be read from the cause.
+    // Anything else (DNS, timeout, TLS, 5xx) must keep its original message.
+    if (!(error instanceof CrowdsecClientError)) {
+        return false;
+    }
+    if (error.message === 'UNEXPECTED_KEY') {
+        return true;
+    }
+    return error.message === 'UNEXPECTED_STATUS_CODE' && /\b(401|403)\b/.test(error.exception?.message ?? '');
 }
 
 class TokenWatcherClient extends WatcherClient {
@@ -34,8 +48,11 @@ class TokenWatcherClient extends WatcherClient {
     public override async login(): Promise<void> {
         try {
             await this.testConnection();
-        } catch {
-            throw new Error('Invalid CrowdSec token');
+        } catch (error) {
+            if (isAuthenticationFailure(error)) {
+                throw new Error('Invalid CrowdSec token');
+            }
+            throw error;
         }
     }
 }
@@ -151,9 +168,12 @@ export function createPassthroughContext(config: Config, headers: IncomingHttpHe
 
             try {
                 await loginPromise;
-            } catch {
+            } catch (error) {
                 loginPromise = undefined;
-                throw new Error('Invalid CrowdSec API key');
+                if (isAuthenticationFailure(error)) {
+                    throw new Error('Invalid CrowdSec API key');
+                }
+                throw error;
             }
         };
 

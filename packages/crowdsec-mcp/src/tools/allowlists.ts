@@ -105,14 +105,9 @@ export const allowlistTools: ToolDefinition[] = [
                 }
             }
 
-            if (uniqueTargets.length === 1) {
-                const result = await ctx.allowlists.check(uniqueTargets[0]);
-                return formatAllowlistCheck(
-                    uniqueTargets,
-                    result.allowlisted ? [{ target: uniqueTargets[0], allowlists: [result.reason || 'allowlist'] }] : []
-                );
-            }
-
+            // Always use the bulk endpoint, even for a single target: it returns
+            // the allowlist names, while the single-value endpoint only returns
+            // the matched item. This keeps the output consistent.
             const bulkResult = await ctx.allowlists.bulkCheck(uniqueTargets);
             return formatAllowlistCheck(uniqueTargets, bulkResult.results ?? []);
         }

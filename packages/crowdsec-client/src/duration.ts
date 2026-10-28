@@ -7,8 +7,11 @@ const UNIT_SECONDS: Record<string, number> = {
 /**
  * A duration string accepted by CrowdSec (`30m`, `4h`, `7d`, `1h30m`).
  * `d` is a CrowdSec extension to Go's `time.ParseDuration`.
+ *
+ * The optional brand keeps the alias distinct from a bare `string` while still
+ * accepting plain strings, so it documents intent without forcing casts.
  */
-export type GoDuration = string;
+export type GoDuration = string & { readonly __goDurationBrand?: never };
 
 const DAY_SECONDS = 86400;
 

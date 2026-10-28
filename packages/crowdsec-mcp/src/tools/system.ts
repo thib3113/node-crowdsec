@@ -13,10 +13,13 @@ export const statusTool: ToolDefinition = {
         readOnlyHint: true,
         idempotentHint: true
     },
-    handler: async (_input, ctx) => {
+    handler: (_input, ctx) => {
         const machineSuffix = ctx.mode === 'watcher' && ctx.config.machineId ? ` (${ctx.config.machineId})` : '';
         const auth = ctx.mode === 'watcher' ? `watcher${machineSuffix}` : 'bouncer';
-        const writeLabel = ctx.capabilities.write ? (ctx.config.readonly ? 'yes (disabled by read-only)' : 'yes') : 'no';
+        let writeLabel = 'no';
+        if (ctx.capabilities.write) {
+            writeLabel = ctx.config.readonly ? 'yes (disabled by read-only)' : 'yes';
+        }
         const lines = [
             'CrowdSec MCP is connected.',
             '',

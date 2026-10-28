@@ -342,22 +342,27 @@ async function unbanByQuery(ctx: AppContext, query: UnbanQuery) {
 
 type ListDecisionsFilters = z.infer<typeof ListDecisionsInput>;
 
-function validateListDecisionsFilters(input: ListDecisionsFilters): void {
+interface NormalizedListDecisionsFilters {
+    scope?: string;
+    value?: string;
+}
+
+function normalizeListDecisionsFilters(input: ListDecisionsFilters): NormalizedListDecisionsFilters {
     if (input.ip && !isValidIp(input.ip) && !isValidCidr(input.ip)) {
         throw new Error(`${input.ip} is not a valid ip or CIDR range`);
     }
     if (input.range) {
         assertValidCidr(input.range);
     }
-    if (input.scope) {
-        assertValidDecisionScope(input.scope);
-    }
+    const scope = input.scope ? assertValidDecisionScope(input.scope) : undefined;
+    const value = scope && input.value ? assertValidScopeValue(scope, input.value) : input.value;
     if (input.since && !isValidTimeFilter(input.since)) {
         throw new Error(`invalid since '${input.since}': use h, m, s or d (e.g. 4h, 30d)`);
     }
     if (input.until && !isValidTimeFilter(input.until)) {
         throw new Error(`invalid until '${input.until}': use h, m, s or d (e.g. 4h, 30d)`);
     }
+    return { scope, value };
 }
 
 export const decisionTools: ToolDefinition[] = [
@@ -370,8 +375,8 @@ export const decisionTools: ToolDefinition[] = [
         annotations: { readOnlyHint: true, idempotentHint: true },
         handler: async (input, ctx) => {
             const parsed = ListDecisionsInput.parse(input);
-            validateListDecisionsFilters(parsed);
-            const { ip, range, scope, value, type, origin, scenario, since, until, contains, no_simulated, all, limit } = parsed;
+            const { scope: normalizedScope, value: normalizedValue } = normalizeListDecisionsFilters(parsed);
+            const { ip, range, type, origin, scenario, since, until, contains, no_simulated, all, limit } = parsed;
             const decisionType = type ? assertValidDecisionType(type) : undefined;
             const window = resolveListWindow(limit, all, ctx.config.maxResults);
             const normalizedSince = since ? toGoDuration(since) : undefined;
@@ -381,8 +386,8 @@ export const decisionTools: ToolDefinition[] = [
                 const query: APITypes.SearchAlertsQuery = {
                     ip,
                     range,
-                    scope,
-                    value,
+                    scope: normalizedScope,
+                    value: normalizedValue,
                     scenario,
                     decision_type: decisionType,
                     origin,
@@ -403,8 +408,8 @@ export const decisionTools: ToolDefinition[] = [
                 const decisions = await ctx.bouncer.Decisions.search({
                     ip,
                     range,
-                    scope,
-                    value,
+                    scope: normalizedScope,
+                    value: normalizedValue,
                     type: decisionType,
                     origins: origin,
                     scenarios_containing: scenario,

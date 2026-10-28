@@ -140,6 +140,20 @@ describe('decisionTools', () => {
             expect(result).not.toContain('never');
         });
 
+        it('should normalize scope and value before querying the LAPI', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.search.mockResolvedValue([]);
+
+            await findTool('list_decisions')!.handler({ scope: 'ip', value: '1.2.3.4' }, ctx as any);
+
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    scope: 'Ip',
+                    value: '1.2.3.4'
+                })
+            );
+        });
+
         it('should hide expired decisions', async () => {
             const ctx = createMockContext();
             ctx.watcher!.Alerts.search.mockResolvedValue([

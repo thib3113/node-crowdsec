@@ -66,6 +66,7 @@ describe('server instructions', () => {
         expect(instructions).toContain('bouncer (API key)');
         expect(instructions).toContain('Alerts, allowlists and write tools are unavailable');
         expect(instructions).toContain('read-only');
+        expect(instructions).not.toContain('list_decisions then get_decision');
     });
 
     it('hides delete_alerts in read-only mode even when it is enabled', () => {

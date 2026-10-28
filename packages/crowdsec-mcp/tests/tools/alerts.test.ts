@@ -267,6 +267,20 @@ describe('alertTools', () => {
             );
         });
 
+        it('should normalize scope and value before querying the LAPI', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([]);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            await tool.handler({ scope: 'as', value: 'AS64512' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    scope: 'AS',
+                    value: '64512'
+                })
+            );
+        });
+
         it('should map a missing alert deletion to a business error', async () => {
             mockWatcher.Alerts.deleteById.mockRejectedValue(new Error('CrowdSecError (500) : ent: alert not found'));
             const deleteAlerts = alertTools.find((t) => t.name === 'delete_alerts')!;

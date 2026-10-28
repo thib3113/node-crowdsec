@@ -63,6 +63,13 @@ describe('watcher stdio end-to-end', () => {
                 return;
             }
 
+            if (request.method === 'POST' && request.url === '/v1/allowlists/check') {
+                request.resume();
+                response.setHeader('content-type', 'application/json');
+                response.end(JSON.stringify({ results: [] }));
+                return;
+            }
+
             if (request.method === 'GET' && request.url?.startsWith('/v1/allowlists')) {
                 response.setHeader('content-type', 'application/json');
                 response.end('[]');

@@ -15,6 +15,7 @@ export type RequestServerFactory = (headers: http.IncomingHttpHeaders) => Reques
 const MAX_BODY_SIZE = 4 * 1024 * 1024;
 
 class BodyTooLargeError extends Error {}
+class RequestAbortedError extends Error {}
 
 export function isAuthorizedHeader(header: string | undefined, token: string): boolean {
     if (!header) {
@@ -42,6 +43,15 @@ function readBody(req: http.IncomingMessage): Promise<string> {
         const chunks: Buffer[] = [];
         let size = 0;
         let tooLarge = false;
+        let settled = false;
+
+        const fail = (error: Error): void => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            reject(error);
+        };
 
         req.on('data', (chunk: Buffer) => {
             // Once oversized, discard further chunks but keep draining so the socket stays usable for the 413 response.
@@ -58,6 +68,10 @@ function readBody(req: http.IncomingMessage): Promise<string> {
         });
 
         req.on('end', () => {
+            if (settled) {
+                return;
+            }
+            settled = true;
             if (tooLarge) {
                 reject(new BodyTooLargeError('Payload too large'));
                 return;
@@ -65,7 +79,9 @@ function readBody(req: http.IncomingMessage): Promise<string> {
             resolve(Buffer.concat(chunks).toString('utf-8'));
         });
 
-        req.on('error', reject);
+        req.on('error', (error) => fail(error));
+        req.on('aborted', () => fail(new RequestAbortedError('Request aborted')));
+        req.on('close', () => fail(new RequestAbortedError('Request aborted')));
     });
 }
 
@@ -105,6 +121,8 @@ async function readJsonBody(req: http.IncomingMessage, res: http.ServerResponse)
     } catch (error) {
         if (error instanceof BodyTooLargeError) {
             sendRpcError(res, 413, -32000, 'Payload too large');
+        } else if (error instanceof RequestAbortedError) {
+            // The client is gone: there is nothing left to answer.
         } else {
             const message = error instanceof Error ? error.message : String(error);
             process.stderr.write(`crowdsec-mcp: failed to read request body: ${message}\n`);

@@ -268,12 +268,8 @@ export const alertTools: ToolDefinition[] = [
             if (range) {
                 assertValidCidr(range);
             }
-            if (scope) {
-                assertValidDecisionScope(scope);
-            }
-            if (scope && value) {
-                assertValidScopeValue(scope, value);
-            }
+            const normalizedScope = scope ? assertValidDecisionScope(scope) : undefined;
+            const normalizedValue = normalizedScope && value ? assertValidScopeValue(normalizedScope, value) : value;
             const decisionType = type ? assertValidDecisionType(type) : undefined;
             if (since && !isValidTimeFilter(since)) {
                 throw new Error(`invalid since '${since}': use h, m, s or d (e.g. 4h, 30d)`);
@@ -286,8 +282,8 @@ export const alertTools: ToolDefinition[] = [
             const query: APITypes.SearchAlertsQuery = {
                 ip,
                 range,
-                scope,
-                value,
+                scope: normalizedScope,
+                value: normalizedValue,
                 scenario,
                 decision_type: decisionType,
                 origin,
