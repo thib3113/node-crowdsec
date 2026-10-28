@@ -146,6 +146,22 @@ await client.Alerts.delete({
 
 More authentication options (such as TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications).
 
+## Type overrides
+
+The generated API types under `src/types/generated` come from the upstream
+CrowdSec swagger and are never edited by hand. Known discrepancies with the
+actual LAPI are typed in `src/types/overrides.ts` and exported as
+`SearchAlertsQuery` / `DeleteAlertsQuery` (also available as
+`APITypes.SearchAlertsQuery` / `APITypes.DeleteAlertsQuery`):
+
+- `since` and `until` are Go durations (`24h`, `7d`) on both alert search and
+  alert delete, despite the swagger documenting them as timestamps for delete.
+- `contains` and `kind` are supported by the alert filters but missing from the
+  generated search type; `decision_type` is also missing from the delete type.
+
+Run `pnpm run generate-api` to refresh the generated files, then re-check the
+overrides against the new schema.
+
 ## Debug
 
 this library include [debug](https://www.npmjs.com/package/debug), to debug, you can set the env variable :

@@ -589,6 +589,15 @@ describe('decisionTools', () => {
             expect(ctx.allowlists.check).toHaveBeenCalledWith('1.2.3.4');
         });
 
+        it('should reject an allowlisted target even without a reason', async () => {
+            const ctx = createMockContext();
+            ctx.allowlists.check.mockResolvedValue({ allowlisted: true });
+            const tool = findTool('ban_ip');
+
+            await expect(tool!.handler({ ip: '1.2.3.4' }, ctx as any)).rejects.toThrow(/is allowlisted/);
+            expect(ctx.watcher!.Alerts.pushAlerts).not.toHaveBeenCalled();
+        });
+
         it('should check allowlist for Range scope', async () => {
             const ctx = createMockContext();
             ctx.allowlists.check.mockResolvedValue({ allowlisted: true, reason: 'net-allowlist' });
@@ -769,18 +778,33 @@ describe('decisionTools', () => {
             expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
         });
 
-        it('should delete decisions for a scope with a direct delete', async () => {
+        it('should reject scope without value', async () => {
             const ctx = createMockContext();
-            ctx.watcher!.Decisions.delete.mockResolvedValue({ nbDeleted: '1' });
             const tool = findTool('unban_ip');
 
-            const result = await tool!.handler({ scope: 'Range' }, ctx as any);
-
-            expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(
-                expect.objectContaining({ scope: 'Range' })
-            );
+            await expect(tool!.handler({ scope: 'Range' }, ctx as any)).rejects.toThrow('scope and value must be provided together');
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
             expect(ctx.watcher!.Alerts.search).not.toHaveBeenCalled();
-            expect(result).toContain('1 decision(s) deleted');
+        });
+
+        it('should reject ip combined with range', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ ip: '1.2.3.4', range: '10.0.0.0/8' }, ctx as any)).rejects.toThrow(
+                'Provide only one of ip or range'
+            );
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should reject scope combined with ip', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ ip: '1.2.3.4', scope: 'Ip' }, ctx as any)).rejects.toThrow(
+                'Provide only one of ip, range, or scope+value'
+            );
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
         });
 
         it('should reject all=true combined with filters', async () => {
@@ -856,6 +880,33 @@ describe('decisionTools', () => {
             const tool = findTool('unban_ip');
 
             await expect(tool!.handler({ since: '1h' }, ctx as any)).rejects.toThrow();
+        });
+
+        it('should require confirm for type-only unbans', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ type: 'ban' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm for scenario-only unbans', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ scenario: 'ssh-bf' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should allow type-only unbans with confirm=true', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Decisions.delete.mockResolvedValue({ nbDeleted: '2' });
+            const tool = findTool('unban_ip');
+
+            const result = await tool!.handler({ type: 'ban', confirm: true }, ctx as any);
+
+            expect(result).toContain('2 decision(s) deleted');
+            expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(expect.objectContaining({ type: 'ban' }));
         });
 
         it('should reject when no id, no filters, and not all', async () => {

@@ -12,4 +12,5 @@ export * from './EventEmitter.js';
 export * from './duration.js';
 
 export { APITypes };
+export type { DeleteAlertsQuery, SearchAlertsQuery } from './types/overrides.js';
 export const VERSION = pkg.version;

@@ -221,7 +221,21 @@ export async function startHttpServer(createRequestServer: RequestServerFactory,
     const token = config.http.token;
 
     const httpServer = http.createServer((req, res) => {
-        void handleRequest(req, res, createRequestServer, token);
+        void handleRequest(req, res, createRequestServer, token).catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error);
+            process.stderr.write(`crowdsec-mcp: unhandled HTTP request error: ${message}\n`);
+            try {
+                if (!res.headersSent) {
+                    sendRpcError(res, 500, -32603, 'Internal server error');
+                } else if (!res.writableEnded) {
+                    res.end();
+                }
+            } catch (sendError) {
+                const sendMessage = sendError instanceof Error ? sendError.message : String(sendError);
+                process.stderr.write(`crowdsec-mcp: failed to send error response: ${sendMessage}\n`);
+                res.destroy();
+            }
+        });
     });
 
     httpServer.requestTimeout = 30_000;

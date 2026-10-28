@@ -67,6 +67,19 @@ describe('server instructions', () => {
         expect(instructions).toContain('Alerts, allowlists and write tools are unavailable');
         expect(instructions).toContain('read-only');
     });
+
+    it('hides delete_alerts in read-only mode even when it is enabled', () => {
+        const instructions = buildInstructions(makeContext({ config: makeConfig({ readonly: true, enableAlertDelete: true }) }));
+
+        expect(instructions).toContain('delete_alerts: hidden');
+        expect(instructions).not.toContain('delete_alerts: available');
+    });
+
+    it('reports delete_alerts as available in watcher write mode', () => {
+        const instructions = buildInstructions(makeContext({ config: makeConfig({ readonly: false, enableAlertDelete: true }) }));
+
+        expect(instructions).toContain('delete_alerts: available');
+    });
 });
 
 describe('doc resources', () => {

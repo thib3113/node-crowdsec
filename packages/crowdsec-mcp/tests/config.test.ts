@@ -68,6 +68,36 @@ describe('config', () => {
         ).toThrow(/TLS/);
     });
 
+    it('defaults to watcher authentication when only TLS is configured', () => {
+        const config = loadConfig(
+            {},
+            {
+                CROWDSEC_URL: 'https://crowdsec:8080',
+                CROWDSEC_TLS_CERT: '/tmp/cert.pem',
+                CROWDSEC_TLS_KEY: '/tmp/key.pem',
+                CROWDSEC_TLS_CA: '/tmp/ca.pem'
+            }
+        );
+
+        expect(config.auth).toBe('watcher');
+        expect(config.tls).toEqual({ cert: '/tmp/cert.pem', key: '/tmp/key.pem', ca: '/tmp/ca.pem' });
+    });
+
+    it('keeps an explicit bouncer mode with TLS', () => {
+        const config = loadConfig(
+            {},
+            {
+                CROWDSEC_URL: 'https://crowdsec:8080',
+                CROWDSEC_AUTH: 'bouncer',
+                CROWDSEC_TLS_CERT: '/tmp/cert.pem',
+                CROWDSEC_TLS_KEY: '/tmp/key.pem',
+                CROWDSEC_TLS_CA: '/tmp/ca.pem'
+            }
+        );
+
+        expect(config.auth).toBe('bouncer');
+    });
+
     it('requires a token for HTTP transport', () => {
         expect(() =>
             loadConfig(

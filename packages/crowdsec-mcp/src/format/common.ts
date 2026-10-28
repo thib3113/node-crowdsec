@@ -95,7 +95,8 @@ export function expiry(value?: string | Date, now = Date.now()): string {
         return String(value);
     }
 
-    // CrowdSec uses 0001-01-01T00:00:00Z for "no expiration".
+    // Go's zero time serializes as 0001-01-01T00:00:00Z (notably for allowlist
+    // items with no expiration); treat it as "never".
     if (date.getUTCFullYear() <= 1) {
         return 'never';
     }

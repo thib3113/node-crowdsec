@@ -80,6 +80,8 @@ The authentication mode is auto-detected from the provided credentials, or can b
 
 All three TLS files are required together. Use `CROWDSEC_STRICT_SSL=false` only for self-signed certificates in development.
 
+With mutual TLS and no explicit `CROWDSEC_AUTH`, the server defaults to `watcher` (agent certificate). Set `CROWDSEC_AUTH=bouncer` when the certificate belongs to a bouncer.
+
 If both a bouncer key and machine credentials are present, set `CROWDSEC_AUTH` explicitly. Without it, the bouncer API key takes precedence.
 
 ### Environment variables
@@ -205,7 +207,7 @@ ban_ip(range="203.0.113.0/24", duration="1h", type="captcha")
 - Provide exactly one of `ip`, `range`, or `scope` + `value`; mixing them is rejected.
 - IP and CIDR inputs are validated before sending anything. Scopes and decision types are validated too.
 - The value is checked against allowlists first. If it is allowlisted, the call is refused unless `force=true`.
-- `duration` must include a unit (`30m`, `4h`, `7d`, `1h30m`). Bare numbers such as `300` are rejected before the LAPI call.
+- `duration` accepts a unit (`30m`, `4h`, `7d`, `1h30m`). A bare number is interpreted as seconds (`300` = `5m`).
 - `Country` values must be two-letter codes; `AS` values must be numeric ASNs. `Ip`/`Range` values are validated as IP/CIDR.
 - `duration` is limited by `CROWDSEC_MCP_MAX_BAN_DURATION` unless `force=true`.
 - CrowdSec accepts private, unspecified (`0.0.0.0`), broadcast and TEST-NET addresses; the MCP does not filter them.
@@ -222,7 +224,7 @@ unban_ip(id="42")
 unban_ip(all=true, confirm=true)
 ```
 
-`all=true` without `confirm=true` is rejected. `scope` is supported for `Ip`/`Range` and for non-IP scopes (`Country`, `AS`, `Session`, `Username`) via an active-decision lookup; matching decisions are deleted by ID.
+`all=true` without `confirm=true` is rejected. `scope` must be combined with `value` (`unban_ip(scope="Country", value="FR")`); `scope` alone is rejected so a broad filter cannot delete every decision of that scope. `range` containment is resolved through an alert search and deleted by ID; other scopes are sent directly to the LAPI. `type`/`scenario` alone are broad and also require `confirm=true`; narrow with `ip`, `range`, or `scope`+`value`.
 
 ### `delete_alerts` (opt-in)
 
@@ -236,7 +238,7 @@ A remote watcher receives `403 access forbidden from this IP`. Use `unban_ip` to
 
 In passthrough mode, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP from exposing the local-only destructive path.
 
-`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. Filters `id`, `origin`, `type`, `since`, `until` and `has_active_decision` are resolved through an alert search followed by deletion by ID, because the LAPI DELETE endpoint does not support all of them directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
+`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. `type` is resolved through an alert search followed by deletion by ID, as the conservative path for LAPIs that do not accept `decision_type` on DELETE. `since` and `until` are Go durations (`24h`, `7d`) and are sent directly to the delete endpoint, like the alert search. `id`, `origin` (sent as `alert_source`) and `has_active_decision` are sent directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
 
 ### CIDR semantics
 

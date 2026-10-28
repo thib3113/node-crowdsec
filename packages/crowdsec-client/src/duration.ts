@@ -4,6 +4,12 @@ const UNIT_SECONDS: Record<string, number> = {
     s: 1
 };
 
+/**
+ * A duration string accepted by CrowdSec (`30m`, `4h`, `7d`, `1h30m`).
+ * `d` is a CrowdSec extension to Go's `time.ParseDuration`.
+ */
+export type GoDuration = string;
+
 const DAY_SECONDS = 86400;
 
 function invalidDuration(input: string): Error {
@@ -142,7 +148,7 @@ function formatSeconds(seconds: number): string {
  *
  * Numbers are interpreted as seconds.
  */
-export function toGoDuration(input: string | number): string {
+export function toGoDuration(input: string | number): GoDuration {
     const total = typeof input === 'number' ? input : parseDuration(input);
     if (!Number.isFinite(total) || total <= 0) {
         throw invalidDuration(String(input));

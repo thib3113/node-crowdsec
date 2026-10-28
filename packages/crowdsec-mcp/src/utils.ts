@@ -1,12 +1,7 @@
 import { isIP } from 'node:net';
-import type { APITypes } from 'crowdsec-client';
 import { parseDuration } from 'crowdsec-client';
 
 export { formatDuration, parseDuration, toGoDuration } from 'crowdsec-client';
-
-// `contains` is supported by the LAPI but missing from the upstream swagger, so
-// it is not part of the generated request type yet.
-export type AlertsSearchQuery = APITypes.Alerts.SearchAlerts.RequestQuery & { contains?: boolean };
 
 export function isValidIp(value: string): boolean {
     return isIP(value) !== 0;

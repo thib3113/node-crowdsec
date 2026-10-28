@@ -180,17 +180,15 @@ describe('alertTools', () => {
             );
         });
 
-        it('should filter by kind client-side', async () => {
+        it('should filter by kind in the LAPI query', async () => {
             mockWatcher.Alerts.search.mockResolvedValue([
-                { id: 1, created_at: CREATED_AT, kind: 'waf', source: { scope: 'Ip', value: '1.1.1.1' }, decisions: [] },
-                { id: 2, created_at: CREATED_AT, kind: 'crowdsec', source: { scope: 'Ip', value: '2.2.2.2' }, decisions: [] }
+                { id: 1, created_at: CREATED_AT, kind: 'waf', source: { scope: 'Ip', value: '1.1.1.1' }, decisions: [] }
             ]);
             const tool = alertTools.find((t) => t.name === 'list_alerts')!;
             const result = await tool.handler({ kind: 'waf' }, mockCtx);
 
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(expect.not.objectContaining({ kind: expect.anything() }));
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ kind: 'waf' }));
             expect(result).toContain('1.1.1.1');
-            expect(result).not.toContain('2.2.2.2');
         });
 
         it('should format output as markdown table with summary', async () => {
@@ -534,6 +532,16 @@ describe('alertTools', () => {
                 })
             );
             expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should send since and until to the delete endpoint as durations', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            const result = await tool.handler({ since: '24h', until: '1h' }, mockCtx);
+
+            expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(expect.objectContaining({ since: '24h', until: '1h' }));
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(result).toContain('Deleted 5 alert(s).');
         });
 
         it('should delete alerts with active decisions with a direct delete', async () => {

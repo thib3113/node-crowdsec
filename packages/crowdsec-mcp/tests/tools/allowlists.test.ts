@@ -161,6 +161,29 @@ describe('allowlistTools', () => {
             expect(result).not.toContain('"items"');
         });
 
+        it('should render the year-1 sentinel as never', async () => {
+            mockAllowlists.get.mockResolvedValue({
+                name: 'no-expiry',
+                description: 'No expiry',
+                created_at: '2024-01-01T00:00:00Z',
+                updated_at: '2024-01-01T00:00:00Z',
+                console_managed: false,
+                items: [
+                    {
+                        value: '1.2.3.4',
+                        description: 'Permanent entry',
+                        created_at: '2024-01-01T00:00:00Z',
+                        expiration: '0001-01-01T00:00:00Z'
+                    }
+                ]
+            } satisfies APITypes.GetAllowlistResponse);
+
+            const result = (await findTool('get_allowlist').handler({ name: 'no-expiry' }, mockCtx)) as string;
+
+            expect(result).toContain('never');
+            expect(result).not.toContain('0001-01-01');
+        });
+
         it('should trim allowlist names before calling the LAPI', async () => {
             mockAllowlists.get.mockResolvedValue(makeAllowlist(0, { name: 'test-allowlist' }));
 

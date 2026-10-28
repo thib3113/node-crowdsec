@@ -25,7 +25,6 @@ import {
 } from '../format/decisions.js';
 import { cleanErrorMessage } from '../registry.js';
 import type { AppContext, ToolDefinition } from '../types.js';
-import type { AlertsSearchQuery } from '../utils.js';
 
 function collectDecisionIds(alerts: APITypes.GetAlertsResponse): number[] {
     const ids = new Set<number>();
@@ -39,10 +38,10 @@ function collectDecisionIds(alerts: APITypes.GetAlertsResponse): number[] {
     return [...ids];
 }
 
-async function searchActiveDecisionIds(ctx: AppContext, query: AlertsSearchQuery): Promise<number[]> {
+async function searchActiveDecisionIds(ctx: AppContext, query: APITypes.SearchAlertsQuery): Promise<number[]> {
     // `contains: false` means "decisions contained within the value" and is
     // required for CIDR containment; the LAPI defaults to the opposite.
-    const searchQuery: AlertsSearchQuery = {
+    const searchQuery: APITypes.SearchAlertsQuery = {
         ...query,
         contains: query.contains ?? false,
         has_active_decision: true,
@@ -120,12 +119,16 @@ const UnbanIpInput = z
         id: z.union([z.string(), z.number()]).optional().describe('Decision ID to delete'),
         ip: z.string().optional().describe('Single IP address to filter by (exact match)'),
         range: z.string().optional().describe('CIDR value for decisions whose scope is Range (exact match)'),
-        scope: z.string().optional().describe('Scope to filter by (Ip or Range; other scopes are unsupported by the LAPI)'),
+        scope: z.string().optional().describe('Scope to filter by (must be combined with value)'),
         value: z.string().optional().describe('Value to filter by (used with scope)'),
         type: z.string().optional().describe('Decision type to filter by (ban, captcha, throttle)'),
         scenario: z.string().optional().describe('Scenario name to filter by'),
         all: z.boolean().optional().default(false).describe('Delete all matching decisions'),
-        confirm: z.boolean().optional().default(false).describe('Confirm deletion when all=true')
+        confirm: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe('Confirm deletion when all=true or when only type/scenario filters are used')
     })
     .strict();
 
@@ -170,8 +173,9 @@ async function ensureBanAllowed(ctx: AppContext, scope: string, targetValue: str
     }
 
     const checkResult = await ctx.allowlists.check(targetValue);
-    if (checkResult.allowlisted && checkResult.reason) {
-        throw new Error(`${targetValue} is allowlisted by item ${checkResult.reason}, use force=true to add the decision anyway`);
+    if (checkResult.allowlisted) {
+        const suffix = checkResult.reason ? ` by item ${checkResult.reason}` : '';
+        throw new Error(`${targetValue} is allowlisted${suffix}, use force=true to add the decision anyway`);
     }
 }
 
@@ -225,11 +229,14 @@ function buildBanAlert(decisionType: string, scope: string, targetValue: string,
 }
 
 function validateUnbanTargets(ip?: string, range?: string, scope?: string, value?: string): void {
-    if (scope && value && (ip || range)) {
+    if (ip && range) {
+        throw new Error('Provide only one of ip or range');
+    }
+    if ((scope || value) && (ip || range)) {
         throw new Error('Provide only one of ip, range, or scope+value');
     }
-    if (value && !scope && (ip || range)) {
-        throw new Error('Provide only one of ip, range, or value');
+    if (Boolean(scope) !== Boolean(value)) {
+        throw new Error('scope and value must be provided together');
     }
 }
 
@@ -285,11 +292,6 @@ async function unbanById(ctx: AppContext, id: string | number): Promise<string> 
         }
         throw error;
     }
-}
-
-async function unbanByScope(ctx: AppContext, scope: string, type: string | undefined, scenario: string | undefined): Promise<string> {
-    const normalized = assertValidDecisionScope(scope);
-    return unbanByQuery(ctx, { scope: normalized, type, scenario });
 }
 
 async function unbanByScopeValue(
@@ -367,8 +369,6 @@ export const decisionTools: ToolDefinition[] = [
         kind: 'read',
         annotations: { readOnlyHint: true, idempotentHint: true },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             const parsed = ListDecisionsInput.parse(input);
             validateListDecisionsFilters(parsed);
             const { ip, range, scope, value, type, origin, scenario, since, until, contains, no_simulated, all, limit } = parsed;
@@ -378,7 +378,7 @@ export const decisionTools: ToolDefinition[] = [
             const normalizedUntil = until ? toGoDuration(until) : undefined;
 
             if (ctx.mode === 'watcher' && ctx.watcher) {
-                const query: AlertsSearchQuery = {
+                const query: APITypes.SearchAlertsQuery = {
                     ip,
                     range,
                     scope,
@@ -426,8 +426,6 @@ export const decisionTools: ToolDefinition[] = [
         requires: ['watcher'],
         annotations: { readOnlyHint: true, idempotentHint: true },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             if (!ctx.watcher) {
                 throw new Error('Watcher client not available');
             }
@@ -456,8 +454,6 @@ export const decisionTools: ToolDefinition[] = [
         requires: ['watcher'],
         annotations: { readOnlyHint: false, destructiveHint: true },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             if (!ctx.watcher) {
                 throw new Error('Watcher client not available');
             }
@@ -489,14 +485,13 @@ export const decisionTools: ToolDefinition[] = [
     {
         name: 'unban_ip',
         title: 'Unban IP',
-        description: 'Delete decisions by ID or filters. Requires watcher mode. Mirrors `cscli decisions delete`.',
+        description:
+            'Delete decisions by ID or filters. Requires watcher mode. Broad type/scenario-only filters require confirm=true. Mirrors `cscli decisions delete`.',
         inputSchema: UnbanIpInput,
         kind: 'write',
         requires: ['watcher'],
         annotations: { readOnlyHint: false, destructiveHint: true },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             if (!ctx.watcher) {
                 throw new Error('Watcher client not available');
             }
@@ -523,9 +518,13 @@ export const decisionTools: ToolDefinition[] = [
 
             const normalizedType = unbanInput.type ? assertValidDecisionType(unbanInput.type) : undefined;
 
-            if (unbanInput.scope && !unbanInput.value) {
-                return unbanByScope(ctx, unbanInput.scope, normalizedType, unbanInput.scenario);
+            const hasNarrowTarget = Boolean(unbanInput.ip || unbanInput.range || (unbanInput.scope && unbanInput.value));
+            if (!hasNarrowTarget && (normalizedType || unbanInput.scenario) && unbanInput.confirm !== true) {
+                throw new Error(
+                    'Deleting decisions filtered only by type/scenario requires confirm=true; add ip, range, or scope+value to narrow the target'
+                );
             }
+
             if (unbanInput.scope && unbanInput.value) {
                 return unbanByScopeValue(ctx, unbanInput.scope, unbanInput.value, normalizedType, unbanInput.scenario);
             }

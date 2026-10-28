@@ -1,5 +1,6 @@
 import { BaseSubObject } from '../BaseSubObject.js';
 import { Alerts as AlertsTypes } from '../types/index.js';
+import type { DeleteAlertsQuery, SearchAlertsQuery } from '../types/index.js';
 import { AxiosResponse } from 'axios';
 
 export class Alerts extends BaseSubObject {
@@ -17,7 +18,7 @@ export class Alerts extends BaseSubObject {
         ).data;
     }
 
-    public async search(options?: AlertsTypes.SearchAlerts.RequestQuery): Promise<AlertsTypes.SearchAlerts.ResponseBody> {
+    public async search(options?: SearchAlertsQuery): Promise<AlertsTypes.SearchAlerts.ResponseBody> {
         return (
             await this.http.get<
                 AlertsTypes.SearchAlerts.ResponseBody,
@@ -37,7 +38,7 @@ export class Alerts extends BaseSubObject {
         ).data;
     }
 
-    public async delete(options: AlertsTypes.DeleteAlerts.RequestQuery): Promise<AlertsTypes.DeleteAlerts.ResponseBody> {
+    public async delete(options: DeleteAlertsQuery): Promise<AlertsTypes.DeleteAlerts.ResponseBody> {
         return (
             await this.http.delete<
                 AlertsTypes.DeleteAlerts.ResponseBody,

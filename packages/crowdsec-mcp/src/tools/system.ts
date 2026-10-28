@@ -14,17 +14,16 @@ export const statusTool: ToolDefinition = {
         idempotentHint: true
     },
     handler: async (_input, ctx) => {
-        await ctx.ensureReady();
-
         const machineSuffix = ctx.mode === 'watcher' && ctx.config.machineId ? ` (${ctx.config.machineId})` : '';
         const auth = ctx.mode === 'watcher' ? `watcher${machineSuffix}` : 'bouncer';
+        const writeLabel = ctx.capabilities.write ? (ctx.config.readonly ? 'yes (disabled by read-only)' : 'yes') : 'no';
         const lines = [
             'CrowdSec MCP is connected.',
             '',
             bullets([
                 `URL: ${redactedUrl(ctx.config.url)}`,
                 `Authentication: ${auth}`,
-                `Capabilities: read=yes, write=${ctx.capabilities.write ? 'yes' : 'no'}, allowlists=${ctx.capabilities.allowlists ? 'yes' : 'no'}`,
+                `Capabilities: read=yes, write=${writeLabel}, allowlists=${ctx.capabilities.allowlists ? 'yes' : 'no'}`,
                 `Read-only: ${ctx.config.readonly ? 'yes' : 'no'}`,
                 `Default result limit: ${ctx.config.maxResults}`,
                 `Maximum ban duration: ${ctx.config.maxBanDuration} (force=true can override)`,

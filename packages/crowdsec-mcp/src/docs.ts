@@ -44,7 +44,9 @@ function writeSummary(ctx: AppContext): string {
 }
 
 function canDeleteAlerts(ctx: AppContext): boolean {
-    return isAlertDeleteAvailable(ctx.config);
+    // delete_alerts is a write tool: it also requires watcher credentials and
+    // read-only mode disables every write tool.
+    return ctx.mode === 'watcher' && !ctx.config.readonly && isAlertDeleteAvailable(ctx.config);
 }
 
 function availabilityLines(ctx: AppContext): string[] {
@@ -77,11 +79,11 @@ function workingRules(ctx: AppContext): string[] {
     if (ctx.config.readonly) {
         add('Write tools are hidden: analyse and recommend, but never claim that a ban or unban was applied.');
     } else {
-        add(
-            'ban_ip, unban_ip and delete_alerts change real state: summarise the target, type and duration and wait for user confirmation.'
-        );
+        const destructive = canDeleteAlerts(ctx) ? 'ban_ip, unban_ip and delete_alerts' : 'ban_ip and unban_ip';
+        add(`${destructive} change real state: summarise the target, type and duration and wait for user confirmation.`);
         add('Durations need a unit (30m, 4h, 7d). Durations above the limit require force=true and explicit approval.');
         add('ban_ip refuses allowlisted targets unless force=true; check_allowlist first when in doubt.');
+        add('unban_ip with only type/scenario filters can delete many decisions and requires confirm=true.');
     }
 
     add('Never invent alert or decision IDs. If a lookup returns nothing, say so instead of guessing.');

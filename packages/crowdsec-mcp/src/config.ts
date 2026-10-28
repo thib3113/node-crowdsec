@@ -132,7 +132,8 @@ function resolveAuth(
     apiKey: string | undefined,
     machineId: string | undefined,
     password: string | undefined,
-    passthrough: boolean
+    passthrough: boolean,
+    hasTls: boolean
 ): AuthMode {
     if (requestedAuth === 'bouncer' || requestedAuth === 'watcher') {
         return requestedAuth;
@@ -151,7 +152,15 @@ function resolveAuth(
         // mode for the shared Config shape.
         return 'watcher';
     }
-    throw new Error('unable to detect authentication mode: set CROWDSEC_API_KEY or CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD');
+    if (hasTls) {
+        // With mutual TLS alone we cannot tell a bouncer certificate from an
+        // agent one, so default to the richer watcher mode. Set
+        // CROWDSEC_AUTH=bouncer when the certificate belongs to a bouncer.
+        return 'watcher';
+    }
+    throw new Error(
+        'unable to detect authentication mode: set CROWDSEC_API_KEY, CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD, TLS certificates, or CROWDSEC_AUTH'
+    );
 }
 
 function resolveTls(cert: string | undefined, key: string | undefined, ca: string | undefined): Config['tls'] {
@@ -217,13 +226,13 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
     const passthrough = values.passthrough === true || readBoolean(env.CROWDSEC_MCP_PASSTHROUGH, 'CROWDSEC_MCP_PASSTHROUGH', false);
 
     const requestedAuth = firstDefined(values.auth as string | undefined, env.CROWDSEC_AUTH)?.toLowerCase();
-    const auth = resolveAuth(requestedAuth, apiKey, machineId, password, passthrough);
 
     const tls = resolveTls(
         firstDefined(values['tls-cert'] as string | undefined, env.CROWDSEC_TLS_CERT),
         firstDefined(values['tls-key'] as string | undefined, env.CROWDSEC_TLS_KEY),
         firstDefined(values['tls-ca'] as string | undefined, env.CROWDSEC_TLS_CA)
     );
+    const auth = resolveAuth(requestedAuth, apiKey, machineId, password, passthrough, Boolean(tls));
     validateCredentials(passthrough, auth, apiKey, tls, machineId, password);
 
     const transport = resolveTransport(values, env, passthrough);

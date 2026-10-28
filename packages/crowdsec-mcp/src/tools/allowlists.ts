@@ -45,8 +45,6 @@ export const allowlistTools: ToolDefinition[] = [
             idempotentHint: true
         },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             const { limit } = ListAllowlistsInput.parse(input);
             const allowlists = await ctx.allowlists.list();
 
@@ -65,8 +63,6 @@ export const allowlistTools: ToolDefinition[] = [
             idempotentHint: true
         },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             const { name, with_content: withContent, limit } = GetAllowlistInput.parse(input);
 
             try {
@@ -94,8 +90,6 @@ export const allowlistTools: ToolDefinition[] = [
             idempotentHint: true
         },
         handler: async (input, ctx) => {
-            await ctx.ensureReady();
-
             const { value, values } = CheckAllowlistInput.parse(input);
 
             const targets: string[] = [...(values ?? []), ...(value ? [value] : [])];
