@@ -175,6 +175,25 @@ jobs:
         working-directory: ${{ matrix.package.path }}
         if: steps.package_version.outputs.npm_is_greater != 'true'
 
+      # Marker consumed by the docker-mcp job: it only proves what this run
+      # actually published, independently of npm CDN propagation delays.
+      - name: Record npm publication
+        if: steps.package_version.outputs.npm_is_greater != 'true'
+        env:
+          PKG_NAME: ${{ matrix.package.name }}
+          PKG_VERSION: ${{ steps.package_version.outputs.version }}
+        run: |
+          mkdir -p published
+          echo "${PKG_NAME}@${PKG_VERSION}" > "published/${PKG_NAME}.txt"
+
+      - name: Upload npm publication marker
+        if: steps.package_version.outputs.npm_is_greater != 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: published-${{ matrix.package.name }}
+          path: published/${{ matrix.package.name }}.txt
+          if-no-files-found: ignore
+
 #      - name: publish to GPR
 #        run: |
 #          npx npe name @${{ github.repository_owner }}/${{ matrix.package.name }}
@@ -190,8 +209,8 @@ jobs:
 #        working-directory: ${{ matrix.package.path }}
 #        if: steps.package_version.outputs.npm_is_greater != 'true'
 
-  # Only build the Docker image once the matching version is actually published
-  # on npm, so the image follows the same release flow as the npm package.
+  # Read the publication marker uploaded by the crowdsec-mcp matrix leg.
+  # This tells whether this very run published crowdsec-mcp to npm.
   docker-mcp-check:
     needs: [ build ]
     if: startsWith(github.event.release.tag_name, 'crowdsec-mcp/v')
@@ -200,22 +219,26 @@ jobs:
       published: ${{ steps.check.outputs.published }}
       version: ${{ steps.check.outputs.version }}
     steps:
-      - name: Check npm publication
-        id: check
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          VERSION="${RELEASE_TAG#crowdsec-mcp/v}"
-          PUBLISHED=false
-          for attempt in 1 2 3 4 5 6; do
-            LATEST="$(curl -fsSL https://registry.npmjs.org/crowdsec-mcp | jq -r '.["dist-tags"].latest // "0.0.0"')" || LATEST=error
-            echo "attempt ${attempt}: release=${VERSION} npm_latest=${LATEST}"
-            if [ "${LATEST}" = "${VERSION}" ]; then PUBLISHED=true; break; fi
-            sleep 10
-          done
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "published=${PUBLISHED}" >> "$GITHUB_OUTPUT"
+      - name: Download npm publication marker
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: published-crowdsec-mcp
 
+      - name: Resolve publication result
+        id: check
+        run: |
+          MARKER="$(find . -name 'crowdsec-mcp.txt' -print -quit)"
+          if [ -n "${MARKER}" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(cut -d@ -f2 "${MARKER}")" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Build the Docker image from the release workflow, and only when this run
+  # actually published the crowdsec-mcp npm package.
   docker-mcp:
     needs: [ docker-mcp-check ]
     if: needs['docker-mcp-check'].outputs.published == 'true'
