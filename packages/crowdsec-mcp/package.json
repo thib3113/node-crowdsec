@@ -49,6 +49,10 @@
     },
     "scripts": {
         "prepack": "npm run build",
+        "version": "npm run build",
+        "preversion": "git update-index --really-refresh && git diff-index --quiet HEAD || (echo git is not clean && exit 1)",
+        "postversion": "pnpm run generate-tag",
+        "generate-tag": "git commit -am \"bump version of ${npm_package_name} to v${npm_package_version}\" && git tag -a ${npm_package_name}/v${npm_package_version} -m \"${npm_package_name}/v${npm_package_version}\"",
         "build": "rimraf dist && node ./esbuild.js",
         "dev": "node ./esbuild.js --watch",
         "start": "node dist/index.js",
