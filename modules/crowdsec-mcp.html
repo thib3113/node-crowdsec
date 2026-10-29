@@ -1,0 +1,779 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>crowdsec-mcp | Node CrowdSec Client</title><meta name="description" content="Documentation for Node CrowdSec Client"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">Node CrowdSec Client</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">crowdsec-mcp</a></li></ul>
+<h1>Module crowdsec-mcp</h1></div>
+<section class="tsd-panel tsd-typography"><h1 id="crowdsec-mcp" class="tsd-anchor-link">crowdsec-mcp<a href="#crowdsec-mcp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p><a href="https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml"><img src="https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg" alt="CI"></a>
+<a href="https://codecov.io/gh/thib3113/node-crowdsec"><img src="https://codecov.io/gh/thib3113/node-crowdsec/branch/main/graph/badge.svg?token=bQdlb31gcU" alt="codecov"></a>
+<a href="https://github.com/thib3113/node-crowdsec/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
+<a href="https://snyk.io/test/github/thib3113/node-crowdsec"><img src="https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg" alt="Known Vulnerabilities"></a>
+<a href="https://paypal.me/thib3113"><img src="https://img.shields.io/badge/Donate-PayPal-green.svg?logo=paypal" alt="Donate"></a>
+<a href="https://github.com/thib3113/node-crowdsec/stargazers/"><img src="https://img.shields.io/github/stars/thib3113/node-crowdsec.svg?style=social&amp;label=Star" alt="GitHub stars"></a></p>
+<p><a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=bugs" alt="Bugs"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=code_smells" alt="Code Smells"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=duplicated_lines_density" alt="Duplicated Lines (%)"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=ncloc" alt="Lines of Code"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=sqale_rating" alt="Maintainability Rating"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=alert_status" alt="Quality Gate Status"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=reliability_rating" alt="Reliability Rating"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=security_rating" alt="Security Rating"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=sqale_index" alt="Technical Debt"></a>
+<a href="https://sonarcloud.io/dashboard?id=thib3113_node-crowdsec"><img src="https://sonarcloud.io/api/project_badges/measure?project=thib3113_node-crowdsec&amp;metric=vulnerabilities" alt="Vulnerabilities"></a></p>
+<p><strong>Give this to your AI agent.</strong> Copy/paste this prompt:</p>
+<blockquote>
+<p>Read <a href="https://raw.githubusercontent.com/thib3113/node-crowdsec/main/packages/crowdsec-mcp/README.md">https://raw.githubusercontent.com/thib3113/node-crowdsec/main/packages/crowdsec-mcp/README.md</a> and give me a brief of what the MCP can do, then explain how to install and configure it for my client (Claude Desktop/Code, Cursor or opencode). Never ask me for credentials: just tell me which environment variables to set. Also explain the security impact before enabling <code>ban_ip</code>, <code>unban_ip</code> or <code>delete_alerts</code>.</p>
+</blockquote>
+<p>The agent can use this document as the installation and configuration reference.</p>
+<p>A <a href="https://modelcontextprotocol.io">Model Context Protocol</a> server for CrowdSec. It exposes decisions, alerts and allowlists to an LLM as readable Markdown, with guarded write operations for watcher credentials.</p>
+<ul>
+<li><code>npx</code>-friendly, stdio by default</li>
+<li>Bouncer API key, watcher machine credentials, or mutual TLS</li>
+<li>Read-only by default</li>
+<li>Optional Streamable HTTP transport with a mandatory bearer token</li>
+<li>Server-side tool filtering</li>
+<li>cscli-compatible behavior for decisions, alerts and allowlists</li>
+</ul>
+<h2 id="requirements" class="tsd-anchor-link">Requirements<a href="#requirements" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>Node.js 24 or newer.</li>
+<li>A reachable CrowdSec Local API (LAPI).</li>
+</ul>
+<h2 id="quick-start" class="tsd-anchor-link">Quick start<a href="#quick-start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<pre><code class="bash"><span class="hl-6">npx</span><span class="hl-1"> </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<p>From a checkout, before the npm release or for development:</p>
+<pre><code class="bash"><span class="hl-6">pnpm</span><span class="hl-1"> </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span><span class="hl-1"> </span><span class="hl-3">build</span><br/><span class="hl-6">node</span><span class="hl-1"> </span><span class="hl-3">packages/crowdsec-mcp/dist/index.js</span>
+</code><button type="button">Copy</button></pre>
+
+<p>With a bouncer API key:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_URL</span><span class="hl-1">=</span><span class="hl-3">https://crowdsec:8080</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_API_KEY=your-bouncer-key </span><span class="hl-11">\</span><br/><span class="hl-1">npx </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<p>With a watcher (required for alerts, allowlists and write tools):</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_URL</span><span class="hl-1">=</span><span class="hl-3">https://crowdsec:8080</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_MACHINE_ID=crowdsec-mcp </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_PASSWORD=your-password </span><span class="hl-11">\</span><br/><span class="hl-1">npx </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<h2 id="authentication" class="tsd-anchor-link">Authentication<a href="#authentication" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The authentication mode is auto-detected from the provided credentials, or can be forced with <code>CROWDSEC_AUTH=bouncer|watcher</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Credentials</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bouncer</code></td>
+<td><code>CROWDSEC_API_KEY</code></td>
+<td>read decisions</td>
+</tr>
+<tr>
+<td><code>watcher</code></td>
+<td><code>CROWDSEC_MACHINE_ID</code> + <code>CROWDSEC_PASSWORD</code></td>
+<td>alerts, decisions, allowlists, writes</td>
+</tr>
+<tr>
+<td>either</td>
+<td><code>CROWDSEC_TLS_CERT</code> + <code>CROWDSEC_TLS_KEY</code> + <code>CROWDSEC_TLS_CA</code></td>
+<td>mutual TLS</td>
+</tr>
+</tbody>
+</table>
+<p>All three TLS files are required together. Use <code>CROWDSEC_STRICT_SSL=false</code> only for self-signed certificates in development.</p>
+<p>With mutual TLS and no explicit <code>CROWDSEC_AUTH</code>, the server defaults to <code>watcher</code> (agent certificate). Set <code>CROWDSEC_AUTH=bouncer</code> when the certificate belongs to a bouncer.</p>
+<p>If both a bouncer key and machine credentials are present, set <code>CROWDSEC_AUTH</code> explicitly. Without it, the bouncer API key takes precedence.</p>
+<h3 id="environment-variables" class="tsd-anchor-link">Environment variables<a href="#environment-variables" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CROWDSEC_URL</code></td>
+<td>CrowdSec LAPI URL</td>
+<td>required</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_AUTH</code></td>
+<td><code>bouncer</code> or <code>watcher</code></td>
+<td>auto</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_API_KEY</code></td>
+<td>Bouncer API key</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MACHINE_ID</code></td>
+<td>Watcher machine ID</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_PASSWORD</code></td>
+<td>Watcher password</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_TLS_CERT</code></td>
+<td>Client certificate path</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_TLS_KEY</code></td>
+<td>Client key path</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_TLS_CA</code></td>
+<td>CA certificate path</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_STRICT_SSL</code></td>
+<td>Validate TLS certificates</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_TIMEOUT</code></td>
+<td>HTTP timeout in milliseconds</td>
+<td><code>10000</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_TRANSPORT</code></td>
+<td><code>stdio</code> or <code>http</code></td>
+<td><code>stdio</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_PASSTHROUGH</code></td>
+<td>Use per-request LAPI credentials (HTTP only)</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_HTTP_HOST</code></td>
+<td>HTTP bind host</td>
+<td><code>127.0.0.1</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_HTTP_PORT</code></td>
+<td>HTTP bind port</td>
+<td><code>3939</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_HTTP_TOKEN</code></td>
+<td>HTTP bearer token</td>
+<td>required for HTTP; optional in passthrough</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_READONLY</code></td>
+<td>Hide write tools</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_ENABLE_ALERT_DELETE</code></td>
+<td>Expose <code>delete_alerts</code> (requires the MCP next to the LAPI)</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN</code></td>
+<td>Allow <code>delete_alerts</code> over HTTP without a service token (dangerous)</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_TOOLS</code></td>
+<td>Comma-separated allowlist of tools</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_DISABLE_TOOLS</code></td>
+<td>Comma-separated denylist of tools</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_MAX_RESULTS</code></td>
+<td>Default result limit</td>
+<td><code>25</code></td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_MAX_BAN_DURATION</code></td>
+<td>Maximum ban duration without <code>force</code></td>
+<td><code>24h</code></td>
+</tr>
+</tbody>
+</table>
+<p>Secrets should stay in the environment. Command-line arguments are available for convenience, but are visible in the process list.</p>
+<h3 id="cli-arguments" class="tsd-anchor-link">CLI arguments<a href="#cli-arguments" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Most environment variables above have a kebab-case argument equivalent: <code>--url</code>, <code>--auth</code>, <code>--api-key</code>, <code>--machine-id</code>, <code>--password</code>, <code>--tls-cert</code>, <code>--tls-key</code>, <code>--tls-ca</code>, <code>--timeout</code>, <code>--transport</code>, <code>--http-host</code>, <code>--http-port</code>, <code>--http-token</code>, <code>--passthrough</code>, <code>--enable-alert-delete</code>, <code>--allow-alert-delete-without-token</code>, <code>--tools</code>, <code>--disable-tools</code>, <code>--max-results</code>, <code>--max-ban-duration</code>. Exceptions: <code>CROWDSEC_STRICT_SSL</code> uses <code>--insecure</code>, and <code>CROWDSEC_MCP_READONLY</code> uses <code>--readonly</code>/<code>--write</code>.</p>
+<p>Use <code>--help</code> for the full list.</p>
+<h2 id="tools" class="tsd-anchor-link">Tools<a href="#tools" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Read-only tools are always available according to the authentication mode. Write tools are hidden by default and require <code>CROWDSEC_MCP_READONLY=false</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Kind</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>crowdsec_status</code></td>
+<td>read</td>
+<td>any</td>
+<td>Connection status, auth mode, capabilities and active tools</td>
+</tr>
+<tr>
+<td><code>list_decisions</code></td>
+<td>read</td>
+<td>bouncer, watcher</td>
+<td>Active decisions, like <code>cscli decisions list</code></td>
+</tr>
+<tr>
+<td><code>get_decision</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Get an active decision by ID, with alert context</td>
+</tr>
+<tr>
+<td><code>list_alerts</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Alerts with filters, like <code>cscli alerts list</code></td>
+</tr>
+<tr>
+<td><code>get_alert</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Alert details, decisions, meta and events</td>
+</tr>
+<tr>
+<td><code>list_allowlists</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Allowlists and their size</td>
+</tr>
+<tr>
+<td><code>get_allowlist</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Allowlist details and items</td>
+</tr>
+<tr>
+<td><code>check_allowlist</code></td>
+<td>read</td>
+<td>watcher</td>
+<td>Check one or many IPs/ranges against allowlists</td>
+</tr>
+<tr>
+<td><code>ban_ip</code></td>
+<td>write</td>
+<td>watcher</td>
+<td>Add a decision via the cscli alert payload</td>
+</tr>
+<tr>
+<td><code>unban_ip</code></td>
+<td>write</td>
+<td>watcher</td>
+<td>Delete decisions by ID, filters, or all with confirmation</td>
+</tr>
+<tr>
+<td><code>delete_alerts</code></td>
+<td>write</td>
+<td>watcher</td>
+<td>Opt-in; delete alerts by ID, filters, or all with confirmation (local deployment only)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="read-only-by-default" class="tsd-anchor-link">Read-only by default<a href="#read-only-by-default" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_MCP_READONLY</span><span class="hl-1">=</span><span class="hl-3">true</span><span class="hl-1">   </span><span class="hl-7"># default: write tools are not registered</span><br/><span class="hl-0">CROWDSEC_MCP_READONLY</span><span class="hl-1">=</span><span class="hl-3">false</span><span class="hl-1">  </span><span class="hl-7"># expose write tools</span>
+</code><button type="button">Copy</button></pre>
+
+<p>When read-only is enabled, write tools are not advertised at all: the model cannot call them.</p>
+<p><code>list_alerts</code> reports active decisions only in its Decisions column. <code>list_decisions</code>, <code>get_decision</code> and <code>get_alert</code> expose the decision ID and a computed expiry (from the remaining decision duration).</p>
+<p>When <code>limit</code> is explicit, the MCP fetches all matching rows so the <code>hidden</code> count is exact. Without an explicit <code>limit</code>, it fetches <code>CROWDSEC_MCP_MAX_RESULTS</code> rows and only hints that more may exist. This keeps default calls cheap on large alert datasets.</p>
+<h3 id="limit-the-tools-exposed-to-the-model" class="tsd-anchor-link">Limit the tools exposed to the model<a href="#limit-the-tools-exposed-to-the-model" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-7"># Only these tools are registered</span><br/><span class="hl-0">CROWDSEC_MCP_TOOLS</span><span class="hl-1">=</span><span class="hl-3">crowdsec_status,list_decisions,list_alerts</span><br/><br/><span class="hl-7"># Hide specific tools</span><br/><span class="hl-0">CROWDSEC_MCP_DISABLE_TOOLS</span><span class="hl-1">=</span><span class="hl-3">delete_alerts,ban_ip</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The allowlist wins over the denylist, and read-only mode always wins over both. Unknown names in <code>CROWDSEC_MCP_TOOLS</code> make the server fail at startup, so typos are visible immediately.</p>
+<h2 id="documentation-for-the-model" class="tsd-anchor-link">Documentation for the model<a href="#documentation-for-the-model" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The server ships its own CrowdSec documentation, so an agent can work without prior knowledge of the product:</p>
+<ul>
+<li><strong>Server instructions</strong> are sent at initialization. They carry the current authentication mode, write access, limits, availability of alerts/allowlists/alert deletion, and the working rules (investigate before acting, confirm before writing, never invent IDs).</li>
+<li><strong>Resources</strong> can be read on demand:
+<ul>
+<li><code>crowdsec://docs/overview</code>: components, detection lifecycle, and what this MCP exposes.</li>
+<li><code>crowdsec://docs/concepts</code>: alert vs decision, scopes, types, durations, origins, allowlists, bouncer vs watcher.</li>
+<li><code>crowdsec://docs/triage</code>: alert to decision workflow with guardrails and <code>cscli</code> equivalents.</li>
+</ul>
+</li>
+<li><strong>Prompts</strong> provide ready-made workflows:
+<ul>
+<li><code>triage_alerts</code>: review recent alerts, correlate them with active decisions, propose or apply remediation.</li>
+<li><code>investigate_ip</code>: summarise the detection history and remediation state of one IP.</li>
+<li><code>banned_from_country</code>: list the IPs with an active decision that are geolocated in a given country. The LAPI alert search has no country filter, so the selection is done on the alert <code>Country</code> column, filled by MaxMind enrichment.</li>
+</ul>
+</li>
+</ul>
+<p>The content adapts to the configuration: a bouncer only gets <code>investigate_ip</code> (the other prompts need alerts), and a read-only server gets analysis-only prompts.</p>
+<h3 id="upstream-crowdsec-documentation" class="tsd-anchor-link">Upstream CrowdSec documentation<a href="#upstream-crowdsec-documentation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Introduction</td>
+<td><a href="https://docs.crowdsec.net/docs/intro/">https://docs.crowdsec.net/docs/intro/</a></td>
+</tr>
+<tr>
+<td>Concepts</td>
+<td><a href="https://docs.crowdsec.net/docs/concepts/">https://docs.crowdsec.net/docs/concepts/</a></td>
+</tr>
+<tr>
+<td>Local API</td>
+<td><a href="https://docs.crowdsec.net/docs/local_api/intro/">https://docs.crowdsec.net/docs/local_api/intro/</a></td>
+</tr>
+<tr>
+<td>Remediation components (bouncers)</td>
+<td><a href="https://docs.crowdsec.net/u/bouncers/intro/">https://docs.crowdsec.net/u/bouncers/intro/</a></td>
+</tr>
+<tr>
+<td>Scenarios</td>
+<td><a href="https://docs.crowdsec.net/docs/log_processor/scenarios/intro/">https://docs.crowdsec.net/docs/log_processor/scenarios/intro/</a></td>
+</tr>
+<tr>
+<td>Central API and community blocklist</td>
+<td><a href="https://docs.crowdsec.net/docs/central_api/community_blocklist/">https://docs.crowdsec.net/docs/central_api/community_blocklist/</a></td>
+</tr>
+<tr>
+<td>Centralized allowlists</td>
+<td><a href="https://docs.crowdsec.net/docs/local_api/centralized_allowlists/">https://docs.crowdsec.net/docs/local_api/centralized_allowlists/</a></td>
+</tr>
+<tr>
+<td><code>cscli alerts</code></td>
+<td><a href="https://docs.crowdsec.net/docs/cscli/cscli_alerts/">https://docs.crowdsec.net/docs/cscli/cscli_alerts/</a></td>
+</tr>
+<tr>
+<td><code>cscli decisions</code></td>
+<td><a href="https://docs.crowdsec.net/docs/cscli/cscli_decisions/">https://docs.crowdsec.net/docs/cscli/cscli_decisions/</a></td>
+</tr>
+<tr>
+<td><code>cscli allowlists</code></td>
+<td><a href="https://docs.crowdsec.net/docs/cscli/cscli_allowlists/">https://docs.crowdsec.net/docs/cscli/cscli_allowlists/</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="write-operations" class="tsd-anchor-link">Write operations<a href="#write-operations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="_" class="tsd-anchor-link"><code>ban_ip</code><a href="#_" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Mirrors <code>cscli decisions add</code>:</p>
+<pre><code class="text">ban_ip(ip=&quot;203.0.113.10&quot;, duration=&quot;4h&quot;, type=&quot;ban&quot;, reason=&quot;manual block&quot;)
+ban_ip(range=&quot;203.0.113.0/24&quot;, duration=&quot;1h&quot;, type=&quot;captcha&quot;)
+</code><button type="button">Copy</button></pre>
+
+<ul>
+<li>Provide exactly one of <code>ip</code>, <code>range</code>, or <code>scope</code> + <code>value</code>; mixing them is rejected.</li>
+<li>IP and CIDR inputs are validated before sending anything. Scopes and decision types are validated too.</li>
+<li>The value is checked against allowlists first. If it is allowlisted, the call is refused unless <code>force=true</code>.</li>
+<li><code>duration</code> accepts a unit (<code>30m</code>, <code>4h</code>, <code>7d</code>, <code>1h30m</code>). A bare number is interpreted as seconds (<code>300</code> = <code>5m</code>).</li>
+<li><code>Country</code> values must be two-letter codes; <code>AS</code> values must be numeric ASNs. <code>Ip</code>/<code>Range</code> values are validated as IP/CIDR.</li>
+<li><code>duration</code> is limited by <code>CROWDSEC_MCP_MAX_BAN_DURATION</code> unless <code>force=true</code>.</li>
+<li>CrowdSec accepts private, unspecified (<code>0.0.0.0</code>), broadcast and TEST-NET addresses; the MCP does not filter them.</li>
+<li>The decision is created through <code>POST /v1/alerts</code>, exactly like cscli. It is therefore visible as an alert, and may be forwarded to CAPI depending on your CrowdSec configuration.</li>
+<li><code>origin</code> is always <code>cscli</code>; the MCP does not impersonate a scenario.</li>
+</ul>
+<h3 id="_-1" class="tsd-anchor-link"><code>unban_ip</code><a href="#_-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>unban_ip</code> deletes decisions and works from anywhere:</p>
+<pre><code class="text">unban_ip(ip=&quot;203.0.113.10&quot;)
+unban_ip(id=&quot;42&quot;)
+unban_ip(all=true, confirm=true)
+</code><button type="button">Copy</button></pre>
+
+<p><code>all=true</code> without <code>confirm=true</code> is rejected. <code>scope</code> must be combined with <code>value</code> (<code>unban_ip(scope=&quot;Country&quot;, value=&quot;FR&quot;)</code>); <code>scope</code> alone is rejected so a broad filter cannot delete every decision of that scope. <code>range</code> containment is resolved through an alert search and deleted by ID; other scopes are sent directly to the LAPI. <code>type</code>/<code>scenario</code> alone are broad and also require <code>confirm=true</code>; narrow with <code>ip</code>, <code>range</code>, or <code>scope</code>+<code>value</code>.</p>
+<h3 id="opt-in" class="tsd-anchor-link"><code>delete_alerts</code> (opt-in)<a href="#opt-in" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>delete_alerts</code> is disabled by default because CrowdSec only allows alert deletion from the LAPI host. Enable it only when the MCP runs next to the LAPI:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_MCP_ENABLE_ALERT_DELETE</span><span class="hl-1">=</span><span class="hl-3">true</span>
+</code><button type="button">Copy</button></pre>
+
+<p>A remote watcher receives <code>403 access forbidden from this IP</code>. Use <code>unban_ip</code> to remove decisions remotely, and <code>cscli alerts delete</code> on the LAPI host to clean up alerts.</p>
+<p>Over HTTP, <code>delete_alerts</code> is hidden unless a service token (<code>CROWDSEC_MCP_HTTP_TOKEN</code>) is configured or <code>CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true</code> is set. This prevents a tokenless shared MCP (for example in passthrough mode) from exposing the local-only destructive path. Over stdio, the process is already local, so only <code>CROWDSEC_MCP_ENABLE_ALERT_DELETE</code> is required.</p>
+<p><code>all=true</code> cannot be combined with filters. <code>ip</code> and <code>range</code> accept a CIDR and perform containment. <code>type</code> is resolved through an alert search followed by deletion by ID, as the conservative path for LAPIs that do not accept <code>decision_type</code> on DELETE. <code>since</code> and <code>until</code> are Go durations (<code>24h</code>, <code>7d</code>) and are sent directly to the delete endpoint, like the alert search. <code>id</code>, <code>origin</code> (sent as <code>alert_source</code>) and <code>has_active_decision</code> are sent directly. <code>scope</code> must be combined with <code>value</code>; scope alone is rejected to avoid deleting every alert of that scope. Deleting without a narrow target (<code>id</code>, <code>ip</code>, <code>range</code>, or <code>scope</code>+<code>value</code>) — e.g. <code>scenario</code>, <code>origin</code>, <code>type</code>, <code>since</code>/<code>until</code> or <code>has_active_decision</code> alone — requires <code>confirm=true</code>, like <code>unban_ip</code>. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.</p>
+<h3 id="cidr-semantics" class="tsd-anchor-link">CIDR semantics<a href="#cidr-semantics" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>list_decisions(ip=&quot;198.51.100.0/24&quot;)</code> performs containment (<code>contains=false</code>, the default). <code>contains=true</code> returns decisions that contain the value.</li>
+<li><code>list_alerts</code>, <code>delete_alerts</code> and <code>unban_ip</code> accept a CIDR in <code>ip</code>/<code>range</code> and perform containment.</li>
+<li><code>delete_alerts</code> deletes matching alerts by ID when containment is used.</li>
+<li><code>unban_ip</code> supports non-IP scopes (<code>Country</code>, <code>AS</code>, <code>Session</code>, <code>Username</code>) by resolving active decisions and deleting them by ID.</li>
+</ul>
+<h2 id="allowlists" class="tsd-anchor-link">Allowlists<a href="#allowlists" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Allowlists are read/check only. The CrowdSec local API exposes no create, update or delete endpoint for allowlists: those operations are done with <code>cscli allowlists ...</code> or the CrowdSec Console. The MCP therefore provides:</p>
+<ul>
+<li><code>list_allowlists</code></li>
+<li><code>get_allowlist</code></li>
+<li><code>check_allowlist</code></li>
+</ul>
+<p><code>ban_ip</code> automatically calls <code>check_allowlist</code> for IP and range scopes, like cscli. <code>check_allowlist</code> accepts IPs and CIDR ranges only; the LAPI bulk check endpoint does not support other scopes. When the target is a CIDR, a match means the CIDR overlaps or contains an allowlisted entry; the output labels it as a CIDR match rather than an exact IP match.</p>
+<h2 id="mcp-client-configuration" class="tsd-anchor-link">MCP client configuration<a href="#mcp-client-configuration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="claude-desktop-claude-code" class="tsd-anchor-link">Claude Desktop / Claude Code<a href="#claude-desktop-claude-code" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">    </span><span class="hl-12">&quot;mcpServers&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">        </span><span class="hl-12">&quot;crowdsec&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;command&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;npx&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;args&quot;</span><span class="hl-1">: [</span><span class="hl-3">&quot;-y&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;env&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_URL&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;https://crowdsec:8080&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_MACHINE_ID&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_PASSWORD&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;change-me&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_MCP_READONLY&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;true&quot;</span><br/><span class="hl-1">            }</span><br/><span class="hl-1">        }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="cursor" class="tsd-anchor-link">Cursor<a href="#cursor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">    </span><span class="hl-12">&quot;mcpServers&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">        </span><span class="hl-12">&quot;crowdsec&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;command&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;npx&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;args&quot;</span><span class="hl-1">: [</span><span class="hl-3">&quot;-y&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;env&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_URL&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;https://crowdsec:8080&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_API_KEY&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;your-bouncer-key&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_MCP_TOOLS&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;crowdsec_status,list_decisions&quot;</span><br/><span class="hl-1">            }</span><br/><span class="hl-1">        }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="opencode" class="tsd-anchor-link">opencode<a href="#opencode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">    </span><span class="hl-12">&quot;$schema&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;https://opencode.ai/config.json&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-12">&quot;mcp&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">        </span><span class="hl-12">&quot;crowdsec&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;type&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;local&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;command&quot;</span><span class="hl-1">: [</span><span class="hl-3">&quot;npx&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;-y&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;environment&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_URL&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;https://crowdsec:8080&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_API_KEY&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;your-bouncer-key&quot;</span><br/><span class="hl-1">            },</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;enabled&quot;</span><span class="hl-1">: </span><span class="hl-4">true</span><br/><span class="hl-1">        }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h2 id="http-transport" class="tsd-anchor-link">HTTP transport<a href="#http-transport" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_MCP_TRANSPORT</span><span class="hl-1">=</span><span class="hl-3">http</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_HOST=127.0.0.1 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_PORT=3939 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_TOKEN=change-me </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_URL=https://crowdsec:8080 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_API_KEY=your-bouncer-key </span><span class="hl-11">\</span><br/><span class="hl-1">npx </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The token is <strong>mandatory for every request</strong>, including on <code>127.0.0.1</code> and including unknown routes. Send it as:</p>
+<pre><code class="text">Authorization: Bearer change-me
+</code><button type="button">Copy</button></pre>
+
+<p>The MCP endpoint is <code>/mcp</code>. Do not expose this server publicly without TLS and a strong token: it can read security data and, when writes are enabled, ban or unban addresses.</p>
+<h3 id="shared-deployment-next-to-crowdsec" class="tsd-anchor-link">Shared deployment next to CrowdSec<a href="#shared-deployment-next-to-crowdsec" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A common setup is one MCP server next to the LAPI, with remote clients connecting over HTTP:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_URL</span><span class="hl-1">=</span><span class="hl-3">http://127.0.0.1:8080</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_MACHINE_ID=crowdsec-mcp </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_PASSWORD=change-me </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_TRANSPORT=http </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_HOST=0.0.0.0 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_TOKEN=change-me </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_READONLY=false </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_ENABLE_ALERT_DELETE=true </span><span class="hl-11">\</span><br/><span class="hl-1">npx </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Clients point their MCP client at <code>https://mcp.example.com/mcp</code> and send:</p>
+<pre><code class="text">Authorization: Bearer change-me
+</code><button type="button">Copy</button></pre>
+
+<p>The MCP holds the LAPI credentials; users only need the MCP token. Put TLS and a reverse proxy in front, and use one token per MCP instance. This deployment allows <code>delete_alerts</code> because the LAPI sees the MCP as local.</p>
+<h3 id="per-user-passthrough-multi-user" class="tsd-anchor-link">Per-user passthrough (multi-user)<a href="#per-user-passthrough-multi-user" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>For multiple users with individual LAPI credentials, enable passthrough:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_URL</span><span class="hl-1">=</span><span class="hl-3">http://127.0.0.1:8080</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_MCP_TRANSPORT=http </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_HTTP_HOST=0.0.0.0 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_PASSTHROUGH=true </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MCP_READONLY=false </span><span class="hl-11">\</span><br/><span class="hl-7"># Optional service gate:</span><br/><span class="hl-7"># CROWDSEC_MCP_HTTP_TOKEN=change-me \</span><br/><span class="hl-6">npx</span><span class="hl-1"> </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Each request provides exactly one LAPI credential:</p>
+<pre><code class="text">X-CrowdSec-Api-Key: &lt;bouncer API key&gt;     # read decisions only
+# OR
+X-CrowdSec-Token: &lt;watcher JWT&gt;           # full watcher tools / writes
+</code><button type="button">Copy</button></pre>
+
+<p>If <code>CROWDSEC_MCP_HTTP_TOKEN</code> is configured, every request must also send:</p>
+<pre><code class="text">Authorization: Bearer &lt;CROWDSEC_MCP_HTTP_TOKEN&gt;
+</code><button type="button">Copy</button></pre>
+
+<p>Rules:</p>
+<ul>
+<li>Both <code>X-CrowdSec-Api-Key</code> and <code>X-CrowdSec-Token</code> -&gt; <code>400</code>.</li>
+<li>Neither -&gt; <code>401</code>.</li>
+<li>Bouncer keys expose only bouncer-compatible tools; watcher JWTs expose the watcher toolset.</li>
+<li>Clients are created per request and never reuse another user's credential.</li>
+<li>The watcher JWT must be refreshed by the user when it expires.</li>
+</ul>
+<p><strong>Why two tokens?</strong> The optional service token gates the MCP endpoint itself, while the LAPI credential authorizes the actual CrowdSec action. The service token is optional because the LAPI credential already authenticates the request, but it is recommended when exposing the MCP: it prevents anonymous probing and gates the local-only <code>delete_alerts</code>. Without a service token, <code>delete_alerts</code> is hidden unless <code>CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true</code> is set.</p>
+<h2 id="security" class="tsd-anchor-link">Security<a href="#security" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The MCP speaks to CrowdSec with real LAPI credentials. The security posture
+depends on two choices: the transport (<code>stdio</code> vs <code>http</code>) and where the
+credentials live (server environment vs per-request headers).</p>
+<h3 id="threat-model" class="tsd-anchor-link">Threat model<a href="#threat-model" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><strong>stdio</strong>: the MCP is a local process started by the client. Nothing listens
+on the network. The main risk is who can read the client config or the
+process environment.</li>
+<li><strong>http</strong>: the MCP listens on <code>CROWDSEC_MCP_HTTP_HOST:PORT</code> and only serves
+<code>POST /mcp</code> (anything else is 404/405). It runs stateless: one fresh
+server and transport per request, no session stored. Bodies are capped at
+4 MiB (413 beyond that) and server errors are returned as generic JSON-RPC
+messages without stack traces. There is <strong>no TLS on the MCP port itself</strong>:
+the bearer token and any passthrough credentials travel in cleartext. In
+practice the server is reachable from the network (e.g. a management VLAN
+for the AI agents), so put a TLS reverse proxy in front and restrict at
+the firewall who can reach the port.</li>
+<li>Credentials (API key, password, token, TLS material) are kept in process
+memory and never written to logs or tool outputs. Tool errors surfaced to
+the model are truncated to their first line.</li>
+</ul>
+<h3 id="recommended-deployments" class="tsd-anchor-link">Recommended deployments<a href="#recommended-deployments" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Deployment</th>
+<th>Access control</th>
+<th>LAPI identity</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stdio, local client</td>
+<td>OS user boundary</td>
+<td>server env (<code>CROWDSEC_API_KEY</code> or machine credentials)</td>
+<td>Default. Nothing exposed on the network.</td>
+</tr>
+<tr>
+<td>http on <code>127.0.0.1</code> + service token</td>
+<td><code>Authorization: Bearer</code> per request</td>
+<td>server env, shared by all callers</td>
+<td>Token is mandatory at startup outside passthrough. Local-only setups.</td>
+</tr>
+<tr>
+<td>http on a management VLAN + TLS reverse proxy + service token</td>
+<td>proxy + service token, firewall-limited to the VLAN</td>
+<td>server env, shared by all callers</td>
+<td>The realistic production setup. Rotate the token if it leaks: every holder shares the same LAPI identity.</td>
+</tr>
+<tr>
+<td>http passthrough + service token</td>
+<td>service token + per-request LAPI credential</td>
+<td>per request (<code>X-CrowdSec-Api-Key</code> or <code>X-CrowdSec-Token</code>)</td>
+<td>Multi-user friendly: each caller only gets their own LAPI rights.</td>
+</tr>
+<tr>
+<td>http passthrough, no service token</td>
+<td>per-request LAPI credential only</td>
+<td>per request</td>
+<td>Acceptable on a trusted management VLAN; anyone with a valid LAPI credential can probe the endpoint.</td>
+</tr>
+</tbody>
+</table>
+<p>In passthrough mode, <code>X-CrowdSec-Api-Key</code> (bouncer, read decisions only) and
+<code>X-CrowdSec-Token</code> (watcher JWT, full toolset) are mutually exclusive:
+sending both is a 400, sending neither is a 401. Requests headers are
+validated and then discarded; one request never reuses another's credential.
+The passthrough mode ignores <code>CROWDSEC_TLS_*</code>: mTLS client certificates are
+not applied per request.</p>
+<h3 id="security-relevant-variables" class="tsd-anchor-link">Security-relevant variables<a href="#security-relevant-variables" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Effect</th>
+<th>Safe values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CROWDSEC_MCP_HTTP_HOST</code></td>
+<td>Network interface the MCP binds to. <code>0.0.0.0</code> exposes it to the LAN/container network.</td>
+<td><code>127.0.0.1</code> for local-only setups; otherwise bind behind a TLS reverse proxy on a management VLAN and firewall the port.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_HTTP_TOKEN</code></td>
+<td>Bearer token required on every request (compared in constant time). Mandatory in non-passthrough HTTP: the server refuses to start without it.</td>
+<td>A long random value, rotated like a password. One token per MCP instance.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_READONLY</code></td>
+<td><code>true</code> hides <code>ban_ip</code>, <code>unban_ip</code> and <code>delete_alerts</code> from <code>listTools</code>: the model cannot call what it cannot see.</td>
+<td>Keep <code>true</code> (the default) unless writes are needed.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_ENABLE_ALERT_DELETE</code></td>
+<td>Exposes <code>delete_alerts</code>. Deletion only works from the LAPI host (403 otherwise).</td>
+<td><code>true</code> only in a sidecar/host deployment next to the LAPI.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN</code></td>
+<td>Forces <code>delete_alerts</code> to be exposed over HTTP <strong>without</strong> a service token.</td>
+<td>Leave <code>false</code>. With this flag, anyone holding a watcher JWT can trigger local-only destructive deletions as soon as the port is reachable.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_TOOLS</code> / <code>CROWDSEC_MCP_DISABLE_TOOLS</code></td>
+<td>Allowlist/denylist of exposed tools.</td>
+<td>Expose the smallest useful surface, e.g. <code>CROWDSEC_MCP_DISABLE_TOOLS=delete_alerts,ban_ip</code>.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_MCP_MAX_BAN_DURATION</code></td>
+<td>Bans above this need <code>force=true</code>.</td>
+<td><code>24h</code> default; tighten for shared deployments.</td>
+</tr>
+<tr>
+<td><code>CROWDSEC_STRICT_SSL</code> / <code>--insecure</code></td>
+<td>Disabling TLS validation between the MCP and the LAPI exposes credentials to MITM.</td>
+<td>Keep <code>true</code>. Only disable for self-signed certificates in development.</td>
+</tr>
+</tbody>
+</table>
+<p>Keep secrets in the environment, not in command-line arguments: arguments are
+visible in the process list.</p>
+<h3 id="confirmations-are-not-authorization" class="tsd-anchor-link">Confirmations are not authorization<a href="#confirmations-are-not-authorization" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Destructive tools ask for explicit confirmation, but that is a guardrail, not
+an access boundary:</p>
+<ul>
+<li><code>all=true</code> always requires <code>confirm=true</code>.</li>
+<li><code>unban_ip</code> filtered only by <code>type</code>/<code>scenario</code> requires <code>confirm=true</code>.</li>
+<li><code>delete_alerts</code> without a narrow target (<code>id</code>, <code>ip</code>, <code>range</code>, or
+<code>scope</code>+<code>value</code>) — e.g. <code>scenario</code>, <code>origin</code>, <code>type</code>, time filters or
+<code>has_active_decision</code> alone — requires <code>confirm=true</code>.</li>
+<li><code>ban_ip</code> refuses allowlisted targets unless <code>force=true</code>; <code>check_allowlist</code>
+first when in doubt.</li>
+</ul>
+<p>The server instructions repeat these rules to the model, but any client that
+can reach the endpoint can also confirm: the real protection is the token,
+the bind address, and the read-only default.</p>
+<h2 id="troubleshooting" class="tsd-anchor-link">Troubleshooting<a href="#troubleshooting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause / fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>401 Unauthorized</code></td>
+<td>Missing or invalid HTTP bearer token. In HTTP mode, send <code>Authorization: Bearer &lt;CROWDSEC_MCP_HTTP_TOKEN&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>403 access forbidden from this IP</code> on <code>delete_alerts</code></td>
+<td>CrowdSec only allows alert deletion from the LAPI host. Use <code>unban_ip</code> for decisions, or enable <code>delete_alerts</code> only in a deployment next to the LAPI.</td>
+</tr>
+<tr>
+<td><code>&lt;ip&gt; is allowlisted by item ...</code></td>
+<td>The target matches an allowlist. Use <code>force=true</code> only if you really want to ban an allowlisted value.</td>
+</tr>
+<tr>
+<td>A tool is missing from <code>listTools</code></td>
+<td>It may be a write tool while <code>CROWDSEC_MCP_READONLY=true</code>, a watcher tool in bouncer mode, or hidden by <code>CROWDSEC_MCP_TOOLS</code> / <code>CROWDSEC_MCP_DISABLE_TOOLS</code>.</td>
+</tr>
+<tr>
+<td><code>invalid duration</code></td>
+<td>Use durations such as <code>30m</code>, <code>4h</code>, <code>7d</code>, <code>3650d</code>, or <code>1h30m</code>.</td>
+</tr>
+<tr>
+<td><code>Duration ... exceeds maximum allowed ...</code></td>
+<td>The duration is above <code>CROWDSEC_MCP_MAX_BAN_DURATION</code>. Lower it or use <code>force=true</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<pre><code class="bash"><span class="hl-6">pnpm</span><span class="hl-1"> </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span><span class="hl-1"> </span><span class="hl-3">build</span><br/><span class="hl-6">pnpm</span><span class="hl-1"> </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span><span class="hl-1"> </span><span class="hl-3">test</span><br/><span class="hl-6">node</span><span class="hl-1"> </span><span class="hl-3">packages/crowdsec-mcp/dist/index.js</span><span class="hl-1"> </span><span class="hl-4">--help</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The test suite includes unit tests, HTTP contract tests for the CrowdSec client, and a stdio end-to-end test that spawns the built binary against a fake LAPI. The integration test against a real CrowdSec LAPI in Docker also runs in CI (see the HTTP E2E script below).</p>
+<p>Live client checks are opt-in:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_LIVE</span><span class="hl-1">=</span><span class="hl-3">1</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_URL=https://crowdsec:8080 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_API_KEY=your-bouncer-key </span><span class="hl-11">\</span><br/><span class="hl-1">pnpm </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-client</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">vitest</span><span class="hl-1"> </span><span class="hl-3">run</span><span class="hl-1"> </span><span class="hl-3">tests/Live/live.test.ts</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Set <code>CROWDSEC_MACHINE_ID</code> and <code>CROWDSEC_PASSWORD</code> instead of <code>CROWDSEC_API_KEY</code> to exercise watcher mode, including allowlists.</p>
+<h3 id="integration-test-against-a-real-lapi" class="tsd-anchor-link">Integration test against a real LAPI<a href="#integration-test-against-a-real-lapi" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Start a disposable CrowdSec container:</p>
+<pre><code class="bash"><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">run</span><span class="hl-1"> </span><span class="hl-4">-d</span><span class="hl-1"> </span><span class="hl-4">--name</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-11">\</span><br/><span class="hl-1">  </span><span class="hl-4">-p</span><span class="hl-1"> </span><span class="hl-3">18080:8080</span><span class="hl-1"> </span><span class="hl-11">\</span><br/><span class="hl-1">  </span><span class="hl-4">-v</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-data:/var/lib/crowdsec/data</span><span class="hl-1"> </span><span class="hl-11">\</span><br/><span class="hl-1">  </span><span class="hl-3">crowdsecurity/crowdsec:latest</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Create credentials and seed data:</p>
+<pre><code class="bash"><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-0">BOUNCER_KEY</span><span class="hl-1">=$(</span><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-3">cscli</span><span class="hl-1"> </span><span class="hl-3">bouncers</span><span class="hl-1"> </span><span class="hl-3">add</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-bouncer</span><span class="hl-1"> </span><span class="hl-4">-o</span><span class="hl-1"> </span><span class="hl-3">raw</span><span class="hl-1">)</span><br/><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-3">cscli</span><span class="hl-1"> </span><span class="hl-3">machines</span><span class="hl-1"> </span><span class="hl-3">add</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-watcher</span><span class="hl-1"> </span><span class="hl-4">--auto</span><span class="hl-1"> </span><span class="hl-4">-f</span><span class="hl-1"> </span><span class="hl-3">-</span><br/><span class="hl-7"># export CROWDSEC_MACHINE_ID=&lt;login&gt; and CROWDSEC_PASSWORD=&lt;password&gt; from the output</span><br/><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-3">cscli</span><span class="hl-1"> </span><span class="hl-3">allowlists</span><span class="hl-1"> </span><span class="hl-3">create</span><span class="hl-1"> </span><span class="hl-3">test-allowlist</span><span class="hl-1"> </span><span class="hl-4">-d</span><span class="hl-1"> </span><span class="hl-3">&quot;mcp integration&quot;</span><br/><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-3">cscli</span><span class="hl-1"> </span><span class="hl-3">allowlists</span><span class="hl-1"> </span><span class="hl-3">add</span><span class="hl-1"> </span><span class="hl-3">test-allowlist</span><span class="hl-1"> </span><span class="hl-8">192.0.2.10</span><span class="hl-1"> </span><span class="hl-4">-d</span><span class="hl-1"> </span><span class="hl-3">&quot;mcp test&quot;</span><br/><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> </span><span class="hl-3">cscli</span><span class="hl-1"> </span><span class="hl-3">decisions</span><span class="hl-1"> </span><span class="hl-3">add</span><span class="hl-1"> </span><span class="hl-4">--ip</span><span class="hl-1"> </span><span class="hl-8">203.0.113.10</span><span class="hl-1"> </span><span class="hl-4">--duration</span><span class="hl-1"> </span><span class="hl-3">24h</span><span class="hl-1"> </span><span class="hl-4">--reason</span><span class="hl-1"> </span><span class="hl-3">&quot;mcp integration&quot;</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Run the integration test:</p>
+<pre><code class="bash"><span class="hl-0">CROWDSEC_INTEGRATION</span><span class="hl-1">=</span><span class="hl-3">1</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_INTEGRATION_WRITE=1 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_URL=http://127.0.0.1:18080 </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_API_KEY=</span><span class="hl-3">&quot;</span><span class="hl-0">$BOUNCER_KEY</span><span class="hl-3">&quot;</span><span class="hl-1"> </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_MACHINE_ID=&lt;login&gt; </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_PASSWORD=&lt;password&gt; </span><span class="hl-11">\</span><br/><span class="hl-1">pnpm </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span><span class="hl-1"> </span><span class="hl-3">exec</span><span class="hl-1"> </span><span class="hl-3">vitest</span><span class="hl-1"> </span><span class="hl-3">run</span><span class="hl-1"> </span><span class="hl-3">tests/integration/live.test.ts</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>delete_alerts</code> is not covered by the integration test because it requires the MCP to run next to the LAPI. Clean up with:</p>
+<pre><code class="bash"><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">rm</span><span class="hl-1"> </span><span class="hl-4">-f</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-test</span><span class="hl-1"> &amp;&amp; </span><span class="hl-6">docker</span><span class="hl-1"> </span><span class="hl-3">volume</span><span class="hl-1"> </span><span class="hl-3">rm</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp-data</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="http-transport-and-passthrough-e2e" class="tsd-anchor-link">HTTP transport and passthrough E2E<a href="#http-transport-and-passthrough-e2e" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>This E2E starts a disposable CrowdSec LAPI, an nginx log generator, and two MCP HTTP servers:</p>
+<ul>
+<li><code>mcp</code> on <code>23939</code> with a service token;</li>
+<li><code>mcp-open</code> on <code>23940</code> without a service token;</li>
+<li>both share CrowdSec's network namespace, so <code>delete_alerts</code> works.</li>
+</ul>
+<p>Requirements: Docker Compose v2, <code>pnpm</code>, <code>jq</code> and <code>openssl</code>. The script builds the client and MCP first unless <code>E2E_SKIP_BUILD=1</code> is set.</p>
+<pre><code class="bash"><span class="hl-6">pnpm</span><span class="hl-1"> </span><span class="hl-4">--filter</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span><span class="hl-1"> </span><span class="hl-3">test:e2e:http</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The test waits for alerts generated by nginx logs, then exercises bouncer/watcher tool filtering, per-request credentials, service-token gating, CIDR filtering of decisions, <code>ban_ip</code>, <code>unban_ip</code> by range, and local-only <code>delete_alerts</code>. It then seeds an allowlist and a decision and runs <code>tests/integration/live.test.ts</code> against the same LAPI. The orchestration script lives in <code>.github/scripts/mcp-http-e2e.sh</code>.</p>
+<p>Ports can be overridden with <code>E2E_LAPI_PORT</code>, <code>E2E_MCP_PORT</code>, and <code>E2E_MCP_OPEN_PORT</code>. Use <code>E2E_KEEP=1</code> to keep the stack for debugging. The stack is removed automatically, including volumes, unless <code>E2E_KEEP=1</code> is set.</p>
+<p>The GitHub Actions workflow is <code>.github/workflows/mcp-http-e2e.yml</code>; it runs on MCP/client/workflow changes, on pushes to <code>main</code>, and on manual dispatch.</p>
+<h2 id="license" class="tsd-anchor-link">License<a href="#license" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>MIT</p>
+</section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details"><a href="#crowdsec-mcp"><span>crowdsec-<wbr/>mcp</span></a>
+<ul>
+<li><a href="#requirements"><span>Requirements</span></a></li>
+<li><a href="#quick-start"><span>Quick start</span></a></li>
+<li><a href="#authentication"><span>Authentication</span></a></li>
+<li>
+<ul>
+<li><a href="#environment-variables"><span>Environment variables</span></a></li>
+<li><a href="#cli-arguments"><span>CLI arguments</span></a></li></ul></li>
+<li><a href="#tools"><span>Tools</span></a></li>
+<li>
+<ul>
+<li><a href="#read-only-by-default"><span>Read-<wbr/>only by default</span></a></li>
+<li><a href="#limit-the-tools-exposed-to-the-model"><span>Limit the tools exposed to the model</span></a></li></ul></li>
+<li><a href="#documentation-for-the-model"><span>Documentation for the model</span></a></li>
+<li>
+<ul>
+<li><a href="#upstream-crowdsec-documentation"><span>Upstream <wbr/>Crowd<wbr/>Sec documentation</span></a></li></ul></li>
+<li><a href="#write-operations"><span>Write operations</span></a></li>
+<li>
+<ul>
+<li><a href="#_"><span></span></a></li>
+<li><a href="#_-1"><span></span></a></li>
+<li><a href="#opt-in"><span> (opt-<wbr/>in)</span></a></li>
+<li><a href="#cidr-semantics"><span>CIDR semantics</span></a></li></ul></li>
+<li><a href="#allowlists"><span>Allowlists</span></a></li>
+<li><a href="#mcp-client-configuration"><span>MCP client configuration</span></a></li>
+<li>
+<ul>
+<li><a href="#claude-desktop-claude-code"><span>Claude <wbr/>Desktop / <wbr/>Claude <wbr/>Code</span></a></li>
+<li><a href="#cursor"><span>Cursor</span></a></li>
+<li><a href="#opencode"><span>opencode</span></a></li></ul></li>
+<li><a href="#http-transport"><span>HTTP transport</span></a></li>
+<li>
+<ul>
+<li><a href="#shared-deployment-next-to-crowdsec"><span>Shared deployment next to <wbr/>Crowd<wbr/>Sec</span></a></li>
+<li><a href="#per-user-passthrough-multi-user"><span>Per-<wbr/>user passthrough (multi-<wbr/>user)</span></a></li></ul></li>
+<li><a href="#security"><span>Security</span></a></li>
+<li>
+<ul>
+<li><a href="#threat-model"><span>Threat model</span></a></li>
+<li><a href="#recommended-deployments"><span>Recommended deployments</span></a></li>
+<li><a href="#security-relevant-variables"><span>Security-<wbr/>relevant variables</span></a></li>
+<li><a href="#confirmations-are-not-authorization"><span>Confirmations are not authorization</span></a></li></ul></li>
+<li><a href="#troubleshooting"><span>Troubleshooting</span></a></li>
+<li><a href="#development"><span>Development</span></a></li>
+<li>
+<ul>
+<li><a href="#integration-test-against-a-real-lapi"><span>Integration test against a real <wbr/>LAPI</span></a></li>
+<li><a href="#http-transport-and-passthrough-e2e"><span>HTTP transport and passthrough <wbr/>E2<wbr/>E</span></a></li></ul></li>
+<li><a href="#license"><span>License</span></a></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">Node CrowdSec Client</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>
