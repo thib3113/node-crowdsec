@@ -1,0 +1,50 @@
+name: crowdsec
+
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    restart: unless-stopped
+    ports:
+      # 3939 is published by CrowdSec because the MCP shares its network
+      # namespace (Docker does not allow `ports` on the sidecar service).
+      - "8080:8080"
+      - "3939:3939"
+    volumes:
+      - crowdsec-data:/var/lib/crowdsec/data
+      - crowdsec-config:/etc/crowdsec
+
+  crowdsec-mcp:
+    image: ghcr.io/thib3113/crowdsec-mcp:latest
+    # For local builds, uncomment the following and run
+    # `docker compose -f packages/crowdsec-mcp/compose.yaml up --build`.
+    # build:
+    #   context: ../..
+    #   dockerfile: packages/crowdsec-mcp/Dockerfile
+    restart: unless-stopped
+    init: true
+    # `delete_alerts` is local-only on the LAPI, so the MCP must reach it
+    # through 127.0.0.1.
+    network_mode: "service:crowdsec"
+    depends_on:
+      - crowdsec
+    environment:
+      CROWDSEC_URL: http://127.0.0.1:8080
+      CROWDSEC_MCP_TRANSPORT: http
+      CROWDSEC_MCP_HTTP_HOST: 0.0.0.0
+      CROWDSEC_MCP_HTTP_PORT: "3939"
+      CROWDSEC_MCP_PASSTHROUGH: "true"
+      CROWDSEC_MCP_READONLY: "false"
+      CROWDSEC_MCP_ENABLE_ALERT_DELETE: "true"
+      # Optional service gate. Unset/empty disables it.
+      CROWDSEC_MCP_HTTP_TOKEN: ${CROWDSEC_MCP_HTTP_TOKEN:-}
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  crowdsec-data:
+  crowdsec-config:

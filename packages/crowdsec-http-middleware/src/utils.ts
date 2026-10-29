@@ -22,9 +22,9 @@ export type AddressObject = Address4 | Address6;
  *
  * A valid IP is at most 45 chars (`1111:2222:3333:4444:5555:6666:255.255.255.255`),
  * 49 with a CIDR suffix (`.../128`). This bound is deliberately large (20x margin)
- * to stay future-proof (zone ids, …) : its only purpose is to reject oversized
+ * to stay future-proof (zone ids, ...) : its only purpose is to reject oversized
  * attacker-controlled input before it reaches `ip-address` parsing
- * (CVE-2026-101911 : unbounded Address6 diagnostic → sync stall / OOM on MiB-scale strings).
+ * (CVE-2026-101911 : unbounded Address6 diagnostic -> sync stall / OOM on MiB-scale strings).
  */
 export const MAX_IP_LENGTH = 1024;
 

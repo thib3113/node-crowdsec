@@ -1,6 +1,6 @@
 import { describe, it, afterEach, beforeEach, expect, vi } from 'vitest';
 
-import type { Alerts as AlertsTypes } from '../../src/types/index.js';
+import type { DeleteAlertsQuery, SearchAlertsQuery } from '../../src/types/index.js';
 import type { Alerts } from '../../src/index.js';
 
 vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
@@ -67,19 +67,33 @@ describe('DecisionsWatcher', () => {
 
     it('should search', async () => {
         httpGetMock.mockImplementationOnce(() => ({ data: 'test' }));
-        const deleteOptions: AlertsTypes.SearchAlerts.RequestQuery = {
-            ip: '1.2.3.4'
+        const searchOptions: SearchAlertsQuery = {
+            ip: '1.2.3.4',
+            contains: false
         };
 
-        expect(await alerts.search(deleteOptions)).toBe('test');
+        expect(await alerts.search(searchOptions)).toBe('test');
 
-        expect(httpGetMock).toHaveBeenCalledWith('/v1/alerts', { params: deleteOptions });
+        expect(httpGetMock).toHaveBeenCalledWith('/v1/alerts', { params: searchOptions });
     });
 
     it('should call delete with options', async () => {
         httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
-        const deleteOptions: AlertsTypes.DeleteAlerts.RequestQuery = {
+        const deleteOptions: DeleteAlertsQuery = {
             ip: '1.2.3.4'
+        };
+
+        expect(await alerts.delete(deleteOptions)).toBe('test');
+
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: deleteOptions });
+    });
+
+    it('should forward duration and extended delete filters', async () => {
+        httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
+        const deleteOptions: DeleteAlertsQuery = {
+            since: '24h',
+            until: '1h',
+            decision_type: 'ban'
         };
 
         expect(await alerts.delete(deleteOptions)).toBe('test');

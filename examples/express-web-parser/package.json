@@ -1,15 +1,24 @@
 {
-  "name": "example-express-parser",
+  "name": "example-express-web-parser",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Example CrowdSec watcher that reports malicious user agents",
   "main": "build/index.js",
   "type": "module",
   "scripts": {
     "debug": "tsc && node -r source-map-support/register ./build/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "crowdsec",
+    "watcher",
+    "express",
+    "example"
+  ],
+  "author": {
+    "email": "thib3113@gmail.com",
+    "name": "Thibaut Severac"
+  },
+  "license": "MIT",
   "dependencies": {
     "crowdsec-client": "workspace:^",
     "express": "^5.3.0"

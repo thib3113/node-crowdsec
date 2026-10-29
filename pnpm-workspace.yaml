@@ -4,3 +4,8 @@ packages:
   - 'packages/*'
 allowBuilds:
   esbuild: true
+overrides:
+  qs: 6.17.0
+minimumReleaseAgeExclude:
+  - axios@1.21.0
+  - qs@6.17.0

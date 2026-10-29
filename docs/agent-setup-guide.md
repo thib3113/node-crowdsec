@@ -1,4 +1,4 @@
-# AI Agent Setup Guide — CrowdSec HTTP Middleware
+# AI Agent Setup Guide - CrowdSec HTTP Middleware
 
 Give this guide to your AI agent when you want to configure the
 `crowdsec-http-middleware` bouncer. It first helps the user decide whether this
@@ -13,22 +13,22 @@ simpler alternative instead of configuring anyway.
 
 ---
 
-## Step 0 — Do you even need this library ?
+## Step 0 - Do you even need this library ?
 
 Before configuring anything, help the user decide whether `node-crowdsec` is the
 right tool. Ask **one** of these questions first :
 
 ### 0.1 What are you actually trying to do ?
 
-- **"Block a few bad IPs / a small static blocklist"** → you probably do **not**
+- **"Block a few bad IPs / a small static blocklist"** -> you probably do **not**
   need a CrowdSec bouncer at all. A firewall rule (fail2ban, iptables), a WAF
   (Cloudflare, ModSecurity) or a small hardcoded list is simpler.
 - **"Protect my web server against scanners / brute-force / malicious traffic,
-  with community-sourced signals"** → CrowdSec is a good fit. Continue.
+  with community-sourced signals"** -> CrowdSec is a good fit. Continue.
 - **"I already run a CrowdSec LAPI and want my Node.js app to use its
-  decisions"** → this library (or the official
+  decisions"** -> this library (or the official
   `@crowdsec/nodejs-bouncer`) is the right tool. Continue.
-- **"Block at the network level (firewall, fail2ban)"** → CrowdSec's own
+- **"Block at the network level (firewall, fail2ban)"** -> CrowdSec's own
   bouncers (cs-firewall-bouncer, etc.) are more appropriate than a Node.js
   in-app bouncer.
 
@@ -40,7 +40,7 @@ whether that fits :
 
 - **Good fit** : Node.js server, you want fine-grained control, or you cannot
   install a system-level bouncer.
-- **Key advantage — you stay in control of the response.** A network-level
+- **Key advantage - you stay in control of the response.** A network-level
   bouncer (firewall / nginx / CDN) cuts the request before it reaches your app :
   the visitor gets a generic 403 and that's it. With this library the request
   still reaches your code and `req.decision` tells you *why* (`ban`, `captcha`,
@@ -53,22 +53,22 @@ whether that fits :
   - different status codes per decision type.
   This is impossible (or very awkward) with a firewall / reverse-proxy bouncer.
 - **Poor fit** : you have a reverse proxy / CDN in front (nginx, Traefik,
-  Cloudflare) that could block earlier at the network layer — blocking there is
+  Cloudflare) that could block earlier at the network layer - blocking there is
   more efficient and keeps the load off your app. Use CrowdSec's
   nginx/caddy/cloudflare bouncers instead, **unless** you need the app-level
-  control above (captcha, custom page) — in which case keep this library.
+  control above (captcha, custom page) - in which case keep this library.
 
 ### 0.3 This library vs the official `@crowdsec/nodejs-bouncer` ?
 
 Both are Node.js bouncers. Rough comparison to present to the user :
 
 | | `@crowdsec/nodejs-bouncer` (official) | `crowdsec-http-middleware` (this repo) |
-|---|---|---|
+| --- | --- | --- |
 | Default mode | live (one LAPI call per new IP, then cache) | stream (local index, ~µs/request) |
 | Freshness | immediate on cache miss | bounded by `pollingInterval` |
 | LAPI load | grows with unique IPs | constant (one poll per interval) |
-| Live mode option | — | yes, on top of the stream |
-| `subnetLevel` | — | yes (avoid banning whole countries) |
+| Live mode option | - | yes, on top of the stream |
+| `subnetLevel` | - | yes (avoid banning whole countries) |
 | Watcher / scenarios | no | yes (detect & report) |
 | Typed events / fine config | basic | extensive |
 
@@ -107,7 +107,7 @@ The important behavioral levers are :
 ### 2. How do you want to detect malicious IPs ?
 
 > **Recommended** : stream mode (default). It is fast, cheap on the LAPI, and
-> the freshness gap (≤ polling interval) is acceptable for almost everyone.
+> the freshness gap (<= polling interval) is acceptable for almost everyone.
 
 - **Stream mode** (recommended) : the bouncer pulls decisions every
   `pollingInterval` (default 10 s) and matches locally. Zero LAPI load per
@@ -119,7 +119,7 @@ The important behavioral levers are :
   and the LAPI can absorb the load.
 
 Ask : is it acceptable that a brand-new ban takes up to `pollingInterval`
-(10 s default) to apply ? If no → enable live mode.
+(10 s default) to apply ? If no -> enable live mode.
 
 ### 3. What is the largest block you consider malicious ?
 
@@ -127,7 +127,7 @@ Ask : is it acceptable that a brand-new ban takes up to `pollingInterval`
 
 Real-world malicious traffic is almost always single IPs (`/32`). Larger blocks
 follow who owns them : an abusive datacenter rack is a `/24`, an entire national
-block is `/8` — banning a whole country is almost never intended.
+block is `/8` - banning a whole country is almost never intended.
 
 - `resident` : only single IPs (`/32`). Most restrictive on false positives.
 - `company` (recommended) : up to `/24` (an ISP / hosting provider block).
@@ -162,15 +162,17 @@ which header holds the real client IP ?
   freshness over protecting the LAPI.
 
 Ask (only if live mode is on) : if the LAPI is temporarily unreachable, is it
-acceptable that requests pass silently ? If yes → `failOpen`, if no →
+acceptable that requests pass silently ? If yes -> `failOpen`, if no ->
 `failFast` and a shorter backoff.
 
 ### 7. Watcher (optional)
 
 - Do you want to *detect and report* malicious requests to the LAPI (not just
   block) ? If yes, a watcher with scenarios is needed.
-- Which default scenarios ? (`crowdsec-client-scenarios` provides user-agent
-  based ones). Or custom scenarios ?
+- Which scenarios ? If `crowdsec-client-scenarios` is installed, omitting the
+  `scenarios` option loads the defaults (allowlist, X-Forwarded-For, HTTP
+  enrichment). `scenarios: []` disables them. Custom constructors can be passed
+  explicitly.
 
 Ask : do you need the application to *report* suspicious requests (watcher), or
 only to *block* flagged IPs (bouncer) ?
@@ -218,7 +220,8 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
         machineID: process.env.CROWDSEC_WATCHER_MACHINE_ID || '',
         password: process.env.CROWDSEC_WATCHER_PASSWORD || '',
         heartbeat: true,
-        scenarios: []                                // default scenarios
+        // omit `scenarios` to load the default scenarios;
+        // `scenarios: []` disables them
     }
 };
 ```
@@ -226,7 +229,7 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
 ### Defaults summary (when the user has no opinion)
 
 | Option | Default | Why |
-|---|---|---|
+| --- | --- | --- |
 | `pollingInterval` | 10 s | reasonable freshness for stream mode |
 | `subnetLevel` | `company` (/24) | real attackers are single IPs, not countries |
 | `live.enabled` | `false` | stream mode is enough for most deployments |
@@ -236,6 +239,7 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
 | `live.maxConcurrentChecks` | 100 | avoids thundering herd on the LAPI |
 | `live.errorBackoffTtl` | 10 s | fail-open backoff |
 | `live.watchdog` | `true` | safety net if the LAPI stays down |
+| `watcher.scenarios` | omitted | loads the default scenarios when the package is installed |
 
 ---
 
@@ -247,5 +251,5 @@ const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
 - `subnetLevel` is fixed at construction time : changing it requires restarting.
 - Live mode is **not** synchronous : the current request always passes, the ban
   applies from the *next* request. Do not promise an immediate 403 to the user.
-- Do not enable live mode if the LAPI cannot absorb `new-IPs-per-second` × 1
+- Do not enable live mode if the LAPI cannot absorb `new-IPs-per-second` x 1
   request.

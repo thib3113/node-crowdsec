@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest an improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what blocks you today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - crowdsec-client
+        - crowdsec-http-middleware
+        - crowdsec-client-scenarios
+        - crowdsec-mcp
+        - documentation
+    validations:
+      required: true

@@ -1,0 +1,60 @@
+import type { Config } from '../src/config.js';
+import type { AppContext } from '../src/types.js';
+
+export function makeConfig(overrides: Partial<Config> = {}): Config {
+    return {
+        url: 'http://127.0.0.1:8080',
+        auth: 'watcher',
+        machineId: 'machine',
+        password: 'password',
+        strictSSL: true,
+        timeout: 10000,
+        transport: 'stdio',
+        http: {
+            host: '127.0.0.1',
+            port: 3939,
+            token: 'token'
+        },
+        readonly: true,
+        enableAlertDelete: false,
+        allowAlertDeleteWithoutToken: false,
+        passthrough: false,
+        disableTools: [],
+        maxResults: 25,
+        maxBanDuration: '24h',
+        maxBanDurationSeconds: 86400,
+        ...overrides
+    };
+}
+
+export function makeContext(overrides: Partial<AppContext> = {}): AppContext {
+    let readyCalls = 0;
+    const context: AppContext = {
+        mode: 'watcher',
+        capabilities: {
+            read: true,
+            write: true,
+            allowlists: true
+        },
+        allowlists: {
+            list: () => Promise.resolve([]),
+            get: () => Promise.resolve({}),
+            check: () => Promise.resolve({ allowlisted: false }),
+            bulkCheck: () => Promise.resolve({ results: [] })
+        },
+        config: makeConfig(),
+        ensureReady: () => {
+            readyCalls++;
+            return Promise.resolve();
+        },
+        stop: () => Promise.resolve(),
+        ...overrides
+    };
+
+    Object.defineProperty(context, 'readyCalls', {
+        get: () => readyCalls,
+        enumerable: false
+    });
+
+    return context;
+}

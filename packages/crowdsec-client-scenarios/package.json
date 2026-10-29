@@ -1,11 +1,15 @@
 {
     "name": "crowdsec-client-scenarios",
     "version": "0.0.14",
-    "description": "tmp",
+    "description": "CrowdSec detection scenarios for crowdsec-http-middleware and compatible middlewares",
     "main": "./lib/index.cjs",
     "module": "./lib/index.mjs",
     "types": "./lib/index.d.ts",
     "type": "module",
+    "sideEffects": false,
+    "files": [
+        "lib"
+    ],
     "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-client-scenarios#readme",
     "scripts": {
         "prepack": "npm run build",
@@ -41,18 +45,23 @@
     },
     "author": {
         "email": "thib3113@gmail.com",
-        "name": "Thibaut severac"
+        "name": "Thibaut Severac"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/thib3113/node-crowdsec.git"
+        "url": "git+https://github.com/thib3113/node-crowdsec.git",
+        "directory": "packages/crowdsec-client-scenarios"
     },
     "keywords": [
         "crowdsec",
+        "scenarios",
+        "bouncer",
+        "watcher",
         "firewall",
-        "security"
+        "security",
+        "typescript"
     ],
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "debug": "^4.4.3",
         "ip-address": "^10.7.5",

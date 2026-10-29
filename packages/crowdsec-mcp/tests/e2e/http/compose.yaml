@@ -1,0 +1,75 @@
+name: crowdsec-mcp-e2e
+
+services:
+    crowdsec:
+        image: crowdsecurity/crowdsec:latest
+        container_name: crowdsec-mcp-e2e-lapi
+        ports:
+            - '${E2E_LAPI_PORT:-28080}:8080'
+            - '${E2E_MCP_PORT:-23939}:3939'
+            - '${E2E_MCP_OPEN_PORT:-23940}:3940'
+        volumes:
+            - crowdsec-data:/var/lib/crowdsec/data
+            - nginx-logs:/var/log/nginx
+            - ./acquis/nginx.yaml:/etc/crowdsec/acquis.d/nginx.yaml:ro
+        restart: 'no'
+
+    mcp:
+        image: node:24-alpine
+        container_name: crowdsec-mcp-e2e-mcp
+        network_mode: 'service:crowdsec'
+        depends_on:
+            - crowdsec
+        volumes:
+            - ${REPO_ROOT}:/app
+        working_dir: /app/packages/crowdsec-mcp
+        command: ['node', 'dist/index.js']
+        environment:
+            CROWDSEC_URL: http://127.0.0.1:8080
+            CROWDSEC_AUTH: watcher
+            CROWDSEC_MCP_TRANSPORT: http
+            CROWDSEC_MCP_HTTP_HOST: 0.0.0.0
+            CROWDSEC_MCP_HTTP_PORT: 3939
+            CROWDSEC_MCP_HTTP_TOKEN: ${E2E_MCP_TOKEN}
+            CROWDSEC_MCP_PASSTHROUGH: 'true'
+            CROWDSEC_MCP_READONLY: 'false'
+            CROWDSEC_MCP_ENABLE_ALERT_DELETE: 'true'
+            CROWDSEC_MCP_MAX_BAN_DURATION: 24h
+        restart: 'no'
+
+    mcp-open:
+        image: node:24-alpine
+        container_name: crowdsec-mcp-e2e-mcp-open
+        network_mode: 'service:crowdsec'
+        depends_on:
+            - crowdsec
+        volumes:
+            - ${REPO_ROOT}:/app
+        working_dir: /app/packages/crowdsec-mcp
+        command: ['node', 'dist/index.js']
+        environment:
+            CROWDSEC_URL: http://127.0.0.1:8080
+            CROWDSEC_AUTH: watcher
+            CROWDSEC_MCP_TRANSPORT: http
+            CROWDSEC_MCP_HTTP_HOST: 0.0.0.0
+            CROWDSEC_MCP_HTTP_PORT: 3940
+            CROWDSEC_MCP_HTTP_TOKEN: ''
+            CROWDSEC_MCP_PASSTHROUGH: 'true'
+            CROWDSEC_MCP_READONLY: 'false'
+            CROWDSEC_MCP_ENABLE_ALERT_DELETE: 'true'
+            CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN: 'true'
+            CROWDSEC_MCP_MAX_BAN_DURATION: 24h
+        restart: 'no'
+
+    nginx-logs:
+        image: node:24-alpine
+        container_name: crowdsec-mcp-e2e-nginx-logs
+        volumes:
+            - nginx-logs:/var/log/nginx
+            - ./generate-nginx-logs.mjs:/generate-nginx-logs.mjs:ro
+        command: ['node', '/generate-nginx-logs.mjs']
+        restart: 'no'
+
+volumes:
+    crowdsec-data:
+    nginx-logs:

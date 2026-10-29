@@ -1,12 +1,14 @@
 {
   "extends": [
     "config:js-lib",
+    "docker:pinDigests",
     ":separateMajorReleases",
     ":combinePatchMinorReleases",
     ":prNotPending",
     ":disableRateLimiting",
     ":ignoreModulesAndTests",
     ":pinDevDependencies",
+    "helpers:pinGitHubActionDigests",
     ":enableVulnerabilityAlerts",
     "group:monorepos",
     "group:recommended",
@@ -16,6 +18,11 @@
     {
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": ["packages/crowdsec-mcp/Dockerfile"],
       "automerge": true
     }
   ],

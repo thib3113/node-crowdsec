@@ -1,0 +1,78 @@
+{
+    "name": "crowdsec-mcp",
+    "version": "0.1.0",
+    "description": "Model Context Protocol (MCP) server for CrowdSec: decisions, alerts and allowlists",
+    "type": "module",
+    "main": "./dist/index.js",
+    "bin": {
+        "crowdsec-mcp": "./dist/index.js"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "homepage": "https://github.com/thib3113/node-crowdsec/tree/main/packages/crowdsec-mcp#readme",
+    "bugs": {
+        "url": "https://github.com/thib3113/node-crowdsec/issues?labels=crowdsec-mcp"
+    },
+    "author": {
+        "email": "thib3113@gmail.com",
+        "name": "Thibaut Severac"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/thib3113/node-crowdsec.git",
+        "directory": "packages/crowdsec-mcp"
+    },
+    "keywords": [
+        "crowdsec",
+        "mcp",
+        "model-context-protocol",
+        "llm",
+        "security"
+    ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/thib3113/node-crowdsec"
+        },
+        {
+            "type": "individual",
+            "url": "https://paypal.me/thib3113"
+        }
+    ],
+    "license": "MIT",
+    "engines": {
+        "node": ">=24"
+    },
+    "scripts": {
+        "prepack": "npm run build",
+        "build": "rimraf dist && node ./esbuild.js",
+        "dev": "node ./esbuild.js --watch",
+        "start": "node dist/index.js",
+        "test": "vitest run",
+        "test:ci": "vitest run",
+        "test:e2e:http": "bash ../../.github/scripts/mcp-http-e2e.sh",
+        "test:ci:coverage": "vitest run --coverage",
+        "lint": "eslint src",
+        "lint:fix": "npm run lint -- --fix",
+        "ci:eslint": "npm run lint -- -f json -o ./coverage/eslint-report.json"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "1.32.2",
+        "crowdsec-client": "workspace:^",
+        "debug": "^4.4.3",
+        "zod": "4.6.7"
+    },
+    "devDependencies": {
+        "@types/debug": "4.1.13",
+        "@types/node": "26.6.5",
+        "@vitest/coverage-v8": "5.0.5",
+        "esbuild": "0.28.2",
+        "rimraf": "6.1.3",
+        "typescript": "6.0.3",
+        "vitest": "5.0.5"
+    }
+}

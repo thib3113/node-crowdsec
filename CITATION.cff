@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "node-crowdsec"
+abstract: "Node.js CrowdSec client, HTTP middleware, detection scenarios and MCP server."
+type: software
+authors:
+  - family-names: "Severac"
+    given-names: "Thibaut"
+    email: "thib3113@gmail.com"
+repository-code: "https://github.com/thib3113/node-crowdsec"
+url: "https://thib3113.github.io/node-crowdsec/"
+license: MIT
+keywords:
+  - crowdsec
+  - security
+  - bouncer
+  - watcher
+  - lapi
