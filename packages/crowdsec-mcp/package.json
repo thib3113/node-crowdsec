@@ -1,6 +1,6 @@
 {
     "name": "crowdsec-mcp",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "Model Context Protocol (MCP) server for CrowdSec: decisions, alerts and allowlists",
     "type": "module",
     "main": "./dist/index.js",
