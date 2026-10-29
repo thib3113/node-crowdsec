@@ -305,7 +305,18 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
 }
 
 export function isAlertDeleteAvailable(config: Config): boolean {
-    return config.enableAlertDelete && (!config.passthrough || Boolean(config.http.token) || config.allowAlertDeleteWithoutToken);
+    if (!config.enableAlertDelete) {
+        return false;
+    }
+
+    // HTTP is reachable over the network: without a service token, delete_alerts
+    // would expose the local-only destructive path to any client. Keep it hidden
+    // unless the operator explicitly overrides this with the dedicated flag.
+    if (config.transport === 'http' && !config.http.token && !config.allowAlertDeleteWithoutToken) {
+        return false;
+    }
+
+    return true;
 }
 
 export function redactedUrl(url: string): string {
@@ -344,7 +355,7 @@ MCP:
   --passthrough               Use per-request LAPI credentials (HTTP only)
   --enable-alert-delete       Expose delete_alerts (only works next to the LAPI)
   --allow-alert-delete-without-token
-                              Allow delete_alerts in passthrough without a service token (dangerous)
+                              Allow delete_alerts over HTTP without a service token (dangerous)
   --tools <a,b>               Only expose these tools
   --disable-tools <a,b>       Hide these tools
   --max-results <n>           Default result limit, default 25

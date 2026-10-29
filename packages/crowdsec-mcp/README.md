@@ -105,7 +105,7 @@ If both a bouncer key and machine credentials are present, set `CROWDSEC_AUTH` e
 | `CROWDSEC_MCP_HTTP_TOKEN` | HTTP bearer token | required for HTTP; optional in passthrough |
 | `CROWDSEC_MCP_READONLY` | Hide write tools | `true` |
 | `CROWDSEC_MCP_ENABLE_ALERT_DELETE` | Expose `delete_alerts` (requires the MCP next to the LAPI) | `false` |
-| `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN` | In passthrough, allow `delete_alerts` without a service token (dangerous) | `false` |
+| `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN` | Allow `delete_alerts` over HTTP without a service token (dangerous) | `false` |
 | `CROWDSEC_MCP_TOOLS` | Comma-separated allowlist of tools | all |
 | `CROWDSEC_MCP_DISABLE_TOOLS` | Comma-separated denylist of tools | none |
 | `CROWDSEC_MCP_MAX_RESULTS` | Default result limit | `25` |
@@ -236,7 +236,7 @@ CROWDSEC_MCP_ENABLE_ALERT_DELETE=true
 
 A remote watcher receives `403 access forbidden from this IP`. Use `unban_ip` to remove decisions remotely, and `cscli alerts delete` on the LAPI host to clean up alerts.
 
-In passthrough mode, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP from exposing the local-only destructive path.
+Over HTTP, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP (for example in passthrough mode) from exposing the local-only destructive path. Over stdio, the process is already local, so only `CROWDSEC_MCP_ENABLE_ALERT_DELETE` is required.
 
 `all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. `type` is resolved through an alert search followed by deletion by ID, as the conservative path for LAPIs that do not accept `decision_type` on DELETE. `since` and `until` are Go durations (`24h`, `7d`) and are sent directly to the delete endpoint, like the alert search. `id`, `origin` (sent as `alert_source`) and `has_active_decision` are sent directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
 

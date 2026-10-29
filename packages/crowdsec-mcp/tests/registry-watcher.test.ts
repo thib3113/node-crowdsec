@@ -56,6 +56,7 @@ describe('watcher registry', () => {
         const base = makeConfig({
             readonly: false,
             enableAlertDelete: true,
+            transport: 'http',
             passthrough: true,
             http: { host: '127.0.0.1', port: 0, token: undefined }
         });
@@ -78,6 +79,27 @@ describe('watcher registry', () => {
             })
         );
         expect(withServiceToken.map((tool) => tool.name)).toContain('delete_alerts');
+    });
+
+    it('hides delete_alerts over HTTP without a service token unless explicitly allowed', () => {
+        const tokenlessHttp = makeConfig({
+            readonly: false,
+            enableAlertDelete: true,
+            transport: 'http',
+            http: { host: '127.0.0.1', port: 0, token: undefined }
+        });
+
+        const hidden = selectTools(allTools(), makeContext({ config: tokenlessHttp }));
+        expect(hidden.map((tool) => tool.name)).not.toContain('delete_alerts');
+
+        const forced = selectTools(allTools(), makeContext({ config: { ...tokenlessHttp, allowAlertDeleteWithoutToken: true } }));
+        expect(forced.map((tool) => tool.name)).toContain('delete_alerts');
+
+        const withToken = selectTools(
+            allTools(),
+            makeContext({ config: { ...tokenlessHttp, http: { ...tokenlessHttp.http, token: 'service-token' } } })
+        );
+        expect(withToken.map((tool) => tool.name)).toContain('delete_alerts');
     });
 
     it('exposes delete_alerts only when explicitly enabled', () => {
