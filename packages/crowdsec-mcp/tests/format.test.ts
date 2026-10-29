@@ -5,7 +5,7 @@ describe('format', () => {
     it('escapes markdown table cells', () => {
         expect(escapeCell('a|b\nc')).toBe('a\\|b c');
         expect(escapeCell('a\\b')).toBe('a\\\\b');
-        expect(escapeCell(undefined)).toBe('—');
+        expect(escapeCell(undefined)).toBe('-');
     });
 
     it('renders a markdown table', () => {
@@ -25,7 +25,7 @@ describe('format', () => {
         expect(formatDate('2026-01-01T12:00:00.000Z')).toBe('2026-01-01T12:00:00Z');
         expect(relativeTime('2026-01-01T13:30:00Z', now)).toBe('in 1h 30m');
         expect(relativeTime('2026-01-01T10:30:00Z', now)).toBe('1h 30m ago');
-        expect(relativeTime(undefined)).toBe('—');
+        expect(relativeTime(undefined)).toBe('-');
     });
 
     it('formats expirations', () => {

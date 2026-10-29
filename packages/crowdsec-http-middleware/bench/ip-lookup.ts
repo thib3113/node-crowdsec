@@ -46,7 +46,7 @@ class LinearScanDB {
 }
 
 // ---------------------------------------------------------------------------
-// 2. Map<mask, Map<network, Array<Decision>>> — current IpDecisionDB style
+// 2. Map<mask, Map<network, Array<Decision>>> - current IpDecisionDB style
 // ---------------------------------------------------------------------------
 class MapOfMaps {
     private masks = new Map<number, Map<number, Array<Decision>>>();
@@ -88,7 +88,7 @@ class MapOfMaps {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Map<mask, Map<network, SMI>> — values packed in a single number
+// 3. Map<mask, Map<network, SMI>> - values packed in a single number
 // ---------------------------------------------------------------------------
 class MapSMI {
     private masks = new Map<number, Map<number, number>>();
@@ -187,7 +187,7 @@ class SortedU32 {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Custom open-addressing hash (SoA) — cap 2x, per mask
+// 5. Custom open-addressing hash (SoA) - cap 2x, per mask
 // ---------------------------------------------------------------------------
 class OpenHash {
     private keys = new Uint32Array(65536);

@@ -73,8 +73,8 @@ export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResult
             escapeCell(r.scenario),
             escapeCell(expiry(r.expires)),
             escapeCell(r.simulated ? 'yes' : 'no'),
-            escapeCell(r.alertId ?? '—'),
-            escapeCell(r.decisionId ?? '—')
+            escapeCell(r.alertId ?? '-'),
+            escapeCell(r.decisionId ?? '-')
         ])
     );
 
@@ -130,14 +130,14 @@ export function formatDecisionDetail(decision: APITypes.Decision, alert?: APITyp
     const expires = formatDecisionExpiry(expiryInfo);
 
     const lines = [
-        `### Decision #${decision.id ?? '—'}`,
+        `### Decision #${decision.id ?? '-'}`,
         '',
-        `- **Type:** ${decision.type ?? '—'}`,
-        `- **Scope:** ${decision.scope ?? '—'}`,
-        `- **Value:** ${decision.value ?? '—'}`,
-        `- **Origin:** ${decision.origin ?? '—'}`,
-        `- **Scenario:** ${decision.scenario ?? '—'}`,
-        `- **Remaining:** ${decision.duration ?? '—'}`,
+        `- **Type:** ${decision.type ?? '-'}`,
+        `- **Scope:** ${decision.scope ?? '-'}`,
+        `- **Value:** ${decision.value ?? '-'}`,
+        `- **Origin:** ${decision.origin ?? '-'}`,
+        `- **Scenario:** ${decision.scenario ?? '-'}`,
+        `- **Remaining:** ${decision.duration ?? '-'}`,
         `- **Expires:** ${expires}`,
         `- **Simulated:** ${decision.simulated ? 'yes' : 'no'}`
     ];
@@ -145,10 +145,10 @@ export function formatDecisionDetail(decision: APITypes.Decision, alert?: APITyp
     if (alert) {
         lines.push(
             '',
-            `**Alert #${alert.id ?? '—'}**`,
+            `**Alert #${alert.id ?? '-'}**`,
             `- **Created at:** ${formatDate(alert.created_at)}`,
-            `- **Reason:** ${alert.message ?? '—'}`,
-            `- **Source:** ${alert.source?.scope ?? '—'}:${alert.source?.value ?? '—'}`
+            `- **Reason:** ${alert.message ?? '-'}`,
+            `- **Source:** ${alert.source?.scope ?? '-'}:${alert.source?.value ?? '-'}`
         );
     }
 

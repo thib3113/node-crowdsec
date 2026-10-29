@@ -31,8 +31,8 @@
 **Protect your Node.js HTTP server with CrowdSec.**
 
 This package runs a CrowdSec **bouncer** inside your app : it checks each
-incoming request's IP against CrowdSec's decisions and tells you — via
-`req.decision` — whether the visitor is banned, should be challenged with a
+incoming request's IP against CrowdSec's decisions and tells you - via
+`req.decision` - whether the visitor is banned, should be challenged with a
 captcha, or is clean. **You** decide the response (custom page, captcha,
 redirect, JSON...). A **watcher** can also detect malicious requests and report
 them to CrowdSec.

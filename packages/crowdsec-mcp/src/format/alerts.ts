@@ -14,7 +14,7 @@ function formatListHint(hidden: number, maybeMore: boolean, total: number, maxRe
 
 function formatDecisionsSummary(decisions: APITypes.Alert['decisions']): string {
     if (!decisions || decisions.length === 0) {
-        return '—';
+        return '-';
     }
 
     const counts = new Map<string, { real: number; simulated: number }>();
@@ -45,7 +45,7 @@ function formatDecisionsSummary(decisions: APITypes.Alert['decisions']): string 
         }
     }
 
-    return parts.length > 0 ? parts.join(' ') : '—';
+    return parts.length > 0 ? parts.join(' ') : '-';
 }
 
 export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: number, maybeMore = false): string {
@@ -63,17 +63,17 @@ export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: 
     const headers = ['ID', 'Scope', 'Value', 'Reason', 'Country', 'AS', 'Decisions', 'Created at', 'Kind'];
     const tableRows = displayRows.map((alert) => {
         const source = alert.source;
-        const country = source.cn ?? '—';
-        const as = source.as_name ? `${source.as_number} (${source.as_name})` : (source.as_number ?? '—');
+        const country = source.cn ?? '-';
+        const as = source.as_name ? `${source.as_number} (${source.as_name})` : (source.as_number ?? '-');
         const decisionsSummary = formatDecisionsSummary(alert.decisions);
         const createdAt = formatDate(alert.created_at);
-        const kind = alert.kind ?? '—';
+        const kind = alert.kind ?? '-';
 
         return [
-            escapeCell(alert.id ?? '—'),
+            escapeCell(alert.id ?? '-'),
             escapeCell(source.scope),
             escapeCell(source.value),
-            escapeCell(alert.message ?? '—'),
+            escapeCell(alert.message ?? '-'),
             escapeCell(country),
             escapeCell(as),
             escapeCell(decisionsSummary),
@@ -89,17 +89,17 @@ export function formatAlertList(alerts: APITypes.GetAlertsResponse, maxResults: 
 }
 
 function formatDecisionRow(decision: APITypes.Decision): string[] {
-    const type = decision.type ?? '—';
-    const scope = decision.scope ?? '—';
-    const value = decision.value ?? '—';
-    const origin = decision.origin ?? '—';
-    const duration = decision.duration ?? '—';
+    const type = decision.type ?? '-';
+    const scope = decision.scope ?? '-';
+    const value = decision.value ?? '-';
+    const origin = decision.origin ?? '-';
+    const duration = decision.duration ?? '-';
     const expiryInfo = resolveDecisionExpiry(decision);
     const until = formatDecisionExpiry(expiryInfo);
     const simulated = decision.simulated === true ? 'yes' : 'no';
 
     return [
-        escapeCell(decision.id ?? '—'),
+        escapeCell(decision.id ?? '-'),
         escapeCell(type),
         escapeCell(scope),
         escapeCell(value),
@@ -117,7 +117,7 @@ function formatMeta(meta?: APITypes.Alert['meta']): string {
 
     const headers = ['Key', 'Value'];
     const rows = meta.map((m) => {
-        let value = m.value ?? '—';
+        let value = m.value ?? '-';
         // Try to parse JSON arrays/objects for readability
         try {
             const parsed = JSON.parse(value);
@@ -129,7 +129,7 @@ function formatMeta(meta?: APITypes.Alert['meta']): string {
         } catch {
             // Not JSON, keep as is
         }
-        return [escapeCell(m.key ?? '—'), escapeCell(value)];
+        return [escapeCell(m.key ?? '-'), escapeCell(value)];
     });
 
     return `\n### Meta\n\n${markdownTable(headers, rows)}`;
@@ -137,17 +137,17 @@ function formatMeta(meta?: APITypes.Alert['meta']): string {
 
 function eventMetaKeys(meta: unknown): string {
     if (!meta) {
-        return '—';
+        return '-';
     }
     if (Array.isArray(meta)) {
         const keys = (meta as Array<{ key?: unknown }>).map((m) => (typeof m?.key === 'string' ? m.key : '')).filter(Boolean);
-        return keys.length > 0 ? keys.join(', ') : '—';
+        return keys.length > 0 ? keys.join(', ') : '-';
     }
     if (typeof meta === 'object') {
         const keys = Object.keys(meta as Record<string, unknown>);
-        return keys.length > 0 ? keys.join(', ') : '—';
+        return keys.length > 0 ? keys.join(', ') : '-';
     }
-    return '—';
+    return '-';
 }
 
 function formatEvents(events?: APITypes.Alert['events']): string {
@@ -171,26 +171,26 @@ function formatEvents(events?: APITypes.Alert['events']): string {
 
 export function formatAlertDetail(alert: APITypes.Alert): string {
     const source = alert.source;
-    const country = source.cn ?? '—';
-    const as = source.as_name ? `${source.as_number} (${source.as_name})` : (source.as_number ?? '—');
+    const country = source.cn ?? '-';
+    const as = source.as_name ? `${source.as_number} (${source.as_name})` : (source.as_number ?? '-');
 
     const lines: string[] = [
-        `### Alert #${alert.id ?? '—'}`,
+        `### Alert #${alert.id ?? '-'}`,
         '',
         `- **Date:** ${formatDate(alert.created_at)} (${relativeTime(alert.created_at)})`,
-        `- **Machine:** ${alert.machine_id ?? '—'}`,
+        `- **Machine:** ${alert.machine_id ?? '-'}`,
         `- **Simulation:** ${alert.simulated ? 'yes' : 'no'}`,
         `- **Remediation:** ${alert.remediation ? 'yes' : 'no'}`,
         `- **Active decisions:** ${(alert.decisions ?? []).filter((d) => resolveDecisionExpiry(d).active).length}`,
-        `- **Kind:** ${alert.kind ?? '—'}`,
-        `- **Reason:** ${alert.message ?? '—'}`,
+        `- **Kind:** ${alert.kind ?? '-'}`,
+        `- **Reason:** ${alert.message ?? '-'}`,
         `- **Events count:** ${alert.events_count ?? 0}`,
         `- **Scope:Value:** ${source.scope}:${source.value}`,
         `- **Country:** ${country}`,
         `- **AS:** ${as}`,
         `- **Begin:** ${formatDate(alert.start_at)}`,
         `- **End:** ${formatDate(alert.stop_at)}`,
-        `- **UUID:** ${alert.uuid ?? '—'}`
+        `- **UUID:** ${alert.uuid ?? '-'}`
     ];
 
     // Decisions table: only active decisions are shown. Deleted/expired decisions

@@ -28,7 +28,7 @@ export function formatAllowlistDetail(allowlist: APITypes.GetAllowlistResponse, 
         `**${escapeCell(allowlist.name)}**`,
         '',
         bullets([
-            `Description: ${escapeCell(allowlist.description ?? '—')}`,
+            `Description: ${escapeCell(allowlist.description ?? '-')}`,
             `Created at: ${formatDate(allowlist.created_at)}`,
             `Updated at: ${formatDate(allowlist.updated_at)}`,
             `Managed by Console: ${allowlist.console_managed ? 'yes' : 'no'}`

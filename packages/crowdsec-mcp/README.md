@@ -90,12 +90,12 @@ If both a bouncer key and machine credentials are present, set `CROWDSEC_AUTH` e
 | --- | --- | --- |
 | `CROWDSEC_URL` | CrowdSec LAPI URL | required |
 | `CROWDSEC_AUTH` | `bouncer` or `watcher` | auto |
-| `CROWDSEC_API_KEY` | Bouncer API key | — |
-| `CROWDSEC_MACHINE_ID` | Watcher machine ID | — |
-| `CROWDSEC_PASSWORD` | Watcher password | — |
-| `CROWDSEC_TLS_CERT` | Client certificate path | — |
-| `CROWDSEC_TLS_KEY` | Client key path | — |
-| `CROWDSEC_TLS_CA` | CA certificate path | — |
+| `CROWDSEC_API_KEY` | Bouncer API key | - |
+| `CROWDSEC_MACHINE_ID` | Watcher machine ID | - |
+| `CROWDSEC_PASSWORD` | Watcher password | - |
+| `CROWDSEC_TLS_CERT` | Client certificate path | - |
+| `CROWDSEC_TLS_KEY` | Client key path | - |
+| `CROWDSEC_TLS_CA` | CA certificate path | - |
 | `CROWDSEC_STRICT_SSL` | Validate TLS certificates | `true` |
 | `CROWDSEC_TIMEOUT` | HTTP timeout in milliseconds | `10000` |
 | `CROWDSEC_MCP_TRANSPORT` | `stdio` or `http` | `stdio` |
@@ -389,8 +389,8 @@ Authorization: Bearer <CROWDSEC_MCP_HTTP_TOKEN>
 ```
 
 Rules:
-- Both `X-CrowdSec-Api-Key` and `X-CrowdSec-Token` → `400`.
-- Neither → `401`.
+- Both `X-CrowdSec-Api-Key` and `X-CrowdSec-Token` -> `400`.
+- Neither -> `401`.
 - Bouncer keys expose only bouncer-compatible tools; watcher JWTs expose the watcher toolset.
 - Clients are created per request and never reuse another user's credential.
 - The watcher JWT must be refreshed by the user when it expires.

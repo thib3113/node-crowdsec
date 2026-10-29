@@ -46,7 +46,7 @@ export function formatOrigin(value?: string): string | undefined {
 
 export function escapeCell(value: unknown): string {
     if (value === undefined || value === null || value === '') {
-        return '—';
+        return '-';
     }
 
     return stringifyCell(value)
@@ -74,7 +74,7 @@ export function markdownTable(headers: string[], rows: string[][]): string {
 
 export function formatDate(value?: string | Date): string {
     if (!value) {
-        return '—';
+        return '-';
     }
 
     const date = value instanceof Date ? value : new Date(value);
@@ -87,7 +87,7 @@ export function formatDate(value?: string | Date): string {
 
 export function relativeTime(value?: string | Date, now = Date.now()): string {
     if (!value) {
-        return '—';
+        return '-';
     }
 
     const date = value instanceof Date ? value : new Date(value);
@@ -129,7 +129,7 @@ export function formatDecisionExpiry(expiryInfo: { expires?: string; active: boo
         return `${formatDate(expiryInfo.expires)} (${expiry(expiryInfo.expires)})`;
     }
 
-    return expiryInfo.active ? '—' : 'expired';
+    return expiryInfo.active ? '-' : 'expired';
 }
 
 export function truncateRows<T>(rows: T[], maxResults: number): { rows: T[]; hidden: number } {
