@@ -238,7 +238,7 @@ A remote watcher receives `403 access forbidden from this IP`. Use `unban_ip` to
 
 Over HTTP, `delete_alerts` is hidden unless a service token (`CROWDSEC_MCP_HTTP_TOKEN`) is configured or `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true` is set. This prevents a tokenless shared MCP (for example in passthrough mode) from exposing the local-only destructive path. Over stdio, the process is already local, so only `CROWDSEC_MCP_ENABLE_ALERT_DELETE` is required.
 
-`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. `type` is resolved through an alert search followed by deletion by ID, as the conservative path for LAPIs that do not accept `decision_type` on DELETE. `since` and `until` are Go durations (`24h`, `7d`) and are sent directly to the delete endpoint, like the alert search. `id`, `origin` (sent as `alert_source`) and `has_active_decision` are sent directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
+`all=true` cannot be combined with filters. `ip` and `range` accept a CIDR and perform containment. `type` is resolved through an alert search followed by deletion by ID, as the conservative path for LAPIs that do not accept `decision_type` on DELETE. `since` and `until` are Go durations (`24h`, `7d`) and are sent directly to the delete endpoint, like the alert search. `id`, `origin` (sent as `alert_source`) and `has_active_decision` are sent directly. `scope` must be combined with `value`; scope alone is rejected to avoid deleting every alert of that scope. Deleting without a narrow target (`id`, `ip`, `range`, or `scope`+`value`) — e.g. `scenario`, `origin`, `type`, `since`/`until` or `has_active_decision` alone — requires `confirm=true`, like `unban_ip`. Deleting an alert also deletes its active decisions; this cascade is a CrowdSec LAPI behavior.
 
 ### CIDR semantics
 
@@ -399,13 +399,77 @@ Rules:
 
 ## Security
 
-- Read-only mode is enabled by default. Keep it that way unless the model really needs writes.
-- Keep credentials in the environment, not in command-line arguments: arguments are visible in the process list.
-- Outside passthrough mode, HTTP always requires a bearer token, including on `127.0.0.1`. The server refuses to start in HTTP mode without one.
-- In passthrough mode, the service token is optional; the LAPI credential is still required on every request. Use TLS and never log request headers.
-- `ban_ip`, `unban_ip` and `delete_alerts` are destructive. Restrict them with `CROWDSEC_MCP_TOOLS` or keep read-only mode.
-- `ban_ip` creates a real CrowdSec alert and decision. It may be forwarded to CAPI depending on your CrowdSec configuration.
-- Use `CROWDSEC_MCP_TOOLS` to expose the smallest useful surface to the model.
+The MCP speaks to CrowdSec with real LAPI credentials. The security posture
+depends on two choices: the transport (`stdio` vs `http`) and where the
+credentials live (server environment vs per-request headers).
+
+### Threat model
+
+- **stdio**: the MCP is a local process started by the client. Nothing listens
+  on the network. The main risk is who can read the client config or the
+  process environment.
+- **http**: the MCP listens on `CROWDSEC_MCP_HTTP_HOST:PORT` and only serves
+  `POST /mcp` (anything else is 404/405). It runs stateless: one fresh
+  server and transport per request, no session stored. Bodies are capped at
+  4 MiB (413 beyond that) and server errors are returned as generic JSON-RPC
+  messages without stack traces. There is **no TLS on the MCP port itself**:
+  the bearer token and any passthrough credentials travel in cleartext. In
+  practice the server is reachable from the network (e.g. a management VLAN
+  for the AI agents), so put a TLS reverse proxy in front and restrict at
+  the firewall who can reach the port.
+- Credentials (API key, password, token, TLS material) are kept in process
+  memory and never written to logs or tool outputs. Tool errors surfaced to
+  the model are truncated to their first line.
+
+### Recommended deployments
+
+| Deployment | Access control | LAPI identity | Notes |
+| --- | --- | --- | --- |
+| stdio, local client | OS user boundary | server env (`CROWDSEC_API_KEY` or machine credentials) | Default. Nothing exposed on the network. |
+| http on `127.0.0.1` + service token | `Authorization: Bearer` per request | server env, shared by all callers | Token is mandatory at startup outside passthrough. Local-only setups. |
+| http on a management VLAN + TLS reverse proxy + service token | proxy + service token, firewall-limited to the VLAN | server env, shared by all callers | The realistic production setup. Rotate the token if it leaks: every holder shares the same LAPI identity. |
+| http passthrough + service token | service token + per-request LAPI credential | per request (`X-CrowdSec-Api-Key` or `X-CrowdSec-Token`) | Multi-user friendly: each caller only gets their own LAPI rights. |
+| http passthrough, no service token | per-request LAPI credential only | per request | Acceptable on a trusted management VLAN; anyone with a valid LAPI credential can probe the endpoint. |
+
+In passthrough mode, `X-CrowdSec-Api-Key` (bouncer, read decisions only) and
+`X-CrowdSec-Token` (watcher JWT, full toolset) are mutually exclusive:
+sending both is a 400, sending neither is a 401. Requests headers are
+validated and then discarded; one request never reuses another's credential.
+The passthrough mode ignores `CROWDSEC_TLS_*`: mTLS client certificates are
+not applied per request.
+
+### Security-relevant variables
+
+| Variable | Effect | Safe values |
+| --- | --- | --- |
+| `CROWDSEC_MCP_HTTP_HOST` | Network interface the MCP binds to. `0.0.0.0` exposes it to the LAN/container network. | `127.0.0.1` for local-only setups; otherwise bind behind a TLS reverse proxy on a management VLAN and firewall the port. |
+| `CROWDSEC_MCP_HTTP_TOKEN` | Bearer token required on every request (compared in constant time). Mandatory in non-passthrough HTTP: the server refuses to start without it. | A long random value, rotated like a password. One token per MCP instance. |
+| `CROWDSEC_MCP_READONLY` | `true` hides `ban_ip`, `unban_ip` and `delete_alerts` from `listTools`: the model cannot call what it cannot see. | Keep `true` (the default) unless writes are needed. |
+| `CROWDSEC_MCP_ENABLE_ALERT_DELETE` | Exposes `delete_alerts`. Deletion only works from the LAPI host (403 otherwise). | `true` only in a sidecar/host deployment next to the LAPI. |
+| `CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN` | Forces `delete_alerts` to be exposed over HTTP **without** a service token. | Leave `false`. With this flag, anyone holding a watcher JWT can trigger local-only destructive deletions as soon as the port is reachable. |
+| `CROWDSEC_MCP_TOOLS` / `CROWDSEC_MCP_DISABLE_TOOLS` | Allowlist/denylist of exposed tools. | Expose the smallest useful surface, e.g. `CROWDSEC_MCP_DISABLE_TOOLS=delete_alerts,ban_ip`. |
+| `CROWDSEC_MCP_MAX_BAN_DURATION` | Bans above this need `force=true`. | `24h` default; tighten for shared deployments. |
+| `CROWDSEC_STRICT_SSL` / `--insecure` | Disabling TLS validation between the MCP and the LAPI exposes credentials to MITM. | Keep `true`. Only disable for self-signed certificates in development. |
+
+Keep secrets in the environment, not in command-line arguments: arguments are
+visible in the process list.
+
+### Confirmations are not authorization
+
+Destructive tools ask for explicit confirmation, but that is a guardrail, not
+an access boundary:
+
+- `all=true` always requires `confirm=true`.
+- `unban_ip` filtered only by `type`/`scenario` requires `confirm=true`.
+- `delete_alerts` without a narrow target (`id`, `ip`, `range`, or
+  `scope`+`value`) — e.g. `scenario`, `origin`, `type`, time filters or
+  `has_active_decision` alone — requires `confirm=true`.
+- `ban_ip` refuses allowlisted targets unless `force=true`; `check_allowlist`
+  first when in doubt.
+
+The server instructions repeat these rules to the model, but any client that
+can reach the endpoint can also confirm: the real protection is the token,
+the bind address, and the read-only default.
 
 ## Troubleshooting
 

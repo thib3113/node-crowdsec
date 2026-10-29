@@ -59,7 +59,7 @@ const DeleteAlertsInput = z
         until: z.string().optional().describe('Filter alerts older than this duration (e.g., 4h, 30d)'),
         has_active_decision: z.boolean().optional().describe('Only delete alerts with active decisions'),
         all: z.boolean().optional().describe('Delete all matching alerts (requires confirm=true)'),
-        confirm: z.boolean().optional().describe('Confirm deletion when using all=true')
+        confirm: z.boolean().optional().describe('Confirm deletion when using all=true or broad filters')
     })
     .strict();
 
@@ -141,6 +141,13 @@ function normalizeDeleteInput(input: DeleteAlertInput): NormalizedDeleteAlertInp
     if (input.id === undefined && input.all !== true && !hasDeleteFilters(input, decisionType)) {
         throw new Error(
             'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
+        );
+    }
+
+    const hasNarrowTarget = Boolean(input.ip || input.range || (normalizedScope && normalizedValue));
+    if (input.id === undefined && !hasNarrowTarget && input.confirm !== true) {
+        throw new Error(
+            'Deleting alerts filtered only by scenario, origin, type, time or has_active_decision requires confirm=true; add ip, range, or scope+value to narrow the target'
         );
     }
 
@@ -331,7 +338,7 @@ export const alertTools: ToolDefinition[] = [
         name: 'delete_alerts',
         title: 'Delete alerts',
         description:
-            'Delete alerts by ID or filters. Requires at least one filter or all=true with confirm=true; all=true cannot be combined with filters. ip and range accept a CIDR and perform containment. CrowdSec only allows alert deletion from the LAPI host; remote watchers receive 403.',
+            'Delete alerts by ID or filters. Requires at least one filter or all=true with confirm=true; all=true cannot be combined with filters. Broad filters (scenario, origin, type, time, has_active_decision alone) also require confirm=true; narrow with ip, range, or scope+value. ip and range accept a CIDR and perform containment. CrowdSec only allows alert deletion from the LAPI host; remote watchers receive 403.',
         inputSchema: DeleteAlertsInput,
         kind: 'write',
         requires: ['watcher'],

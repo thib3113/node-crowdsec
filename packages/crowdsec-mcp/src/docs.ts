@@ -85,6 +85,7 @@ function workingRules(ctx: AppContext): string[] {
         add('Durations need a unit (30m, 4h, 7d). Durations above the limit require force=true and explicit approval.');
         add('ban_ip refuses allowlisted targets unless force=true; check_allowlist first when in doubt.');
         add('unban_ip with only type/scenario filters can delete many decisions and requires confirm=true.');
+        add('delete_alerts without a narrow target (ip, range, or scope+value) requires confirm=true.');
     }
 
     add('Never invent alert or decision IDs. If a lookup returns nothing, say so instead of guessing.');

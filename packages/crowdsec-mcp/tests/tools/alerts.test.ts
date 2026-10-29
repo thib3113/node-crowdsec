@@ -517,9 +517,18 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
         });
 
-        it('should delete alerts by origin with a direct delete', async () => {
+        it('should require confirm for origin-only deletes', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            const result = await tool.handler({ origin: 'cscli' }, mockCtx);
+
+            await expect(tool.handler({ origin: 'cscli' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should delete alerts by origin with a direct delete when confirmed', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            const result = await tool.handler({ origin: 'cscli', confirm: true }, mockCtx);
 
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -530,12 +539,21 @@ describe('alertTools', () => {
             expect(result).toContain('Deleted 5 alert(s).');
         });
 
-        it('should delete alerts by decision type and time filters through a search', async () => {
+        it('should require confirm for type-only deletes', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ type: 'Ban' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should delete alerts by decision type and time filters through a search when confirmed', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
             mockWatcher.Alerts.search.mockResolvedValue([{ id: 31 }]);
             mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
 
-            const result = await tool.handler({ type: 'Ban', since: '4h', until: '1h' }, mockCtx);
+            const result = await tool.handler({ type: 'Ban', since: '4h', until: '1h', confirm: true }, mockCtx);
 
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -548,19 +566,37 @@ describe('alertTools', () => {
             expect(result).toContain('Deleted 1 alert(s).');
         });
 
-        it('should send since and until to the delete endpoint as durations', async () => {
+        it('should require confirm for time-only deletes', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
 
-            const result = await tool.handler({ since: '24h', until: '1h' }, mockCtx);
+            await expect(tool.handler({ since: '24h', until: '1h' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should send since and until to the delete endpoint as durations when confirmed', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            const result = await tool.handler({ since: '24h', until: '1h', confirm: true }, mockCtx);
 
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(expect.objectContaining({ since: '24h', until: '1h' }));
             expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
             expect(result).toContain('Deleted 5 alert(s).');
         });
 
-        it('should delete alerts with active decisions with a direct delete', async () => {
+        it('should require confirm for has_active_decision-only deletes', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            const result = await tool.handler({ has_active_decision: true }, mockCtx);
+
+            await expect(tool.handler({ has_active_decision: true }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should delete alerts with active decisions with a direct delete when confirmed', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            const result = await tool.handler({ has_active_decision: true, confirm: true }, mockCtx);
 
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -623,9 +659,18 @@ describe('alertTools', () => {
             );
         });
 
-        it('should throw when only scenario provided without id', async () => {
+        it('should require confirm when only scenario is provided', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            const result = await tool.handler({ scenario: 'ssh-bf' }, mockCtx);
+
+            await expect(tool.handler({ scenario: 'ssh-bf' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.delete).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should delete by scenario when confirmed', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            const result = await tool.handler({ scenario: 'ssh-bf', confirm: true }, mockCtx);
 
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
