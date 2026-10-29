@@ -189,3 +189,42 @@ jobs:
 #          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #        working-directory: ${{ matrix.package.path }}
 #        if: steps.package_version.outputs.npm_is_greater != 'true'
+
+  # Only build the Docker image once the matching version is actually published
+  # on npm, so the image follows the same release flow as the npm package.
+  docker-mcp-check:
+    needs: [ build ]
+    if: startsWith(github.event.release.tag_name, 'crowdsec-mcp/v')
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check.outputs.published }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Check npm publication
+        id: check
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${RELEASE_TAG#crowdsec-mcp/v}"
+          PUBLISHED=false
+          for attempt in 1 2 3 4 5 6; do
+            LATEST="$(curl -fsSL https://registry.npmjs.org/crowdsec-mcp | jq -r '.["dist-tags"].latest // "0.0.0"')" || LATEST=error
+            echo "attempt ${attempt}: release=${VERSION} npm_latest=${LATEST}"
+            if [ "${LATEST}" = "${VERSION}" ]; then PUBLISHED=true; break; fi
+            sleep 10
+          done
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "published=${PUBLISHED}" >> "$GITHUB_OUTPUT"
+
+  docker-mcp:
+    needs: [ docker-mcp-check ]
+    if: needs['docker-mcp-check'].outputs.published == 'true'
+    uses: ./.github/workflows/docker-mcp.yml
+    with:
+      version: ${{ needs['docker-mcp-check'].outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write

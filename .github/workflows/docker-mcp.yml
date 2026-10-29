@@ -1,20 +1,13 @@
 name: Docker (crowdsec-mcp)
 
 on:
-  push:
-    branches: [main]
-    tags:
-      - 'v*'
-      - 'crowdsec-mcp/v*'
-    paths:
-      - 'packages/crowdsec-mcp/**'
-      - 'packages/crowdsec-client/**'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'package.json'
-      - 'tsconfig.json'
-      - '.npmrc'
-      - '.github/workflows/docker-mcp.yml'
+  workflow_call:
+    inputs:
+      version:
+        description: 'Released version (e.g. 0.0.4)'
+        required: false
+        type: string
+        default: ''
   pull_request:
     paths:
       - 'packages/crowdsec-mcp/**'
@@ -93,7 +86,8 @@ jobs:
         with:
           images: ${{ steps.images.outputs.list }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=raw,value=latest,enable=${{ inputs.version != '' }}
             type=sha,format=short,prefix=sha-
             type=match,pattern=^crowdsec-mcp/v(.*)$,group=1
             type=match,pattern=^v(.*)$,group=1
