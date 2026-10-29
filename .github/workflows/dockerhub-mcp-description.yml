@@ -1,0 +1,33 @@
+name: Update Docker Hub Description (crowdsec-mcp)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/crowdsec-mcp/DOCKERHUB.md'
+      - '.github/workflows/dockerhub-mcp-description.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dockerhub-description:
+    runs-on: ubuntu-latest
+    # Empty without the secrets (forks): the sync is skipped.
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Docker Hub Description
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+          repository: thib3113/crowdsec-mcp
+          short-description: 'Model Context Protocol (MCP) server for CrowdSec: decisions, alerts and allowlists'
+          readme-filepath: packages/crowdsec-mcp/DOCKERHUB.md
