@@ -29,5 +29,5 @@
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "assignees": ["thib3113"],
-  "schedule": ["before 5am every day"]
+  "schedule": ["before 5am"]
 }
