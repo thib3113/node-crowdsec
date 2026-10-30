@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# Digest pinning and updates are handled by Renovate (see renovate.json).
+# Pin the base image by digest for reproducible builds; Renovate keeps the
+# digest and the tag in sync (see renovate.json).
 # Keep a single base stage so Renovate only has one FROM line to update.
-FROM node:26-alpine AS node
+FROM node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS node
 
 FROM node AS build
 

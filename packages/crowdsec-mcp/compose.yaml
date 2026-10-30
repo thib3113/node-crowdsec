@@ -14,6 +14,8 @@ services:
       - crowdsec-config:/etc/crowdsec
 
   crowdsec-mcp:
+    # `latest` is rebuilt on every merge to main; pin a version tag (e.g.
+    # `0.0.5`) or `sha-<commit>` for a reproducible deployment.
     image: ghcr.io/thib3113/crowdsec-mcp:latest
     # For local builds, uncomment the following and run
     # `docker compose -f packages/crowdsec-mcp/compose.yaml up --build`.
@@ -36,6 +38,9 @@ services:
       CROWDSEC_MCP_READONLY: "false"
       CROWDSEC_MCP_ENABLE_ALERT_DELETE: "true"
       # Optional service gate. Unset/empty disables it.
+      # Over HTTP, `delete_alerts` also needs a service token: while this is
+      # empty the tool stays hidden, unless
+      # CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true (dangerous) is set.
       CROWDSEC_MCP_HTTP_TOKEN: ${CROWDSEC_MCP_HTTP_TOKEN:-}
     read_only: true
     tmpfs:

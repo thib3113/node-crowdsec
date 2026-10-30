@@ -8,6 +8,11 @@ on:
   push:
     branches: [ main ]
 
+# Least privilege by default; the deploy job grants contents: write to publish
+# to GitHub Pages.
+permissions:
+  contents: read
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
