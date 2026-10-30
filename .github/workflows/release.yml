@@ -3,6 +3,10 @@ on:
   release:
     types: [created]
 
+# Least privilege by default; jobs grant only the extra scopes they need.
+permissions:
+  contents: read
+
 jobs:
   ci:
     uses: ./.github/workflows/CI.yml
@@ -10,9 +14,10 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     permissions:
-      checks: write
       actions: read
       contents: read
+      # Required by the called CI.yml job that uploads SARIF; a caller cannot
+      # elevate a reusable workflow, only cap it.
       security-events: write
 
   prepare:
@@ -87,6 +92,9 @@ jobs:
         package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
 
     permissions:
+      # Needed to check out the repository (job-level permissions replace, not
+      # merge with, the workflow-level default).
+      contents: read
       id-token: write
 
     steps:
@@ -169,9 +177,10 @@ jobs:
 
       - name: publish to NPM
         run: |
-          npm install --global npm@11.19.0 --ignore-scripts
-          npm --version
-          npm publish --provenance
+          # pnpm rewrites the `workspace:^` dependency to the published semver
+          # range; `npm publish` would ship the literal `workspace:^` spec.
+          pnpm --version
+          pnpm publish --provenance --no-git-checks
         working-directory: ${{ matrix.package.path }}
         if: steps.package_version.outputs.npm_is_greater != 'true'
 
@@ -215,6 +224,8 @@ jobs:
     needs: [ build ]
     if: startsWith(github.event.release.tag_name, 'crowdsec-mcp/v')
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     outputs:
       published: ${{ steps.check.outputs.published }}
       version: ${{ steps.check.outputs.version }}

@@ -18,6 +18,21 @@ on:
       - 'tsconfig.json'
       - '.npmrc'
       - '.github/workflows/docker-mcp.yml'
+  # Publish on every merge on main (including Renovate dependency/base-image
+  # bumps), so a merged digest update is actually built without waiting for a
+  # release. `latest` therefore tracks the main branch; use a version tag for a
+  # stable build.
+  push:
+    branches: [main]
+    paths:
+      - 'packages/crowdsec-mcp/**'
+      - 'packages/crowdsec-client/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.npmrc'
+      - '.github/workflows/docker-mcp.yml'
   workflow_dispatch:
 
 permissions:
@@ -87,7 +102,7 @@ jobs:
           images: ${{ steps.images.outputs.list }}
           tags: |
             type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=raw,value=latest,enable=${{ inputs.version != '' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' || inputs.version != '' }}
             type=sha,format=short,prefix=sha-
             type=match,pattern=^crowdsec-mcp/v(.*)$,group=1
             type=match,pattern=^v(.*)$,group=1

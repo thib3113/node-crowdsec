@@ -15,6 +15,10 @@ on:
       SNYK_TOKEN:
         required: true
 
+# Least privilege by default; jobs that upload SARIF or push docs grant more.
+permissions:
+  contents: read
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -123,8 +127,6 @@ jobs:
 
     name: Test package ${{ matrix.package.name }} with node ${{ matrix.node-version }}
 
-    permissions:
-      checks: write
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
@@ -149,8 +151,6 @@ jobs:
 
     name: Test and send metrics
 
-    permissions:
-      checks: write
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
