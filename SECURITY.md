@@ -23,5 +23,9 @@ Please include:
 - the impact you expect;
 - a possible fix, if you have one.
 
-You will get an initial response as soon as possible. Please allow time for a
-fix before public disclosure.
+## Response times
+
+We aim to acknowledge every vulnerability report within 30 days. After triage
+we agree a remediation plan and a disclosure date with the reporter. Critical
+issues are prioritised, with a target fix within 90 days of a confirmed report.
+Please allow time for a fix before public disclosure.
