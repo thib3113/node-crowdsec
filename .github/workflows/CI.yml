@@ -8,11 +8,10 @@ on:
     branches: [ main ]
   pull_request:
     types: [opened, synchronize, reopened]
+  merge_group:
   workflow_call:
     secrets:
       CODECOV_TOKEN:
-        required: true
-      SNYK_TOKEN:
         required: true
 
 # Least privilege by default; jobs that upload SARIF or push docs grant more.
@@ -199,55 +198,33 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   security:
+    # Free, unlimited SCA on every push and pull request (including Renovate
+    # PRs), reported to Code Scanning. Snyk's metered tests are reserved for the
+    # release gate in snyk.yml, so this job does not consume Snyk quota.
+    #
+    # Report-only on purpose: the lockfile also contains dev-only dependencies,
+    # and the policy treats dev-only advisories as out of scope because they are
+    # not shipped (docs/dependencies.md). The blocking SCA gate stays
+    # `pnpm audit --prod` (runtime) in the build job.
     permissions:
       actions: read
       contents: read
       security-events: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Install Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version: lts/*
-
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          run_install: false
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@11b673cfb4b0dc0d860a1323caa199d54950dcce # master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --sarif-file-output=snyk.sarif  --all-projects --exclude=examples,dev
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
-        with:
-          sarif_file: snyk.sarif
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+    with:
+      # Recursive scan of the committed lockfile(s) against the OSV database.
+      # research/ is a vendored copy (Ruby/SPDX) and examples/ is not shipped.
+      scan-args: |-
+        -r
+        --x-exclude=research
+        --x-exclude=examples
+        --x-exclude=dev
+        ./
+      fail-on-vuln: false
 
   analyze:
     name: Analyze (javascript)
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'merge_group'
     needs: security
     runs-on: ubuntu-latest
     permissions:

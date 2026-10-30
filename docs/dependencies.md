@@ -31,11 +31,14 @@ dependencies.
 - [Renovate](https://docs.renovatebot.com/) keeps dependencies and GitHub
   Actions up to date. Its configuration (`renovate.json`) enables vulnerability
   alerts, pins GitHub Actions and Docker images by digest, waits for a
-  three-day release age before proposing an update, and automerges minor and
-  patch updates of stable dependencies once CI passes.
+  three-day release age before proposing a regular update, groups non-major
+  updates into a single pull request, and opens vulnerability fixes
+  immediately. Merges are always manual.
 - The Renovate dependency dashboard lists pending updates and blocked PRs.
-- `pnpm audit --prod` is expected to be clean for runtime dependencies, and CI
-  runs Snyk, CodeQL and SonarCloud on changes.
+- `pnpm audit --prod` is the blocking runtime SCA gate and is expected to be
+  clean for runtime dependencies. CI also runs OSV-Scanner in report-only mode
+  (SARIF in Code Scanning), CodeQL and SonarCloud on changes; Snyk runs weekly
+  and as a release gate on shipped components (see below).
 - Dependency updates land as pull requests that must pass the required CI
   check before merging, so every update is reviewed and tested.
 
@@ -47,9 +50,17 @@ accepted.
 
 ## Security findings
 
-Dependencies and code are checked continuously (`pnpm audit`, Snyk, CodeQL,
-SonarCloud, and Renovate vulnerability alerts). Findings are triaged and
-remediated using these thresholds:
+Dependencies and code are checked continuously (`pnpm audit`, OSV-Scanner,
+CodeQL, SonarCloud, and Renovate vulnerability alerts).
+
+Snyk is metered on the free plan, so it is not run on every push or pull
+request. It runs weekly on `main` and as a release gate in
+`.github/workflows/snyk.yml`, with `--production` and `--severity-threshold=high`
+so only high or critical findings in shipped components block a release.
+OSV-Scanner is report-only for the same reason: the lockfile mixes dev-only
+dependencies, whose advisories are out of scope.
+
+Findings are triaged and remediated using these thresholds:
 
 | Severity | SCA (dependencies) | SAST (code) |
 | --- | --- | --- |

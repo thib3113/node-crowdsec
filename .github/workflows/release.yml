@@ -1,23 +1,82 @@
 name: Release
+
+# Draft-first, gated release.
+#
+# A maintainer creates a *draft* release (with the tag `package/vX.Y.Z` and the
+# release notes), then runs this workflow manually. GitHub does not trigger
+# workflows for `created`/`edited`/`deleted` draft releases, so a manual
+# trigger is required. The run picks up the single open draft, validates it,
+# runs CI and the Snyk gate, builds and signs the artifacts, attaches them to
+# the draft, publishes the npm packages, then publishes the draft. The tag is
+# created by this workflow at the very end (the GitHub Actions app bypasses the
+# tag ruleset), so a failure leaves a deletable draft and a reusable tag name.
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+
+# One release at a time; never cancel a run that may be publishing.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 # Least privilege by default; jobs grant only the extra scopes they need.
 permissions:
   contents: read
 
 jobs:
+  # Resolve the single open draft release. No free-form input is accepted: the
+  # draft itself is the source of truth (tag, notes, assets).
+  draft:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.find.outputs.id }}
+      tag: ${{ steps.find.outputs.tag }}
+    steps:
+      - name: Find the single open draft release
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          drafts=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '[.[] | select(.draft)]')
+          count=$(jq 'length' <<<"${drafts}")
+          if [ "${count}" -ne 1 ]; then
+            echo "::error::Expected exactly one draft release, found ${count}. Create the draft first, or publish/delete the extra ones."
+            exit 1
+          fi
+          id=$(jq -r '.[0].id' <<<"${drafts}")
+          tag=$(jq -r '.[0].tag_name' <<<"${drafts}")
+          if ! printf '%s' "${tag}" | grep -Eq '^[A-Za-z0-9._-]+/v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Draft tag '${tag}' does not match '<package>/v<major>.<minor>.<patch>'."
+            exit 1
+          fi
+          echo "id=${id}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
   ci:
     uses: ./.github/workflows/CI.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     permissions:
       actions: read
       contents: read
       # Required by the called CI.yml job that uploads SARIF; a caller cannot
       # elevate a reusable workflow, only cap it.
+      security-events: write
+
+  # Release gate. Snyk must be clean at high/critical before anything is built
+  # or published. A failure stops `build`, so `pnpm publish` never runs and no
+  # npm version is consumed. Prefer running it on main before tagging (see
+  # docs/releases.md) so this is only a confirmation.
+  snyk:
+    uses: ./.github/workflows/snyk.yml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    permissions:
+      actions: read
+      contents: read
       security-events: write
 
   prepare:
@@ -81,7 +140,7 @@ jobs:
 
   # This workflow contains a single job called "build"
   build:
-    needs: [ prepare, ci, list-packages ]
+    needs: [ prepare, ci, snyk, list-packages, draft ]
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -173,6 +232,21 @@ jobs:
         env:
           CHECK_PATH: ${{ matrix.package.path }}
 
+      # The tag is the release identity and, once published, immutable: refuse
+      # to continue if it does not match the version actually being shipped.
+      - name: Validate the draft tag against package.json
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
+        env:
+          TAG: ${{ needs.draft.outputs.tag }}
+          NAME: ${{ matrix.package.name }}
+          VERSION: ${{ steps.package_version.outputs.version }}
+        run: |
+          expected="${NAME}/v${VERSION}"
+          if [ "${TAG}" != "${expected}" ]; then
+            echo "::error::Draft tag '${TAG}' does not match '${expected}' from package.json."
+            exit 1
+          fi
+
       - name: build dependencies
         run: pnpm -F ${{ matrix.package.name }}... build
         working-directory: ${{ matrix.package.path }}
@@ -190,13 +264,13 @@ jobs:
       # released, so OpenSSF Scorecard's Signed-Releases check can score it.
       # Only the matrix leg matching the release tag does this.
       - name: Install cosign
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
           cosign-release: 'v3.1.4'
 
       - name: Pack release artifact
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         working-directory: ${{ matrix.package.path }}
         run: |
           mkdir -p "$RUNNER_TEMP/release"
@@ -204,7 +278,7 @@ jobs:
 
       # SBOM for the released package, uploaded next to the tarball.
       - name: Generate SBOM
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           path: ${{ matrix.package.path }}
@@ -215,7 +289,7 @@ jobs:
           dependency-snapshot: false
 
       - name: Sign release artifact (keyless)
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         run: |
           ARTIFACT="$(ls "$RUNNER_TEMP"/release/*.tgz)"
           cosign sign-blob --yes --bundle "${ARTIFACT}.sigstore" "${ARTIFACT}"
@@ -224,29 +298,43 @@ jobs:
       # of 8 for a bare signature) when it carries a *.intoto.jsonl asset.
       - name: Attest build provenance
         id: attest
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: ${{ runner.temp }}/release/*.tgz
 
       - name: Add the provenance bundle to the artifact set
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         run: |
           ARTIFACT="$(ls "$RUNNER_TEMP"/release/*.tgz)"
           cp "${{ steps.attest.outputs.bundle-path }}" "${ARTIFACT}.intoto.jsonl"
 
+      # `gh release upload <tag>` cannot resolve a draft (the tag does not
+      # exist yet and the tags API only returns published releases), so upload
+      # by release id instead. Existing same-name assets are removed first so a
+      # re-run stays idempotent.
       - name: Upload signed artifact to the release
-        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        if: startsWith(needs.draft.outputs.tag, format('{0}/v', matrix.package.name))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_ID: ${{ needs.draft.outputs.id }}
         run: |
-          gh release upload "$RELEASE_TAG" \
-            "$RUNNER_TEMP"/release/*.tgz \
-            "$RUNNER_TEMP"/release/*.sigstore \
-            "$RUNNER_TEMP"/release/*.intoto.jsonl \
-            "$RUNNER_TEMP"/release/*.cdx.json \
-            --clobber
+          set -euo pipefail
+          api="repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets"
+          for f in "$RUNNER_TEMP"/release/*.tgz \
+                   "$RUNNER_TEMP"/release/*.sigstore \
+                   "$RUNNER_TEMP"/release/*.intoto.jsonl \
+                   "$RUNNER_TEMP"/release/*.cdx.json; do
+            name="$(basename "$f")"
+            for asset_id in $(gh api "${api}?per_page=100" \
+              --jq ".[] | select(.name == \"${name}\") | .id"); do
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >/dev/null
+            done
+            gh api --method POST \
+              -H "Content-Type: application/octet-stream" \
+              "${api}?name=${name}" --input "$f" >/dev/null
+          done
 
       # Marker consumed by the docker-mcp job: it only proves what this run
       # actually published, independently of npm CDN propagation delays.
@@ -282,11 +370,62 @@ jobs:
 #        working-directory: ${{ matrix.package.path }}
 #        if: steps.package_version.outputs.npm_is_greater != 'true'
 
+  # Final step of the release gate: pin the draft tag to the commit that was
+  # tested, then publish the draft. Publishing creates the tag, which the tag
+  # ruleset allows only for the GitHub Actions app. Because every job above is
+  # in `needs`, nothing here runs unless CI and Snyk were green.
+  publish-release:
+    needs: [ build, draft ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # A tag that already exists wins over target_commitish, and the tag
+      # ruleset forbids moving it. Refuse rather than publish onto a stale ref.
+      - name: Refuse to publish onto a different existing tag
+        env:
+          TAG: ${{ needs.draft.outputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          existing=$(git ls-remote --tags "https://github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/${TAG}^{}" | cut -f1)
+          if [ -z "${existing}" ]; then
+            existing=$(git ls-remote --tags "https://github.com/${GITHUB_REPOSITORY}.git" \
+              "refs/tags/${TAG}" | cut -f1)
+          fi
+          if [ -n "${existing}" ] && [ "${existing}" != "${SHA}" ]; then
+            echo "::error::Tag ${TAG} already exists at ${existing}, expected ${SHA}. Delete it before retrying."
+            exit 1
+          fi
+
+      - name: Pin the draft tag to the tested commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft.outputs.id }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f target_commitish="${SHA}" >/dev/null
+
+      - name: Publish the draft (creates the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft.outputs.id }}
+        run: |
+          set -euo pipefail
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -F draft=false >/dev/null
+          echo "Published draft release ${RELEASE_ID}."
+
   # Read the publication marker uploaded by the crowdsec-mcp matrix leg.
   # This tells whether this very run published crowdsec-mcp to npm.
   docker-mcp-check:
-    needs: [ build ]
-    if: startsWith(github.event.release.tag_name, 'crowdsec-mcp/v')
+    needs: [ build, draft ]
+    if: startsWith(needs.draft.outputs.tag, 'crowdsec-mcp/v')
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -315,7 +454,9 @@ jobs:
   # Build the Docker image from the release workflow, and only when this run
   # actually published the crowdsec-mcp npm package.
   docker-mcp:
-    needs: [ docker-mcp-check ]
+    # Only publish the image once the release itself is published, so a failed
+    # gate never leaves an image without a matching release.
+    needs: [ docker-mcp-check, publish-release ]
     if: needs['docker-mcp-check'].outputs.published == 'true'
     uses: ./.github/workflows/docker-mcp.yml
     with:

@@ -24,11 +24,11 @@ All of these are expected to pass before a pull request is merged.
 | --- | --- | --- |
 | Build, tests, types, lint | CI matrix (4 packages x Node 24 / lts / latest) | `.github/workflows/CI.yml` |
 | Static analysis (SAST) | CodeQL `Analyze (javascript)` | `CI.yml`, `codeql.yml` |
-| Dependency analysis (SCA) | Snyk and `pnpm audit` | `CI.yml` |
+| Dependency analysis (SCA) | `pnpm audit --prod` (blocking), OSV-Scanner (report-only) on PR/push, Snyk weekly + release gate (shipped components) | `CI.yml`, `snyk.yml`, `release.yml` |
 | Secrets | GitHub secret scanning and push protection | GitHub repository settings |
 | Workflow security | actionlint and zizmor | `actions-security.yml` |
 | Supply chain | OpenSSF Scorecard | `scorecard.yml` (push and weekly) |
-| Releases | cosign signature and SLSA provenance | `release.yml` |
+| Releases | Draft-first gate, cosign signature, SLSA provenance, immutable release | `release.yml` |
 
 Current required status checks on `main`:
 

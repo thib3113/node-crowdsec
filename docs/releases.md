@@ -1,5 +1,38 @@
 # Verifying releases
 
+## Cutting a release
+
+Releases are draft-first and gated: the tag is created by the workflow only
+after CI and the Snyk gate pass.
+
+1. Bump the version in the package's `package.json` and merge it to `main`.
+2. Create a **draft** release whose tag is `<package>/v<version>`
+   (e.g. `crowdsec-mcp/v0.0.7`), with the release notes.
+3. Trigger the workflow (no input: it picks up the single open draft):
+
+   ```bash
+   gh workflow run release.yml --ref main
+   gh run watch
+   ```
+
+The run validates the tag against `package.json`, runs CI and the Snyk gate,
+builds and signs the artifacts, attaches them to the draft, publishes the npm
+packages, then publishes the draft. The tag is created at that last step, so a
+failure leaves a deletable draft and a **reusable tag name**. Delete it and retry:
+
+```bash
+gh api -X DELETE repos/thib3113/node-crowdsec/releases/<draft-id>
+```
+
+GitHub does not trigger workflows when a draft release is created (`created`,
+`edited` and `deleted` are not delivered for drafts), hence the manual trigger.
+
+Tag creation is restricted by a repository ruleset to the GitHub Actions app, so
+a published release cannot be created by hand with a new tag; the workflow is
+the only path.
+
+## Published assets
+
 Every release is published from CI. A release page contains:
 
 - the npm tarball, e.g. `crowdsec-mcp-0.0.6.tgz`;

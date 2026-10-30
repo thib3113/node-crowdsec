@@ -5,7 +5,6 @@
     ":separateMajorReleases",
     ":combinePatchMinorReleases",
     ":prNotPending",
-    ":disableRateLimiting",
     ":ignoreModulesAndTests",
     ":pinDevDependencies",
     "helpers:pinGitHubActionDigests",
@@ -14,14 +13,41 @@
     "group:recommended",
     "workarounds:all"
   ],
+  "schedule": ["before 5am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "minimumReleaseAge": null,
+    "labels": ["security"]
+  },
   "packageRules": [
     {
       "matchDatasources": ["docker"],
       "matchPackageNames": [
         "ghcr.io/thib3113/crowdsec-mcp",
-        "docker.io/thib3113/crowdsec-mcp"
+        "docker.io/thib3113/crowdsec-mcp",
+        "crowdsecurity/crowdsec"
       ],
       "enabled": false
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["docker/dockerfile"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "npm major",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "npm non-major"
     },
     {
       "matchManagers": ["github-actions"],
@@ -34,18 +60,11 @@
       "groupName": "github actions/docker"
     },
     {
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchCurrentVersion": "!/^0/",
-      "automerge": true
-    },
-    {
       "matchManagers": ["dockerfile"],
-      "matchFileNames": ["packages/crowdsec-mcp/Dockerfile"],
-      "automerge": true
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "docker images"
     }
   ],
   "dependencyDashboard": true,
-  "minimumReleaseAge": "3 days",
-  "assignees": ["thib3113"],
-  "schedule": ["before 5am"]
+  "assignees": ["thib3113"]
 }
