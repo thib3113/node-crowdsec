@@ -62,6 +62,31 @@
 <pre><code class="bash"><span class="hl-0">CROWDSEC_URL</span><span class="hl-1">=</span><span class="hl-3">https://crowdsec:8080</span><span class="hl-1"> </span><span class="hl-6">\</span><br/><span class="hl-1">CROWDSEC_MACHINE_ID=crowdsec-mcp </span><span class="hl-11">\</span><br/><span class="hl-1">CROWDSEC_PASSWORD=your-password </span><span class="hl-11">\</span><br/><span class="hl-1">npx </span><span class="hl-4">-y</span><span class="hl-1"> </span><span class="hl-3">crowdsec-mcp</span>
 </code><button type="button">Copy</button></pre>
 
+<h3 id="docker-image" class="tsd-anchor-link">Docker image<a href="#docker-image" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Published as <code>ghcr.io/thib3113/crowdsec-mcp</code> and <code>docker.io/thib3113/crowdsec-mcp</code> (multi-arch <code>linux/amd64</code>, <code>linux/arm64</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Updated on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>latest</code></td>
+<td>every merge to <code>main</code>, including automated dependency and base-image updates</td>
+</tr>
+<tr>
+<td><code>X.Y.Z</code></td>
+<td>a release</td>
+</tr>
+<tr>
+<td><code>sha-&lt;commit&gt;</code></td>
+<td>the matching <code>main</code> commit</td>
+</tr>
+</tbody>
+</table>
+<p><code>latest</code> therefore follows the <code>main</code> branch and can be ahead of the last release. Pin a version tag or <code>sha-&lt;commit&gt;</code> for a reproducible deployment.</p>
 <h2 id="authentication" class="tsd-anchor-link">Authentication<a href="#authentication" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>The authentication mode is auto-detected from the provided credentials, or can be forced with <code>CROWDSEC_AUTH=bouncer|watcher</code>.</p>
 <table>
@@ -431,6 +456,34 @@ unban_ip(all=true, confirm=true)
 <li><code>check_allowlist</code></li>
 </ul>
 <p><code>ban_ip</code> automatically calls <code>check_allowlist</code> for IP and range scopes, like cscli. <code>check_allowlist</code> accepts IPs and CIDR ranges only; the LAPI bulk check endpoint does not support other scopes. When the target is a CIDR, a match means the CIDR overlaps or contains an allowlisted entry; the output labels it as a CIDR match rather than an exact IP match.</p>
+<p><code>list_allowlists</code> reports an exact item count, which the LAPI only provides by returning every allowlist together with its items. On accounts with large allowlists this is the most expensive read tool; prefer <code>get_allowlist</code> with a <code>limit</code> when only one allowlist is needed.</p>
+<h2 id="performance" class="tsd-anchor-link">Performance<a href="#performance" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Rule of thumb, measured against a local CrowdSec 1.8 LAPI:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Path</th>
+<th>Throughput</th>
+<th>Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list_decisions</code></td>
+<td>bouncer <code>GET /v1/decisions</code></td>
+<td>~44k decisions/s</td>
+<td>~132 B/decision</td>
+</tr>
+<tr>
+<td><code>list_alerts</code> / <code>get_alert</code></td>
+<td>watcher <code>GET /v1/alerts</code></td>
+<td>~870 alerts/s</td>
+<td>766 B–3.5 KiB/alert</td>
+</tr>
+</tbody>
+</table>
+<p>The alert endpoints are the slow path: they stream a chunked response with no <code>Content-Length</code> and no <code>X-Total-Count</code>, so the size is unknown until it has been read. <code>limit=0</code> (or a large explicit <code>limit</code>) reads everything, which took ~11.5 s for 10k minimal alerts and scales linearly. Prefer a small <code>limit</code>, a <code>since</code> window, or <code>has_active_decision=true</code> to keep a call cheap. CrowdSec marshals the whole response before writing it, so <code>CROWDSEC_TIMEOUT</code> behaves like a total time-to-first-byte budget rather than an idle-socket timeout.</p>
 <h2 id="mcp-client-configuration" class="tsd-anchor-link">MCP client configuration<a href="#mcp-client-configuration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="claude-desktop-claude-code" class="tsd-anchor-link">Claude Desktop / Claude Code<a href="#claude-desktop-claude-code" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">    </span><span class="hl-12">&quot;mcpServers&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">        </span><span class="hl-12">&quot;crowdsec&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;command&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;npx&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;args&quot;</span><span class="hl-1">: [</span><span class="hl-3">&quot;-y&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">            </span><span class="hl-12">&quot;env&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_URL&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;https://crowdsec:8080&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_MACHINE_ID&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;crowdsec-mcp&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_PASSWORD&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;change-me&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">                </span><span class="hl-12">&quot;CROWDSEC_MCP_READONLY&quot;</span><span class="hl-1">: </span><span class="hl-3">&quot;true&quot;</span><br/><span class="hl-1">            }</span><br/><span class="hl-1">        }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">}</span>
@@ -660,6 +713,10 @@ the bind address, and the read-only default.</p>
 <td><code>Duration ... exceeds maximum allowed ...</code></td>
 <td>The duration is above <code>CROWDSEC_MCP_MAX_BAN_DURATION</code>. Lower it or use <code>force=true</code>.</td>
 </tr>
+<tr>
+<td><code>timeout of 10000ms exceeded</code> / <code>ECONNABORTED</code></td>
+<td>The LAPI did not start answering before <code>CROWDSEC_TIMEOUT</code> (milliseconds, max <code>600000</code>). Raise it, then narrow the call with <code>since</code>, <code>ip</code>, <code>scope</code>/<code>value</code> or a smaller <code>limit</code> (and <code>all=false</code>). On alert/decision scans this is a total time-to-first-byte budget, not an idle timeout.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
@@ -724,6 +781,9 @@ the bind address, and the read-only default.</p>
 <ul>
 <li><a href="#requirements"><span>Requirements</span></a></li>
 <li><a href="#quick-start"><span>Quick start</span></a></li>
+<li>
+<ul>
+<li><a href="#docker-image"><span>Docker image</span></a></li></ul></li>
 <li><a href="#authentication"><span>Authentication</span></a></li>
 <li>
 <ul>
@@ -746,6 +806,7 @@ the bind address, and the read-only default.</p>
 <li><a href="#opt-in"><span> (opt-<wbr/>in)</span></a></li>
 <li><a href="#cidr-semantics"><span>CIDR semantics</span></a></li></ul></li>
 <li><a href="#allowlists"><span>Allowlists</span></a></li>
+<li><a href="#performance"><span>Performance</span></a></li>
 <li><a href="#mcp-client-configuration"><span>MCP client configuration</span></a></li>
 <li>
 <ul>
