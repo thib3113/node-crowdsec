@@ -57,7 +57,8 @@ const main = async () => {
     const midFn = middleware.getMiddleware();
 
     const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
-        console.log('get http request', req.method, req.url);
+        const safeUrl = (req.url ?? '').replace(/[\r\n]/g, '');
+        console.log('get http request', req.method, safeUrl);
         console.time('middleware');
         try {
             midFn(req, res);
