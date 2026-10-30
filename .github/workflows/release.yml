@@ -202,6 +202,18 @@ jobs:
           mkdir -p "$RUNNER_TEMP/release"
           pnpm pack --pack-destination "$RUNNER_TEMP/release"
 
+      # SBOM for the released package, uploaded next to the tarball.
+      - name: Generate SBOM
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: ${{ matrix.package.path }}
+          format: cyclonedx-json
+          output-file: ${{ runner.temp }}/release/${{ matrix.package.name }}-${{ steps.package_version.outputs.version }}.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+          dependency-snapshot: false
+
       - name: Sign release artifact (keyless)
         if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
         run: |
@@ -233,6 +245,7 @@ jobs:
             "$RUNNER_TEMP"/release/*.tgz \
             "$RUNNER_TEMP"/release/*.sigstore \
             "$RUNNER_TEMP"/release/*.intoto.jsonl \
+            "$RUNNER_TEMP"/release/*.cdx.json \
             --clobber
 
       # Marker consumed by the docker-mcp job: it only proves what this run
