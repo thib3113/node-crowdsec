@@ -92,9 +92,9 @@ jobs:
         package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
 
     permissions:
-      # Needed to check out the repository (job-level permissions replace, not
-      # merge with, the workflow-level default).
-      contents: read
+      # Needed to check out the repository and upload signed release assets
+      # (job-level permissions replace, not merge with, the workflow default).
+      contents: write
       id-token: write
 
     steps:
@@ -183,6 +183,39 @@ jobs:
           pnpm publish --provenance --no-git-checks
         working-directory: ${{ matrix.package.path }}
         if: steps.package_version.outputs.npm_is_greater != 'true'
+
+      # Attach a signed tarball to the GitHub release of the package being
+      # released, so OpenSSF Scorecard's Signed-Releases check can score it.
+      # Only the matrix leg matching the release tag does this.
+      - name: Install cosign
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.1.4'
+
+      - name: Pack release artifact
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          pnpm pack --pack-destination "$RUNNER_TEMP/release"
+
+      - name: Sign release artifact (keyless)
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        run: |
+          ARTIFACT="$(ls "$RUNNER_TEMP"/release/*.tgz)"
+          cosign sign-blob --yes --bundle "${ARTIFACT}.sigstore" "${ARTIFACT}"
+
+      - name: Upload signed artifact to the release
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "$RUNNER_TEMP"/release/*.tgz \
+            "$RUNNER_TEMP"/release/*.sigstore \
+            --clobber
 
       # Marker consumed by the docker-mcp job: it only proves what this run
       # actually published, independently of npm CDN propagation delays.
