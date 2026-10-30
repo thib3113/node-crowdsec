@@ -48,6 +48,18 @@ pnpm --filter example-express-bouncer debug
 
 Run the tests and lint for every package you touch before opening a pull request.
 
+## Tests
+
+Each package has a Vitest suite under `packages/<package>/tests`.
+
+- run one package: `pnpm -F <package> test`
+- with coverage: `pnpm -F <package> test:ci:coverage`
+- run every package: `pnpm -r test`
+
+CI runs the same suites on every push and pull request, on Node 24, `lts/*` and
+`latest`, and reports coverage to Codecov. A pull request is not merged while a
+required test job is failing.
+
 ## Pull requests
 
 - Keep changes focused; one topic per pull request when possible.
