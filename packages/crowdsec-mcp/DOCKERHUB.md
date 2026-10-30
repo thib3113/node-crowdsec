@@ -12,6 +12,11 @@ The image is published to:
 Tags: released versions (e.g. `0.0.5`), `latest`, and `sha-<commit>`.
 Multi-arch: `linux/amd64`, `linux/arm64`.
 
+`latest` is rebuilt and pushed on every merge to `main`, including automated
+dependency and base-image updates, so it follows the main branch and can be
+ahead of the last release. Pin a version tag or `sha-<commit>` for a
+reproducible deployment.
+
 ## Quick start
 
 The MCP must reach the CrowdSec Local API (LAPI). A shared deployment keeps the

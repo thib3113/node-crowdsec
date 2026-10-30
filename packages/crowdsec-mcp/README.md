@@ -68,6 +68,18 @@ CROWDSEC_PASSWORD=your-password \
 npx -y crowdsec-mcp
 ```
 
+### Docker image
+
+Published as `ghcr.io/thib3113/crowdsec-mcp` and `docker.io/thib3113/crowdsec-mcp` (multi-arch `linux/amd64`, `linux/arm64`).
+
+| Tag | Updated on |
+| --- | --- |
+| `latest` | every merge to `main`, including automated dependency and base-image updates |
+| `X.Y.Z` | a release |
+| `sha-<commit>` | the matching `main` commit |
+
+`latest` therefore follows the `main` branch and can be ahead of the last release. Pin a version tag or `sha-<commit>` for a reproducible deployment.
+
 ## Authentication
 
 The authentication mode is auto-detected from the provided credentials, or can be forced with `CROWDSEC_AUTH=bouncer|watcher`.
@@ -256,6 +268,19 @@ Allowlists are read/check only. The CrowdSec local API exposes no create, update
 - `check_allowlist`
 
 `ban_ip` automatically calls `check_allowlist` for IP and range scopes, like cscli. `check_allowlist` accepts IPs and CIDR ranges only; the LAPI bulk check endpoint does not support other scopes. When the target is a CIDR, a match means the CIDR overlaps or contains an allowlisted entry; the output labels it as a CIDR match rather than an exact IP match.
+
+`list_allowlists` reports an exact item count, which the LAPI only provides by returning every allowlist together with its items. On accounts with large allowlists this is the most expensive read tool; prefer `get_allowlist` with a `limit` when only one allowlist is needed.
+
+## Performance
+
+Rule of thumb, measured against a local CrowdSec 1.8 LAPI:
+
+| Operation | Path | Throughput | Payload |
+| --- | --- | --- | --- |
+| `list_decisions` | bouncer `GET /v1/decisions` | ~44k decisions/s | ~132 B/decision |
+| `list_alerts` / `get_alert` | watcher `GET /v1/alerts` | ~870 alerts/s | 766 B–3.5 KiB/alert |
+
+The alert endpoints are the slow path: they stream a chunked response with no `Content-Length` and no `X-Total-Count`, so the size is unknown until it has been read. `limit=0` (or a large explicit `limit`) reads everything, which took ~11.5 s for 10k minimal alerts and scales linearly. Prefer a small `limit`, a `since` window, or `has_active_decision=true` to keep a call cheap. CrowdSec marshals the whole response before writing it, so `CROWDSEC_TIMEOUT` behaves like a total time-to-first-byte budget rather than an idle-socket timeout.
 
 ## MCP client configuration
 
@@ -481,6 +506,7 @@ the bind address, and the read-only default.
 | A tool is missing from `listTools` | It may be a write tool while `CROWDSEC_MCP_READONLY=true`, a watcher tool in bouncer mode, or hidden by `CROWDSEC_MCP_TOOLS` / `CROWDSEC_MCP_DISABLE_TOOLS`. |
 | `invalid duration` | Use durations such as `30m`, `4h`, `7d`, `3650d`, or `1h30m`. |
 | `Duration ... exceeds maximum allowed ...` | The duration is above `CROWDSEC_MCP_MAX_BAN_DURATION`. Lower it or use `force=true`. |
+| `timeout of 10000ms exceeded` / `ECONNABORTED` | The LAPI did not start answering before `CROWDSEC_TIMEOUT` (milliseconds, max `600000`). Raise it, then narrow the call with `since`, `ip`, `scope`/`value` or a smaller `limit` (and `all=false`). On alert/decision scans this is a total time-to-first-byte budget, not an idle timeout. |
 
 ## Development
 

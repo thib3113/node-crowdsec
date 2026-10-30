@@ -77,8 +77,14 @@ Optional scenarios to use with the middleware.
 
 ### [crowdsec-mcp](./packages/crowdsec-mcp)
 
-[![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+[![NPM version](https://img.shields.io/npm/v/crowdsec-mcp.svg)](https://www.npmjs.com/package/crowdsec-mcp)
+[![Downloads](https://img.shields.io/npm/dm/crowdsec-mcp.svg)](https://www.npmjs.com/package/crowdsec-mcp)
+[![License](https://img.shields.io/npm/l/crowdsec-mcp)](https://github.com/thib3113/node-crowdsec/blob/main/LICENSE)
+[![Package Quality](https://packagequality.com/shield/crowdsec-mcp.svg)](https://packagequality.com/#?package=crowdsec-mcp)
+[![Docker pulls](https://img.shields.io/docker/pulls/thib3113/crowdsec-mcp.svg)](https://hub.docker.com/r/thib3113/crowdsec-mcp)
+
+[//]: # ([![crowdsec-mcp-snyk]&#40;https://snyk.io/advisor/npm-package/crowdsec-mcp/badge.svg&#41;]&#40;https://snyk.io/advisor/npm-package/crowdsec-mcp&#41;)
+[![NPM](https://nodei.co/npm/crowdsec-mcp.png?months=3&height=1)](https://nodei.co/npm/crowdsec-mcp/)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for CrowdSec: exposes decisions, alerts and allowlists to an LLM, with read-only mode by default.
 
