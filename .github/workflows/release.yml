@@ -92,10 +92,12 @@ jobs:
         package: ${{ fromJson(needs.list-packages.outputs.matrix) }}
 
     permissions:
-      # Needed to check out the repository and upload signed release assets
-      # (job-level permissions replace, not merge with, the workflow default).
+      # Needed to check out the repository, upload signed release assets and
+      # store build-provenance attestations (job-level permissions replace,
+      # not merge with, the workflow default).
       contents: write
       id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
@@ -206,6 +208,21 @@ jobs:
           ARTIFACT="$(ls "$RUNNER_TEMP"/release/*.tgz)"
           cosign sign-blob --yes --bundle "${ARTIFACT}.sigstore" "${ARTIFACT}"
 
+      # SLSA provenance for the tarball. Scorecard scores a release 10 (instead
+      # of 8 for a bare signature) when it carries a *.intoto.jsonl asset.
+      - name: Attest build provenance
+        id: attest
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/release/*.tgz
+
+      - name: Add the provenance bundle to the artifact set
+        if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
+        run: |
+          ARTIFACT="$(ls "$RUNNER_TEMP"/release/*.tgz)"
+          cp "${{ steps.attest.outputs.bundle-path }}" "${ARTIFACT}.intoto.jsonl"
+
       - name: Upload signed artifact to the release
         if: startsWith(github.event.release.tag_name, format('{0}/v', matrix.package.name))
         env:
@@ -215,6 +232,7 @@ jobs:
           gh release upload "$RELEASE_TAG" \
             "$RUNNER_TEMP"/release/*.tgz \
             "$RUNNER_TEMP"/release/*.sigstore \
+            "$RUNNER_TEMP"/release/*.intoto.jsonl \
             --clobber
 
       # Marker consumed by the docker-mcp job: it only proves what this run
