@@ -16,6 +16,14 @@
   ],
   "packageRules": [
     {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "ghcr.io/thib3113/crowdsec-mcp",
+        "docker.io/thib3113/crowdsec-mcp"
+      ],
+      "enabled": false
+    },
+    {
       "matchManagers": ["github-actions"],
       "matchPackageNames": ["/^actions\\//"],
       "groupName": "github actions/actions"
