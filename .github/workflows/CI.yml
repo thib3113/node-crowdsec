@@ -19,6 +19,12 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded pull-request runs (e.g. Renovate rebases) instead of
+# stacking a full matrix per push. Never cancel a run on main or a release tag.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
