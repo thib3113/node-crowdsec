@@ -16,6 +16,16 @@
   ],
   "packageRules": [
     {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["/^actions\\//"],
+      "groupName": "github actions/actions"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["/^docker\\//"],
+      "groupName": "github actions/docker"
+    },
+    {
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
