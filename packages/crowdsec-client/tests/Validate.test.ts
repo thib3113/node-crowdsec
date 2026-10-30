@@ -8,6 +8,8 @@ describe('Validate.test.ts', () => {
     });
     it('should validate function uuid', () => {
         expect(Validate.uuid('906335d7-bade-4157-bef8-c241c360f1d1')).toBeTruthy();
+        expect(Validate.uuid('906335d7-bade-6157-bef8-c241c360f1d1')).toBeTruthy();
+        expect(Validate.uuid('01890a5d-ac96-774b-bcce-b302099a8057')).toBeTruthy();
         expect(Validate.uuid('906335d7-bade-4157-bef8-241c360f1d1')).toBeFalsy();
     });
     it('should validate function isString', () => {
