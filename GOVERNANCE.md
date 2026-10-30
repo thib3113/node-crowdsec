@@ -45,12 +45,13 @@ maintainer reviews and merges. Security-sensitive changes follow
 
 - No secret is committed to the repository; secret scanning and push protection
   are enabled.
-- CI credentials live in GitHub Actions secrets (`CODECOV_TOKEN`, `SNYK_TOKEN`,
-  Docker Hub credentials) and are never printed or committed.
+- CI credentials are supplied at run time by the environment (currently GitHub
+  Actions secrets such as `CODECOV_TOKEN`, `SNYK_TOKEN` and Docker Hub
+  credentials); they are never printed or committed.
 - npm uses trusted publishing (OIDC), so no long-lived npm token exists.
 - Access is limited to the maintainer and to the CI jobs that need it.
 - A credential is rotated immediately if it is exposed, and revoked when a
-  maintainer leaves; the new value is stored in GitHub Actions secrets.
+  maintainer leaves; the new value is provided to CI at run time.
 
 ## Review before elevated access
 

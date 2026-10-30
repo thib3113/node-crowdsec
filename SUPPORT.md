@@ -13,6 +13,7 @@
 - Architecture and threat model: [`docs/architecture.md`](./docs/architecture.md)
 - Dependency management: [`docs/dependencies.md`](./docs/dependencies.md)
 - Verifying releases: [`docs/releases.md`](./docs/releases.md)
+- Compliance and verification: [`docs/compliance.md`](./docs/compliance.md)
 
 ## Questions and bug reports
 
