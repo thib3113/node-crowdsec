@@ -44,3 +44,38 @@ dependencies.
 Every new dependency is checked against its SPDX licence identifier. A
 dependency whose licence is incompatible with the project's MIT licence is not
 accepted.
+
+## Security findings
+
+Dependencies and code are checked continuously (`pnpm audit`, Snyk, CodeQL,
+SonarCloud, and Renovate vulnerability alerts). Findings are triaged and
+remediated using these thresholds:
+
+| Severity | SCA (dependencies) | SAST (code) |
+| --- | --- | --- |
+| Critical | fix or mitigate before the next release | fix before merge |
+| High | fix before the next release | fix before merge, or document as a false positive |
+| Medium | within 90 days | within 90 days |
+| Low | best effort | best effort |
+
+A release is not cut while a critical or high finding is open for a shipped
+component. Findings that cannot be fixed immediately are documented (see below)
+rather than silently ignored.
+
+## Vulnerability triage and VEX
+
+The default action is to update the dependency through Renovate. A VEX document
+is only needed for a **runtime** advisory that is real but **not exploitable** in
+this project and cannot be fixed immediately. It is deliberately lightweight:
+
+1. Create `security/openvex.json` the first time such a case appears.
+2. Add one OpenVEX statement per advisory with the reason
+   (`component_not_present`, `vulnerable_code_not_present`,
+   `vulnerable_code_not_in_execute_path`,
+   `vulnerable_code_cannot_be_controlled_by_adversary`,
+   `inline_mitigations_already_exist`) and a review date.
+3. Delete the statement once the dependency is upgraded past the fix.
+
+There is no standing VEX feed and no per-release work: if the file does not
+exist, there is nothing to maintain. Dev-only advisories are out of scope because
+they are not shipped.

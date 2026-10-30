@@ -40,3 +40,22 @@ pull request, and access is granted only after review.
 Changes are proposed through pull requests and discussed in issues. The
 maintainer reviews and merges. Security-sensitive changes follow
 [SECURITY.md](./SECURITY.md).
+
+## Secrets management
+
+- No secret is committed to the repository; secret scanning and push protection
+  are enabled.
+- CI credentials live in GitHub Actions secrets (`CODECOV_TOKEN`, `SNYK_TOKEN`,
+  Docker Hub credentials) and are never printed or committed.
+- npm uses trusted publishing (OIDC), so no long-lived npm token exists.
+- Access is limited to the maintainer and to the CI jobs that need it.
+- A credential is rotated immediately if it is exposed, and revoked when a
+  maintainer leaves; the new value is stored in GitHub Actions secrets.
+
+## Review before elevated access
+
+Elevated access (write/merge, secrets, release credentials, repository admin) is
+never granted automatically. It is granted manually by the maintainer after a
+pull request or issue states the reason, and the access table above is updated
+in the same change. Contributors otherwise get read access to the repository and
+write access to their own branch or fork only.

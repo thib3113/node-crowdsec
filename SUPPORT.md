@@ -10,6 +10,9 @@
   [`crowdsec-mcp`](./packages/crowdsec-mcp)
 - Runnable examples: [`examples/`](./examples)
 - AI agent setup guide: [`docs/agent-setup-guide.md`](./docs/agent-setup-guide.md)
+- Architecture and threat model: [`docs/architecture.md`](./docs/architecture.md)
+- Dependency management: [`docs/dependencies.md`](./docs/dependencies.md)
+- Verifying releases: [`docs/releases.md`](./docs/releases.md)
 
 ## Questions and bug reports
 

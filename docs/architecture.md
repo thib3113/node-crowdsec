@@ -55,6 +55,23 @@ reviewed whenever a package, tool or external interface is added.
 | Release artifacts | Supply-chain tampering | CI-only publishing, npm provenance, cosign signatures and SLSA provenance on releases, least-privilege workflow tokens, pinned actions and a digest-pinned base image |
 | Availability | Large decision sets or slow LAPI responses | Indexed decision lookup avoids per-decision scans, and client timeouts bound slow calls |
 
+## Attack surface and critical paths
+
+The attack surface is limited to:
+
+- the CrowdSec LAPI responses consumed by `crowdsec-client`;
+- request metadata read by the middleware and scenarios (headers, client IP);
+- MCP tool inputs over stdio or HTTP;
+- the release pipeline and the credentials it uses.
+
+The critical code paths are credential handling, decision lookup
+(`IpDecisionDB`), trusted-proxy and `X-Forwarded-For` parsing, MCP tool argument
+validation, and write operations (ban, unban, delete). These paths receive the
+strictest review and are covered by tests.
+
+This threat model is reviewed whenever a package, tool or external interface is
+added, and at least once per release.
+
 ## Residual risks and assumptions
 
 - The LAPI and its credentials are trusted; a compromised LAPI can return
