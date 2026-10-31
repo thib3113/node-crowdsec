@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import * as url from 'node:url';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+const dist = path.join(__dirname, 'dist');
+
+fs.rmSync(dist, { recursive: true, force: true });
 
 //create pkg file
 fs.writeFileSync(
@@ -21,7 +24,7 @@ let makeAllPackagesExternalPlugin = {
 
 const buildOptions = {
     entryPoints: ['src/index.ts'],
-    outfile: path.join(__dirname, 'dist', 'index.js'),
+    outfile: path.join(dist, 'index.js'),
     bundle: true,
     sourcemap: true,
     minify: false,
