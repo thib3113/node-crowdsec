@@ -50,8 +50,7 @@ describe('property-based checks', () => {
                 };
 
                 const hidden = getUrlRepresentation(request, true);
-                expect(hidden).not.toContain(password);
-                expect(hidden).not.toContain(username);
+                expect(hidden).toBe('https://api-crowdsec.test.lan/v1/decisions');
 
                 const visible = getUrlRepresentation(request, false);
                 expect(visible).toContain(password);
@@ -70,10 +69,11 @@ describe('property-based checks', () => {
         fc.assert(
             fc.property(duration, ({ hours, minutes, seconds }) => {
                 const input = `${hours}h${minutes}m${seconds}s`;
-                const expected = (hours * 3600 + minutes * 60 + seconds) * 1000;
+                const offset = (hours * 3600 + minutes * 60 + seconds) * 1000;
+                const negativeOffset = offset === 0 ? 0 : -offset;
 
-                expect(parseExpiration(input).getTime()).toBe(expected);
-                expect(parseExpiration(`-${input}`).getTime()).toBe(-expected);
+                expect(parseExpiration(input).getTime()).toBe(offset);
+                expect(parseExpiration(`-${input}`).getTime()).toBe(negativeOffset);
             })
         );
     });
