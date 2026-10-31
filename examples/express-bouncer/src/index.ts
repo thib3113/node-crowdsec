@@ -59,6 +59,7 @@ const main = async () => {
 
     //now start the express server
     const app = express();
+    app.disable('x-powered-by');
     const port = 3000;
 
     app.use((req, res, next) => {

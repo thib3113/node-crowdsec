@@ -28,6 +28,7 @@ const main = async () => {
 
     //now start the express server
     const app = express();
+    app.disable('x-powered-by');
     const port = 3000;
 
     app.use((req, res, next) => {
@@ -51,7 +52,8 @@ const checkBadUserAgent = (req: express.Request, watcher: WatcherClient) => {
 
     const currentUA = req.headers['user-agent'] ?? '';
 
-    console.log(`checking user-agent : "${currentUA}"`);
+    const safeUA = String(currentUA).replace(/[\r\n]/g, '');
+    console.log(`checking user-agent : "${safeUA}"`);
 
     let badUserAgent: string | undefined;
     if ((badUserAgent = badUserAgents.find((ua) => currentUA.includes(ua)))) {
