@@ -25,6 +25,18 @@ const checkIp = (middleware: CrowdSecHTTPBouncerMiddleware, ip: string) => {
 };
 
 describe('CrowdSecHTTPBouncerMiddleware subnetLevel', () => {
+    it('should ignore a /0 decision at every subnet level', () => {
+        const levels = [undefined, SubnetLevel.resident, SubnetLevel.company, SubnetLevel.country];
+
+        for (const level of levels) {
+            const middleware = makeMiddleware(level);
+            addDecision(middleware, '0.0.0.0/0');
+
+            expect(middleware.decisionsCount).toBe(0);
+            expect(checkIp(middleware, '203.0.113.7')).toBeUndefined();
+        }
+    });
+
     describe('default (company /24)', () => {
         let middleware: CrowdSecHTTPBouncerMiddleware;
         beforeEach(() => {
