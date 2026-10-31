@@ -50,12 +50,15 @@ vi.mock('../../src/pkg.js', () => ({
     }
 }));
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === 'object' && value.constructor === Object;
+
 const clearAllMocks = (mocks: Record<string, unknown>) => {
     Object.entries(mocks).forEach(([, mock]) => {
         if (Validate.implementsTKeys<Mock>(mock, ['_isMockFunction']) && mock._isMockFunction) {
             mock.mockClear();
-        } else if (Validate.isObject(mock)) {
-            clearAllMocks(mock as Record<string, unknown>);
+        } else if (isPlainObject(mock)) {
+            clearAllMocks(mock);
         }
     });
 };

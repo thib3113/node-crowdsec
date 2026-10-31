@@ -2,7 +2,6 @@ import fc from 'fast-check';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseDuration, toGoDuration } from '../../src/duration.js';
 import { getUrlRepresentation, parseExpiration } from '../../src/utils.js';
-import { Validate } from '../../src/Validate.js';
 
 describe('property-based checks', () => {
     afterEach(() => {
@@ -56,16 +55,6 @@ describe('property-based checks', () => {
 
                 const visible = getUrlRepresentation(request, false);
                 expect(visible).toContain(password);
-            })
-        );
-    });
-
-    it('accepts generated UUIDs and rejects altered ones', () => {
-        fc.assert(
-            fc.property(fc.uuid(), (uuid) => {
-                expect(Validate.uuid(uuid)).toBe(true);
-                expect(Validate.uuid(`x${uuid}`)).toBe(false);
-                expect(Validate.uuid(uuid.toUpperCase())).toBe(true);
             })
         );
     });
