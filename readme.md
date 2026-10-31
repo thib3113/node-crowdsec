@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml/badge.svg)](https://github.com/thib3113/node-crowdsec/actions/workflows/CI.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/thib3113/node-crowdsec/badge)](https://securityscorecards.dev/viewer/?uri=github.com/thib3113/node-crowdsec)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16075/badge)](https://www.bestpractices.dev/projects/16075)
 [![codecov](https://codecov.io/gh/thib3113/node-crowdsec/branch/main/graph/badge.svg?token=bQdlb31gcU)](https://codecov.io/gh/thib3113/node-crowdsec)
 [![Known Vulnerabilities](https://snyk.io/test/github/thib3113/node-crowdsec/badge.svg)](https://snyk.io/test/github/thib3113/node-crowdsec)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg?logo=paypal)](https://paypal.me/thib3113)
