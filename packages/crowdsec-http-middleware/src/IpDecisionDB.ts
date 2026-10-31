@@ -30,9 +30,13 @@ export class IpDecisionDB<T> {
      * index a decision under a CIDR
      * @param ip - an address or network object (subnetMask is the prefix length)
      * @param decision - the value to store
+     * @throws if the network has a /0 prefix, which is not a supported decision scope
      */
     public insert(ip: AddressObject, decision: T): void {
         const mask = ip.subnetMask;
+        if (mask === 0) {
+            throw new Error('IpDecisionDB does not support /0 ranges');
+        }
         const key = this.keyFor(ip, mask);
 
         let bucket = this.masks.get(mask);

@@ -102,6 +102,18 @@ describe('IpDecisionDB', () => {
         });
     });
 
+    describe('/0 ranges', () => {
+        it('rejects an IPv4 /0 range', () => {
+            const db = new IpDecisionDB<string>();
+            expect(() => db.insert(ipv4('0.0.0.0/0'), 'all')).toThrowError('/0');
+        });
+
+        it('rejects an IPv6 /0 range', () => {
+            const db = new IpDecisionDB<string>();
+            expect(() => db.insert(ipv6('::/0'), 'all')).toThrowError('/0');
+        });
+    });
+
     describe('oversized input (CVE-2026-101911 hardening)', () => {
         it('rejects strings longer than MAX_IP_LENGTH as AddressError', () => {
             const payload = '!'.repeat(MAX_IP_LENGTH + 1);
