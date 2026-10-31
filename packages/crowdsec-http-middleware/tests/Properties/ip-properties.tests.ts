@@ -10,7 +10,7 @@ const toIpv4 = (value: bigint): string => [24n, 16n, 8n, 0n].map((shift) => Numb
 
 const maskFor = (prefix: number): bigint => (prefix === 0 ? 0n : UINT32 ^ ((1n << BigInt(32 - prefix)) - 1n));
 
-const arbitraryIpv4 = fc.integer({ min: 0, max: 0xffffffff }).map((value) => BigInt(value));
+const arbitraryIpv4 = fc.integer({ min: 0, max: 0xffffffff }).map(BigInt);
 
 const ipv6Parts = fc
     .tuple(fc.integer({ min: 1, max: 0xffff }), fc.array(fc.integer({ min: 0, max: 0xffff }), { minLength: 7, maxLength: 7 }))
