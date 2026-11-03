@@ -3,10 +3,13 @@ import Validate from './Validate.js';
 import { APITypes, Decision, ICrowdSecClientOptions, ITLSAuthentication, IWatcherAuthentication, WatcherClient } from 'crowdsec-client';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IncomingMessage } from 'http';
-import { BaseScenario, IIpExtractionResult, IScenario, IScenarioConstructor, MAX_CONFIDENCE } from 'crowdsec-client-scenarios';
+import type { IIpExtractionResult, IScenario, IScenarioConstructor } from './scenarios-types.js';
 import { CommonsMiddleware } from './CommonsMiddleware.js';
 
 const SCENARIOS_PACKAGE_NAME = 'crowdsec-client-scenarios';
+// Kept local so the published middleware does not import the optional
+// scenarios package at module load time (it is a devDependency).
+const MAX_CONFIDENCE = 10;
 
 /**
  * TODO
@@ -36,6 +39,9 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
             userAgent: this.clientOptions.userAgent,
             timeout: this.clientOptions.timeout,
             strictSSL: this.clientOptions.strictSSL,
+            lapiVersion: this.clientOptions.lapiVersion,
+            detectCapabilities: this.clientOptions.detectCapabilities,
+            strictCapabilities: this.clientOptions.strictCapabilities,
             heartbeat: options?.heartbeat,
             auth
         });
@@ -89,7 +95,7 @@ export class CrowdSecHTTPWatcherMiddleware extends CommonsMiddleware {
 
     public async loadDefaultsScenarios(allowFail = false) {
         this.logger.info('loadDefaultsScenarios');
-        let defaultScenariosPackage: { scenarios: Array<new (options: any) => BaseScenario> };
+        let defaultScenariosPackage: { scenarios: Array<IScenarioConstructor> };
         try {
             defaultScenariosPackage = await import(SCENARIOS_PACKAGE_NAME);
         } catch (e) {

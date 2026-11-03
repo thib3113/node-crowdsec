@@ -8,8 +8,14 @@ const { mockCrowdSecClientConstructor, FakeClient, mockDecisionsBouncer } = vi.h
         setAuthenticationHeaders = vi.fn();
         setAuthenticationByTLS = vi.fn();
         _testConnection = vi.fn();
+        supports = vi.fn();
+        requireCapability = vi.fn();
+        detectCapabilities = vi.fn().mockResolvedValue({ source: 'unknown', values: {} });
+        capabilityContext = { assertSupport: vi.fn(), supports: vi.fn(), getCapabilities: vi.fn() };
+        options: any;
         // @ts-ignore
         constructor(...args) {
+            this.options = args[0];
             mockCrowdSecClientConstructor(...args);
         }
         http = 'fake-http';
@@ -46,7 +52,7 @@ describe('BouncerClient.test.ts', () => {
             expect(client.setAuthenticationHeaders).toHaveBeenCalledWith({
                 'X-Api-Key': 'test-apiKey'
             });
-            expect(mockDecisionsBouncer).toHaveBeenCalledWith({ httpClient: client.http });
+            expect(mockDecisionsBouncer).toHaveBeenCalledWith(expect.objectContaining({ httpClient: client.http }));
         });
         it('should construct with certificate', async () => {
             const client = new BouncerClient({

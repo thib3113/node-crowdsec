@@ -2,7 +2,7 @@ import type { APITypes } from 'crowdsec-client';
 import { isValidCidr } from '../utils.js';
 import { escapeCell, markdownTable, formatDate, expiry, truncateRows, moreHint, bullets, plural } from './common.js';
 
-export function formatAllowlistList(allowlists: APITypes.GetAllowlistsResponse, maxResults: number): string {
+export function formatAllowlistList(allowlists: APITypes.GetAllowlistsResponse, maxResults: number, withContent = true): string {
     const { rows, hidden } = truncateRows(allowlists, maxResults);
 
     const tableRows = rows.map((al) => [
@@ -11,7 +11,7 @@ export function formatAllowlistList(allowlists: APITypes.GetAllowlistsResponse, 
         escapeCell(formatDate(al.created_at)),
         escapeCell(formatDate(al.updated_at)),
         escapeCell(al.console_managed ? 'yes' : 'no'),
-        escapeCell(al.items?.length ?? 0)
+        escapeCell(withContent && Array.isArray(al.items) ? al.items.length : '-')
     ]);
 
     const header = 'Name | Description | Created at | Updated at | Managed by Console | Size';

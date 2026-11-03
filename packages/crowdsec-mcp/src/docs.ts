@@ -24,17 +24,30 @@ export interface DocResource {
     render: (ctx: AppContext) => string;
 }
 
+function watcherLabel(ctx: AppContext): string {
+    if (ctx.config.machineId) {
+        return `watcher with machine ${ctx.config.machineId} (machine credentials)`;
+    }
+    if (ctx.config.tls) {
+        return 'watcher (mTLS certificates)';
+    }
+    return 'watcher (token)';
+}
+
 function authenticationSummary(ctx: AppContext): string {
-    if (ctx.mode === 'watcher') {
-        const machine = ctx.config.machineId ? ` with machine ${ctx.config.machineId}` : '';
-        return `watcher${machine} (machine credentials): alerts, decisions, allowlists and, unless read-only, write tools are available.`;
+    if (ctx.capabilities.alerts && ctx.capabilities.decisionsFast) {
+        return `${watcherLabel(ctx)} and bouncer (API key): alerts, allowlists, writes and the fast decision path are available.`;
+    }
+
+    if (ctx.capabilities.alerts) {
+        return `${watcherLabel(ctx)}: alerts, decisions, allowlists and, unless read-only, write tools are available.`;
     }
 
     return 'bouncer (API key): only active decisions are visible. Alerts, allowlists and write tools are unavailable.';
 }
 
 function writeSummary(ctx: AppContext): string {
-    if (ctx.mode === 'bouncer') {
+    if (!ctx.capabilities.write) {
         return 'bouncer mode (read-only): no write tools (ban_ip and unban_ip require watcher credentials).';
     }
 
@@ -46,13 +59,21 @@ function writeSummary(ctx: AppContext): string {
 function canDeleteAlerts(ctx: AppContext): boolean {
     // delete_alerts is a write tool: it also requires watcher credentials and
     // read-only mode disables every write tool.
-    return ctx.mode === 'watcher' && !ctx.config.readonly && isAlertDeleteAvailable(ctx.config);
+    return ctx.capabilities.alerts && !ctx.config.readonly && isAlertDeleteAvailable(ctx.config);
+}
+
+function decisionPathSummary(ctx: AppContext): string {
+    return ctx.capabilities.decisionsFast
+        ? 'bouncer (/v1/decisions): fast path'
+        : 'watcher (alert scan): add CROWDSEC_API_KEY for the ~60x faster bouncer path';
 }
 
 function availabilityLines(ctx: AppContext): string[] {
     return [
-        `- Alerts (list_alerts, get_alert): ${ctx.mode === 'watcher' ? 'available' : 'unavailable (watcher credentials required)'}.`,
-        `- Decisions (list_decisions): available. get_decision: ${ctx.mode === 'watcher' ? 'available' : 'unavailable (watcher credentials required)'}.`,
+        `- Alerts (list_alerts, get_alert): ${ctx.capabilities.alerts ? 'available' : 'unavailable (watcher credentials required)'}.`,
+        `- Decisions (list_decisions): ${ctx.capabilities.decisions ? 'available' : 'unavailable'}. get_decision: ${
+            ctx.capabilities.decisions ? 'available' : 'unavailable'
+        }. Path: ${decisionPathSummary(ctx)}.`,
         `- Allowlists: ${ctx.capabilities.allowlists ? 'available' : 'unavailable in this mode'}.`,
         `- delete_alerts: ${canDeleteAlerts(ctx) ? 'available (destructive, only works on the LAPI host)' : 'hidden'}.`
     ];
@@ -66,9 +87,9 @@ function workingRules(ctx: AppContext): string[] {
 
     add('Call crowdsec_status when the connection, mode or active tools are unclear.');
 
-    if (ctx.mode === 'bouncer') {
+    if (!ctx.capabilities.alerts) {
         add(
-            'Only active decisions are visible: use list_decisions. get_decision, alerts and allowlists need watcher credentials: say so instead of calling them.'
+            'Only active decisions are visible: use list_decisions and get_decision. Alerts and allowlists need watcher credentials: say so instead of calling them.'
         );
         add('A decision origin of CAPI comes from the community blocklist and is not necessarily local to this engine.');
         add('Never invent decision IDs. If a lookup returns nothing, say so instead of guessing.');
@@ -77,7 +98,9 @@ function workingRules(ctx: AppContext): string[] {
 
     add('Investigate before acting: list_alerts -> get_alert -> list_decisions/get_decision for the same source.');
 
-    if (ctx.config.readonly) {
+    if (!ctx.capabilities.write) {
+        add('Write tools are hidden: analyse and recommend, but never claim that a ban or unban was applied.');
+    } else if (ctx.config.readonly) {
         add('Write tools are hidden: analyse and recommend, but never claim that a ban or unban was applied.');
     } else {
         const destructive = canDeleteAlerts(ctx) ? 'ban_ip, unban_ip and delete_alerts' : 'ban_ip and unban_ip';
@@ -99,7 +122,7 @@ function workingRules(ctx: AppContext): string[] {
 
 export function buildInstructions(ctx: AppContext): string {
     const limits =
-        ctx.mode === 'watcher' && !ctx.config.readonly
+        ctx.capabilities.write && !ctx.config.readonly
             ? [`Limits: bans longer than ${ctx.config.maxBanDuration} are refused unless force=true.`]
             : [];
 
@@ -112,6 +135,7 @@ export function buildInstructions(ctx: AppContext): string {
         '',
         `Authentication: ${authenticationSummary(ctx)}`,
         `Write access: ${writeSummary(ctx)}`,
+        `Timeout: ${ctx.config.timeout} ms (CROWDSEC_TIMEOUT, maximum 600000). The LAPI builds the whole response before sending it, so this is a total time-to-first-byte budget.`,
         ...limits,
         ...availabilityLines(ctx),
         '',
@@ -151,7 +175,7 @@ const OVERVIEW = (ctx: AppContext): string =>
         '## What this MCP server exposes',
         '',
         '- Alerts: detection history (list_alerts, get_alert).',
-        '- Decisions: active remediation (list_decisions; get_decision, ban_ip and unban_ip require watcher credentials).',
+        '- Decisions: active remediation (list_decisions and get_decision; ban_ip and unban_ip require watcher credentials).',
         '- Allowlists: exemptions that prevent remediation (list_allowlists, get_allowlist, check_allowlist).',
         '- crowdsec_status: connection mode, capabilities and limits.',
         '',
@@ -206,9 +230,33 @@ const CONCEPTS = (): string =>
         '',
         '## Authentication: bouncer vs watcher',
         '',
-        '- bouncer: API key. Can only read decisions, and only those the bouncer is allowed to see.',
+        '- bouncer: API key. Can only read decisions, and only those the bouncer is allowed to see. The /v1/decisions',
+        '  endpoint is much faster than scanning alerts.',
         '- watcher: machine ID and password (or TLS certificates). Full access to alerts and decisions, plus allowlists',
         '  and write operations depending on the server configuration.',
+        '- Both can be configured together: the bouncer key serves list_decisions/get_decision while the watcher handles',
+        '  alerts, allowlists and writes. `since`/`until` on list_decisions use the watcher path because they filter alerts.',
+        '- With both credentials, list_decisions uses the bouncer by default: `scenario` is a substring match there (exact on',
+        '  the watcher path), and the active decision set is fetched then truncated client-side. `scope`, `since` and `until`',
+        '  force the watcher path because `/v1/decisions` ignores `scope` on LAPI 1.3.3-1.6.0.',
+        '',
+        '## Filter semantics (validated on CrowdSec 1.8.1)',
+        '',
+        '- `contains`: true means "the decision range contains the value"; false means "the decision range is contained',
+        '  within the value". The LAPI default is true. list_decisions defaults to false so `ip=<cidr>` means "decisions',
+        '  inside this CIDR"; list_alerts exposes the same flag. The parameter only exists from LAPI 1.0.3 and is only',
+        '  sent when ip/range is provided.',
+        '- On alerts, `ip` and `range` match the decisions attached to the alert, not the alert source (same for',
+        '  list_alerts and delete_alerts). Alerts without decisions never match these filters; use `scope`+`value` to',
+        '  filter the alert source. delete_alerts uses contains=false, so an exact IP does not match a containing Range decision.',
+        '- `kind` is the alert origin (case-sensitive: `waf`, `crowdsec`, `bot-detection`, ...). `origin` is the origin of',
+        '  the decisions attached to the alert. Unknown values return an empty list, not an error.',
+        '- `has_active_decision=false` means "alerts with no decisions at all", not "do not filter".',
+        '- Simulated decisions are recorded but not enforced. list_decisions includes them by default (`no_simulated=false`);',
+        '  the bouncer endpoint excludes them unless `simulated=true` is sent and does not return the field.',
+        '- `unban_ip(ip=...)` removes decisions contained at/below the IP; a Range decision containing the IP is kept.',
+        '  Use `range` to remove decisions inside a CIDR. Non-IP scopes use the LAPI `scopes` filter.',
+        '- `delete_alerts(origin=...)` filters the decision origin, not the alert kind.',
         '',
         '## Upstream documentation',
         '',
@@ -218,18 +266,21 @@ const CONCEPTS = (): string =>
     ].join('\n');
 
 function triageModeLines(ctx: AppContext): string[] {
-    if (ctx.mode === 'bouncer') {
+    if (!ctx.capabilities.alerts) {
         return [
             '## Mode caveats',
             '',
             'This server runs in bouncer mode: alerts and allowlists are unavailable, only active decisions can be read.',
-            'Work from list_decisions, and say when get_decision, alerts or allowlists would need watcher credentials.'
+            'Work from list_decisions, and say when alerts or allowlists would need watcher credentials.'
         ];
     }
 
-    const lines = ['## Mode caveats', '', 'This server runs in watcher mode: alerts, decisions and allowlists are available.'];
+    const line = ctx.capabilities.decisionsFast
+        ? 'This server runs in watcher mode with a bouncer key: alerts, decisions, allowlists and the fast decision path are available.'
+        : 'This server runs in watcher mode: alerts, decisions and allowlists are available.';
+    const lines = ['## Mode caveats', '', line];
 
-    if (ctx.config.readonly) {
+    if (!ctx.capabilities.write || ctx.config.readonly) {
         lines.push('Write tools are disabled (read-only): analyse and recommend, but do not claim to have banned or unbanned anything.');
     } else {
         lines.push('Write tools are enabled: always get confirmation before ban_ip or unban_ip.');
@@ -247,11 +298,14 @@ const TRIAGE = (ctx: AppContext): string =>
         '## 1. Look at what fired',
         '',
         'Use list_alerts to see the detection history. Useful filters: since/until, ip or range (CIDR containment),',
-        'scenario, origin, kind, has_active_decision and type. Then use get_alert for events and metadata of one alert.',
+        'scenario, origin, kind, has_active_decision and type. Note that ip/range match the decisions attached to the',
+        'alert, not the alert source: alerts without decisions are invisible to those filters, so use scope+value to',
+        'filter the source. kind is case-sensitive; origin is the decision origin. Then use get_alert for events and',
+        'metadata of one alert.',
         '',
         '## 2. Check the current remediation',
         '',
-        'Use list_decisions with the same ip/range to see what is already blocked, and get_decision (watcher only) for context.',
+        'Use list_decisions with the same ip/range to see what is already blocked, and get_decision for context.',
         'An already active ban is often enough: avoid stacking duplicate decisions.',
         '',
         '## 3. Decide',
@@ -267,6 +321,7 @@ const TRIAGE = (ctx: AppContext): string =>
         '- ban_ip refuses allowlisted targets unless force=true.',
         '- Deleting an alert also deletes its active decisions (LAPI cascade); do not unban them afterwards.',
         '- delete_alerts is destructive and only works when this server runs on the LAPI host.',
+        '- unban_ip(ip=...) does not remove a Range decision that contains the IP; use unban_ip(range=...) for that.',
         '',
         ...triageModeLines(ctx),
         '',

@@ -15,6 +15,7 @@ describe('Errors', () => {
 
         it('should handle error', () => {
             const err = new __Error(new Error('my error'), EErrorsCodes.CONNECTION_TEST_FAILED);
+            expect(err).toBeInstanceOf(Error);
             expect(err.code).toBe(EErrorsCodes.CONNECTION_TEST_FAILED);
             expect(err.errorCode).toBe(EErrorsCodes.CONNECTION_TEST_FAILED);
             expect(err.message).toBe('my error');

@@ -160,8 +160,17 @@ export class IpDecisionDB<T> {
     private keyFor(ip: AddressObject, mask: number): numericAddress {
         const numeric = this.numericOf(ip);
         if (typeof numeric === 'number') {
+            // An IPv4 address can never match an IPv6 mask bucket. Returning an
+            // impossible numeric key avoids relying on the number/bigint key
+            // type separation of the Map.
+            if (mask > 32) {
+                return -1;
+            }
             // >>> handles values up to 2^32-1 and always returns an unsigned int
             return numeric >>> (32 - mask);
+        }
+        if (mask > 128) {
+            return -1n;
         }
         return numeric >> BigInt(128 - mask);
     }

@@ -9,9 +9,17 @@ export interface DecisionRow {
     origin: string;
     scenario: string;
     expires?: string;
-    simulated: boolean;
+    simulated?: boolean;
     alertId?: number;
     decisionId?: number;
+}
+
+/** `-` when the LAPI does not expose the field, instead of claiming `no`. */
+function simulatedLabel(simulated: boolean | undefined): string {
+    if (simulated === undefined) {
+        return '-';
+    }
+    return simulated ? 'yes' : 'no';
 }
 
 function decisionKey(decision: APITypes.Decision): string {
@@ -49,7 +57,7 @@ function collectDecisionRows(alerts: APITypes.GetAlertsResponse, now: number): D
                 origin: decision.origin,
                 scenario: decision.scenario,
                 expires: expiryInfo.expires,
-                simulated: decision.simulated ?? false,
+                simulated: decision.simulated,
                 alertId: alert.id,
                 decisionId: decision.id
             });
@@ -72,7 +80,7 @@ export function formatDecisionList(alerts: APITypes.GetAlertsResponse, maxResult
             escapeCell(r.origin),
             escapeCell(r.scenario),
             escapeCell(expiry(r.expires)),
-            escapeCell(r.simulated ? 'yes' : 'no'),
+            escapeCell(simulatedLabel(r.simulated)),
             escapeCell(r.alertId ?? '-'),
             escapeCell(r.decisionId ?? '-')
         ])
@@ -116,7 +124,7 @@ export function formatBouncerDecisionList(decisions: APITypes.GetDecisionsRespon
                 escapeCell(formatOrigin(d.origin)),
                 escapeCell(d.scenario),
                 escapeCell(expiry(expires)),
-                escapeCell(d.simulated ? 'yes' : 'no')
+                escapeCell(simulatedLabel(d.simulated))
             ];
         })
     );
@@ -133,13 +141,13 @@ export function formatDecisionDetail(decision: APITypes.Decision, alert?: APITyp
         `### Decision #${decision.id ?? '-'}`,
         '',
         `- **Type:** ${decision.type ?? '-'}`,
-        `- **Scope:** ${decision.scope ?? '-'}`,
+        `- **Scope:** ${decision.scope ? normalizeScope(decision.scope) : '-'}`,
         `- **Value:** ${decision.value ?? '-'}`,
-        `- **Origin:** ${decision.origin ?? '-'}`,
+        `- **Origin:** ${formatOrigin(decision.origin) ?? '-'}`,
         `- **Scenario:** ${decision.scenario ?? '-'}`,
         `- **Remaining:** ${decision.duration ?? '-'}`,
         `- **Expires:** ${expires}`,
-        `- **Simulated:** ${decision.simulated ? 'yes' : 'no'}`
+        `- **Simulated:** ${simulatedLabel(decision.simulated)}`
     ];
 
     if (alert) {

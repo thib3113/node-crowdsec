@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
+import { parseLapiVersion } from 'crowdsec-client';
 import { parseDuration, splitList } from './utils.js';
 import { NAME, VERSION } from './version.js';
 
@@ -19,7 +21,14 @@ export interface HttpConfig {
 
 export interface Config {
     url: string;
+    /** Primary/display mode. Kept for back-compat; gating uses `watcher`/`bouncer`. */
     auth: AuthMode;
+    /** A watcher client is configured (alerts, allowlists, writes). */
+    watcher: boolean;
+    /** A bouncer client is configured (fast decision path). */
+    bouncer: boolean;
+    /** Declared CrowdSec LAPI version, used to resolve capabilities without probing. */
+    lapiVersion?: string;
     apiKey?: string;
     machineId?: string;
     password?: string;
@@ -44,6 +53,7 @@ const cliOptions = {
     version: { type: 'boolean', short: 'v' },
     url: { type: 'string' },
     auth: { type: 'string' },
+    'lapi-version': { type: 'string' },
     'api-key': { type: 'string' },
     'machine-id': { type: 'string' },
     password: { type: 'string' },
@@ -116,48 +126,133 @@ function firstDefined(...values: Array<string | undefined>): string | undefined 
     return values.find((value) => value !== undefined && value !== '');
 }
 
+/**
+ * Read a secret from a `${NAME}_FILE` environment variable.
+ *
+ * Docker and Kubernetes mount secrets as files; the trailing newline written
+ * by `docker secret` is stripped. Only line endings are removed: leading or
+ * trailing spaces can be part of a password. Neither the value nor the path
+ * is ever included in an error message.
+ */
+function readSecretFile(env: NodeJS.ProcessEnv, name: string): string | undefined {
+    const fileVariable = `${name}_FILE`;
+    const path = env[fileVariable];
+    if (path === undefined || path === '') {
+        return undefined;
+    }
+
+    try {
+        return readFileSync(path, 'utf8').replace(/[\r\n]+$/, '');
+    } catch {
+        throw new Error(`${fileVariable} is set but the secret file could not be read`);
+    }
+}
+
+/**
+ * Resolve a secret input with a documented precedence:
+ * command-line flag > environment variable > `${NAME}_FILE`.
+ */
+function readSecret(values: CliValues, env: NodeJS.ProcessEnv, cliKey: keyof CliValues, name: string): string | undefined {
+    const fromCli = values[cliKey] as string | undefined;
+    if (fromCli !== undefined && fromCli !== '') {
+        return fromCli;
+    }
+
+    const fromEnv = env[name];
+    if (fromEnv !== undefined && fromEnv !== '') {
+        return fromEnv;
+    }
+
+    // Only touch the file when the higher-precedence sources are absent: an
+    // unreadable ${NAME}_FILE must not break a configuration that already
+    // provides the value directly.
+    return readSecretFile(env, name);
+}
+
 function requireUrl(values: CliValues, env: NodeJS.ProcessEnv): string {
     const url = firstDefined(values.url as string | undefined, env.CROWDSEC_URL);
     if (!url) {
         throw new Error('CROWDSEC_URL (or --url) is required');
     }
     if (!/^https?:\/\//i.test(url)) {
-        throw new Error(`CROWDSEC_URL must start with http:// or https://, got '${url}'`);
+        throw new Error(`CROWDSEC_URL must start with http:// or https://, got '${redactedUrl(url)}'`);
     }
     return url;
 }
 
-function resolveAuth(
+interface ResolvedCredentials {
+    auth: AuthMode;
+    watcher: boolean;
+    bouncer: boolean;
+}
+
+function resolveCredentials(
     requestedAuth: string | undefined,
     apiKey: string | undefined,
     machineId: string | undefined,
     password: string | undefined,
     passthrough: boolean,
     hasTls: boolean
-): AuthMode {
-    if (requestedAuth === 'bouncer' || requestedAuth === 'watcher') {
-        return requestedAuth;
-    }
-    if (requestedAuth !== undefined) {
+): ResolvedCredentials {
+    if (requestedAuth !== undefined && requestedAuth !== 'bouncer' && requestedAuth !== 'watcher') {
         throw new Error(`CROWDSEC_AUTH must be 'bouncer' or 'watcher', got '${requestedAuth}'`);
     }
-    if (apiKey) {
-        return 'bouncer';
-    }
-    if (machineId || password) {
-        return 'watcher';
-    }
+
+    const hasMachinePair = Boolean(machineId && password);
+    const hasPartialMachine = Boolean(machineId) !== Boolean(password);
+    const hasWatcherCredentials = hasMachinePair || hasTls;
+    const hasBouncerCredentials = Boolean(apiKey || hasTls);
+
     if (passthrough) {
-        // The env credentials are not used in passthrough mode; keep a valid
-        // mode for the shared Config shape.
-        return 'watcher';
+        // Passthrough credentials come from headers on every request. Static
+        // credentials and CROWDSEC_AUTH are irrelevant, not invalid: keep a
+        // valid mode for the shared Config shape.
+        return { auth: 'watcher', watcher: false, bouncer: false };
+    }
+
+    if (requestedAuth === 'bouncer') {
+        if (!hasBouncerCredentials) {
+            throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
+        }
+        return { auth: 'bouncer', watcher: false, bouncer: true };
+    }
+
+    if (requestedAuth === 'watcher') {
+        if (!hasWatcherCredentials) {
+            if (hasPartialMachine) {
+                throw new Error('CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD must be provided together');
+            }
+            throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
+        }
+        return { auth: 'watcher', watcher: true, bouncer: false };
+    }
+
+    // Without CROWDSEC_AUTH, enable every explicit credential that is present.
+    // A bouncer key and a watcher machine pair can be supplied together, which
+    // gives the fast decision path and the richer watcher tools at once.
+    if (hasMachinePair && apiKey) {
+        return { auth: 'bouncer', watcher: true, bouncer: true };
+    }
+    if (hasMachinePair) {
+        return { auth: 'watcher', watcher: true, bouncer: false };
+    }
+    if (apiKey) {
+        return { auth: 'bouncer', watcher: false, bouncer: true };
     }
     if (hasTls) {
         // With mutual TLS alone we cannot tell a bouncer certificate from an
         // agent one, so default to the richer watcher mode. Set
         // CROWDSEC_AUTH=bouncer when the certificate belongs to a bouncer.
-        return 'watcher';
+        // TLS is deliberately not combined with an API key: the certificate
+        // could be either kind, so the explicit key wins and no watcher is
+        // invented.
+        return { auth: 'watcher', watcher: true, bouncer: false };
     }
+
+    if (hasPartialMachine) {
+        throw new Error('CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD must be provided together');
+    }
+
     throw new Error(
         'unable to detect authentication mode: set CROWDSEC_API_KEY, CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD, TLS certificates, or CROWDSEC_AUTH'
     );
@@ -169,22 +264,6 @@ function resolveTls(cert: string | undefined, key: string | undefined, ca: strin
         throw new Error('TLS authentication requires CROWDSEC_TLS_CERT, CROWDSEC_TLS_KEY and CROWDSEC_TLS_CA together');
     }
     return tlsCount === 3 ? { cert: cert!, key: key!, ca: ca! } : undefined;
-}
-
-function validateCredentials(
-    passthrough: boolean,
-    auth: AuthMode,
-    apiKey: string | undefined,
-    tls: Config['tls'],
-    machineId: string | undefined,
-    password: string | undefined
-): void {
-    if (!passthrough && auth === 'bouncer' && !apiKey && !tls) {
-        throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
-    }
-    if (!passthrough && auth === 'watcher' && !tls && (!machineId || !password)) {
-        throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
-    }
 }
 
 function resolveTransport(values: CliValues, env: NodeJS.ProcessEnv, passthrough: boolean): 'stdio' | 'http' {
@@ -220,9 +299,13 @@ function resolveReadonly(values: CliValues, env: NodeJS.ProcessEnv): boolean {
 
 export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.env): Config {
     const url = requireUrl(values, env);
-    const apiKey = firstDefined(values['api-key'] as string | undefined, env.CROWDSEC_API_KEY);
-    const machineId = firstDefined(values['machine-id'] as string | undefined, env.CROWDSEC_MACHINE_ID);
-    const password = firstDefined(values.password as string | undefined, env.CROWDSEC_PASSWORD);
+    const lapiVersion = firstDefined(values['lapi-version'] as string | undefined, env.CROWDSEC_LAPI_VERSION);
+    if (lapiVersion !== undefined && parseLapiVersion(lapiVersion) === null) {
+        throw new Error(`CROWDSEC_LAPI_VERSION must look like 1.8.2, got '${lapiVersion}'`);
+    }
+    const apiKey = readSecret(values, env, 'api-key', 'CROWDSEC_API_KEY');
+    const machineId = readSecret(values, env, 'machine-id', 'CROWDSEC_MACHINE_ID');
+    const password = readSecret(values, env, 'password', 'CROWDSEC_PASSWORD');
     const passthrough = values.passthrough === true || readBoolean(env.CROWDSEC_MCP_PASSTHROUGH, 'CROWDSEC_MCP_PASSTHROUGH', false);
 
     const requestedAuth = firstDefined(values.auth as string | undefined, env.CROWDSEC_AUTH)?.toLowerCase();
@@ -232,11 +315,17 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
         firstDefined(values['tls-key'] as string | undefined, env.CROWDSEC_TLS_KEY),
         firstDefined(values['tls-ca'] as string | undefined, env.CROWDSEC_TLS_CA)
     );
-    const auth = resolveAuth(requestedAuth, apiKey, machineId, password, passthrough, Boolean(tls));
-    validateCredentials(passthrough, auth, apiKey, tls, machineId, password);
+    if (passthrough && tls) {
+        // The passthrough context is rebuilt for every request from HTTP
+        // headers; loading client certificates there would either re-read the
+        // files on each call or silently drop them. Reject the combination
+        // instead of accepting it and losing mTLS.
+        throw new Error('passthrough mode does not support CROWDSEC_TLS_* certificates; terminate mTLS in front of the MCP server');
+    }
+    const credentials = resolveCredentials(requestedAuth, apiKey, machineId, password, passthrough, Boolean(tls));
 
     const transport = resolveTransport(values, env, passthrough);
-    const httpToken = firstDefined(values['http-token'] as string | undefined, env.CROWDSEC_MCP_HTTP_TOKEN);
+    const httpToken = readSecret(values, env, 'http-token', 'CROWDSEC_MCP_HTTP_TOKEN');
     validateHttpToken(transport, httpToken, passthrough);
 
     if (values.readonly === true && values.write === true) {
@@ -279,7 +368,10 @@ export function loadConfig(values: CliValues, env: NodeJS.ProcessEnv = process.e
 
     return {
         url,
-        auth,
+        auth: credentials.auth,
+        watcher: credentials.watcher,
+        bouncer: credentials.bouncer,
+        lapiVersion,
         apiKey,
         machineId,
         password,
@@ -319,14 +411,22 @@ export function isAlertDeleteAvailable(config: Config): boolean {
     return true;
 }
 
+function maskUserInfo(value: string): string {
+    return value.replace(/(\/\/)[^/@\s]+@/g, '$1***:***@').replace(/^[^/@\s:]+:[^/@\s]+@/, '***:***@');
+}
+
 export function redactedUrl(url: string): string {
+    const masked = maskUserInfo(url);
     try {
-        const parsed = new URL(url);
+        const parsed = new URL(masked);
         if (parsed.username) parsed.username = '***';
         if (parsed.password) parsed.password = '***';
-        return parsed.toString();
+        return maskUserInfo(parsed.toString());
     } catch {
-        return url;
+        // An unparseable value can still contain `user:password@`: show only the
+        // scheme so the error stays useful without echoing the credential.
+        const scheme = /^([a-z][a-z0-9+.-]*):\/\//i.exec(masked)?.[1];
+        return scheme ? `${scheme}://<redacted>` : masked;
     }
 }
 
@@ -335,10 +435,15 @@ export function printHelp(): void {
 
 Connection:
   --url <url>                 CrowdSec LAPI URL (env: CROWDSEC_URL)
-  --auth <bouncer|watcher>    Authentication mode (env: CROWDSEC_AUTH)
-  --api-key <key>             Bouncer API key (env: CROWDSEC_API_KEY)
-  --machine-id <id>           Watcher machine ID (env: CROWDSEC_MACHINE_ID)
-  --password <password>       Watcher password (env: CROWDSEC_PASSWORD)
+  --auth <bouncer|watcher>    Restrict to one mode (env: CROWDSEC_AUTH)
+                              Without it, every supplied credential is enabled;
+                              a bouncer key and watcher credentials can coexist.
+  --lapi-version <version>    CrowdSec LAPI version, e.g. 1.8.2 (env: CROWDSEC_LAPI_VERSION)
+                              Resolves capabilities locally instead of probing or
+                              discovering them from failed requests.
+  --api-key <key>             Bouncer API key (env: CROWDSEC_API_KEY or CROWDSEC_API_KEY_FILE)
+  --machine-id <id>           Watcher machine ID (env: CROWDSEC_MACHINE_ID or CROWDSEC_MACHINE_ID_FILE)
+  --password <password>       Watcher password (env: CROWDSEC_PASSWORD or CROWDSEC_PASSWORD_FILE)
   --tls-cert <path>           Client certificate (env: CROWDSEC_TLS_CERT)
   --tls-key <path>            Client key (env: CROWDSEC_TLS_KEY)
   --tls-ca <path>             CA certificate (env: CROWDSEC_TLS_CA)
@@ -349,7 +454,7 @@ MCP:
   --transport <stdio|http>    Transport, default stdio (env: CROWDSEC_MCP_TRANSPORT)
   --http-host <host>          HTTP host, default 127.0.0.1
   --http-port <port>          HTTP port, default 3939
-  --http-token <token>        HTTP bearer token (required for HTTP)
+  --http-token <token>        HTTP bearer token (env: CROWDSEC_MCP_HTTP_TOKEN or CROWDSEC_MCP_HTTP_TOKEN_FILE)
   --readonly                  Force read-only mode (default)
   --write                     Enable write tools
   --passthrough               Use per-request LAPI credentials (HTTP only)

@@ -44,14 +44,14 @@ const main = async () => {
 
     //listen for added decisions
     stream.on('added', (decision) => {
-        if (!decisions.find((d) => d.value === d.value)) {
+        if (!decisions.find((d) => d.value === decision.value && d.type === decision.type)) {
             decisions.push(decision);
         }
     });
 
     //listen for deleted decisions
     stream.on('deleted', (decision) => {
-        decisions = decisions.filter(({ value }) => value !== decision.value);
+        decisions = decisions.filter(({ value, type }) => value !== decision.value || type !== decision.type);
     });
 
     //start the stream

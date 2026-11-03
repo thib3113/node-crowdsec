@@ -41,6 +41,15 @@ describe('utils', () => {
             expect(() => {
                 parseExpiration('fake');
             }).toThrow(`fail to parse duration "fake"`);
+            expect(() => {
+                parseExpiration('1hfoo');
+            }).toThrow(`fail to parse duration "1hfoo"`);
+            expect(() => {
+                parseExpiration('+');
+            }).toThrow(`fail to parse duration "+"`);
+            expect(() => {
+                parseExpiration('-');
+            }).toThrow(`fail to parse duration "-"`);
         });
         it('should fail to parse too big numbers', async () => {
             const duration = "'999999999h59m59.264032632s'";

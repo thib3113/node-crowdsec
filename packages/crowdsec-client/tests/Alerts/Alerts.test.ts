@@ -2,8 +2,13 @@ import { describe, it, afterEach, beforeEach, expect, vi } from 'vitest';
 
 import type { DeleteAlertsQuery, SearchAlertsQuery } from '../../src/types/index.js';
 import type { Alerts } from '../../src/index.js';
+import { LapiCapability } from '../../src/Capabilities.js';
 
-vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
+vi.mock('../../src/BaseSubObject.js', () => ({
+    BaseSubObject: class {
+        requireCapability = vi.fn();
+    }
+}));
 
 describe('DecisionsWatcher', () => {
     const httpDeleteMock = vi.fn();
@@ -85,7 +90,18 @@ describe('DecisionsWatcher', () => {
 
         expect(await alerts.delete(deleteOptions)).toBe('test');
 
-        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: deleteOptions });
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: { ...deleteOptions, contains: false } });
+        // The implicit contains=false must be gated like an explicit one.
+        // @ts-ignore
+        expect(alerts.requireCapability).toHaveBeenCalledWith(LapiCapability.containsFilter);
+    });
+
+    it('should keep an explicit contains value on an ip delete', async () => {
+        httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
+
+        await alerts.delete({ ip: '1.2.3.4', contains: true });
+
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: { ip: '1.2.3.4', contains: true } });
     });
 
     it('should forward duration and extended delete filters', async () => {
@@ -101,11 +117,29 @@ describe('DecisionsWatcher', () => {
         expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts', { params: deleteOptions });
     });
 
+    it('should require the origin capability when deleting by origin', async () => {
+        httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
+
+        await alerts.delete({ origin: 'cscli' });
+
+        expect((alerts as unknown as { requireCapability: ReturnType<typeof vi.fn> }).requireCapability).toHaveBeenCalledWith(
+            'alertOriginFilter'
+        );
+    });
+
     it('should call delete with id', async () => {
         httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
 
         expect(await alerts.deleteById('123')).toBe('test');
 
         expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts/123');
+    });
+
+    it('should encode the id segment', async () => {
+        httpDeleteMock.mockImplementationOnce(() => ({ data: 'test' }));
+
+        await alerts.deleteById('1/../watchers/self');
+
+        expect(httpDeleteMock).toHaveBeenCalledWith('/v1/alerts/1%2F..%2Fwatchers%2Fself');
     });
 });

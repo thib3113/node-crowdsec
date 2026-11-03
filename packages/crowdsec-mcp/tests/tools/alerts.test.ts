@@ -267,6 +267,29 @@ describe('alertTools', () => {
             );
         });
 
+        it('should not send contains when no ip/range is provided', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([]);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            await tool.handler({ scenario: 'ssh-bf' }, mockCtx);
+
+            expect(mockWatcher.Alerts.search.mock.calls[0][0]).not.toHaveProperty('contains');
+        });
+
+        it('should allow matching decisions that contain the value with contains=true', async () => {
+            mockWatcher.Alerts.search.mockResolvedValue([]);
+            const tool = alertTools.find((t) => t.name === 'list_alerts')!;
+
+            await tool.handler({ ip: '1.2.3.4', contains: true }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ip: '1.2.3.4',
+                    contains: true
+                })
+            );
+        });
+
         it('should normalize scope and value before querying the LAPI', async () => {
             mockWatcher.Alerts.search.mockResolvedValue([]);
             const tool = alertTools.find((t) => t.name === 'list_alerts')!;
@@ -503,7 +526,8 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ip: '192.168.1.100',
-                    scenario: 'ssh-bf'
+                    scenario: 'ssh-bf',
+                    contains: false
                 })
             );
             expect(result).toContain('Deleted 5 alert(s).');
@@ -515,6 +539,20 @@ describe('alertTools', () => {
             await expect(tool.handler({ scope: 'Range' }, mockCtx)).rejects.toThrow(/scope and value must be provided together/);
             expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
             expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm for a /0 range', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ range: '0.0.0.0/0' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm for a /0 scope=Range value', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+
+            await expect(tool.handler({ scope: 'Range', value: '0.0.0.0/0' }, mockCtx)).rejects.toThrow(/requires confirm=true/);
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
         });
 
         it('should require confirm for origin-only deletes', async () => {
@@ -532,9 +570,11 @@ describe('alertTools', () => {
 
             expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    alert_source: 'cscli'
+                    origin: 'cscli'
                 })
             );
+            expect(mockWatcher.Alerts.delete.mock.calls[0][0]).not.toHaveProperty('alert_source');
+            expect(mockWatcher.Alerts.delete.mock.calls[0][0]).not.toHaveProperty('contains');
             expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
             expect(result).toContain('Deleted 5 alert(s).');
         });
@@ -548,22 +588,80 @@ describe('alertTools', () => {
             expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
         });
 
-        it('should delete alerts by decision type and time filters through a search when confirmed', async () => {
+        it('should delete alerts by decision type and time filters directly when confirmed', async () => {
             const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
-            mockWatcher.Alerts.search.mockResolvedValue([{ id: 31 }]);
-            mockWatcher.Alerts.deleteById.mockResolvedValue({ nbDeleted: '1' });
 
             const result = await tool.handler({ type: 'Ban', since: '4h', until: '1h', confirm: true }, mockCtx);
 
-            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
+            expect(mockWatcher.Alerts.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
                     decision_type: 'ban',
                     since: '4h',
-                    until: '1h',
-                    limit: 0
+                    until: '1h'
                 })
             );
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+            expect(result).toContain('Deleted 5 alert(s).');
+        });
+
+        it('should fall back to search and delete-by-id when DELETE rejects decision_type', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.delete.mockRejectedValueOnce(
+                Object.assign(new Error("filter parameter 'decision_type' is unknown"), { code: 500 })
+            );
+            mockWatcher.Alerts.search.mockResolvedValue([{ id: 7, decisions: [{ type: 'ban', origin: 'cscli' }] }]);
+
+            const result = await tool.handler({ type: 'Ban', since: '4h', confirm: true }, mockCtx);
+
+            expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ decision_type: 'ban', since: '4h' }));
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledWith('7');
             expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should skip fallback alerts that do not match the decision type', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.delete.mockRejectedValueOnce(
+                Object.assign(new Error("filter parameter 'decision_type' is unknown"), { code: 500 })
+            );
+            mockWatcher.Alerts.search.mockResolvedValue([
+                { id: 7, decisions: [{ type: 'ban', origin: 'cscli' }] },
+                { id: 8, decisions: [{ type: 'captcha', origin: 'cscli' }] }
+            ]);
+
+            const result = await tool.handler({ type: 'Ban', since: '4h', confirm: true }, mockCtx);
+
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledTimes(1);
+            expect(mockWatcher.Alerts.deleteById).toHaveBeenCalledWith('7');
+            expect(result).toContain('Deleted 1 alert(s).');
+        });
+
+        it('should not match type and origin on different decisions', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.delete.mockRejectedValueOnce(
+                Object.assign(new Error("filter parameter 'decision_type' is unknown"), { code: 500 })
+            );
+            mockWatcher.Alerts.search.mockResolvedValue([
+                {
+                    id: 7,
+                    decisions: [
+                        { type: 'ban', origin: 'cscli' },
+                        { type: 'captcha', origin: 'crowdsec' }
+                    ]
+                }
+            ]);
+
+            await tool.handler({ type: 'Ban', origin: 'crowdsec', confirm: true }, mockCtx);
+
+            expect(mockWatcher.Alerts.deleteById).not.toHaveBeenCalled();
+        });
+
+        it('should not fall back for an unrelated delete failure', async () => {
+            const tool = alertTools.find((t) => t.name === 'delete_alerts')!;
+            mockWatcher.Alerts.delete.mockRejectedValueOnce(Object.assign(new Error('database is down'), { code: 500 }));
+
+            await expect(tool.handler({ type: 'Ban', since: '4h', confirm: true }, mockCtx)).rejects.toThrow('database is down');
+            expect(mockWatcher.Alerts.search).not.toHaveBeenCalled();
         });
 
         it('should require confirm for time-only deletes', async () => {
@@ -628,7 +726,7 @@ describe('alertTools', () => {
 
             expect(mockWatcher.Alerts.search).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ip: '198.51.100.0/24',
+                    range: '198.51.100.0/24',
                     contains: false,
                     limit: 0
                 })

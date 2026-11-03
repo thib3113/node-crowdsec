@@ -1,0 +1,136 @@
+name: Client Live Matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "JSON array of LAPI tags"
+        required: false
+        default: '["v1.0.0","v1.2.0","v1.3.0","v1.3.3","v1.4.0","v1.4.2","v1.6.0","v1.6.6","v1.6.9","v1.7.7","v1.8.2"]'
+      modes:
+        description: "Space-separated credential modes (both watcher bouncer)"
+        required: false
+        default: "both watcher bouncer"
+      tls:
+        description: "1 = HTTP + TLS, 0 = HTTP only"
+        required: false
+        default: "1"
+      tls_strict:
+        description: "1 = also run the CA-validation TLS pass"
+        required: false
+        default: "1"
+  # A reduced matrix (oldest + latest tag, one mode, HTTP only) keeps PR
+  # feedback fast. The full matrix above still runs weekly and on demand.
+  pull_request:
+    paths:
+      - "packages/crowdsec-client/**"
+      - ".github/scripts/lapi-matrix/**"
+      - ".github/workflows/client-live-matrix.yml"
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-live-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      modes: ${{ steps.matrix.outputs.modes }}
+      tls: ${{ steps.matrix.outputs.tls }}
+      tls_strict: ${{ steps.matrix.outputs.tls_strict }}
+    steps:
+      - name: Build the version matrix
+        id: matrix
+        env:
+          VERSIONS: ${{ inputs.versions }}
+          MODES: ${{ inputs.modes }}
+          TLS: ${{ inputs.tls }}
+          TLS_STRICT: ${{ inputs.tls_strict }}
+        run: |
+          set -euo pipefail
+          default='["v1.0.0","v1.2.0","v1.3.0","v1.3.3","v1.4.0","v1.4.2","v1.6.0","v1.6.6","v1.6.9","v1.7.7","v1.8.2"]'
+          pr_default='["v1.0.0","v1.8.2"]'
+          versions="${VERSIONS:-}"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            versions="${versions:-$pr_default}"
+            modes="both"
+            tls="0"
+            tls_strict="0"
+          else
+            versions="${versions:-$default}"
+            modes="${MODES:-both watcher bouncer}"
+            tls="${TLS:-1}"
+            tls_strict="${TLS_STRICT:-1}"
+          fi
+          normalized_modes=""
+          for mode in $modes; do
+            case "$mode" in
+              both | watcher | bouncer) ;;
+              *) echo "invalid mode '$mode' (expected both, watcher or bouncer)" >&2; exit 1 ;;
+            esac
+            normalized_modes="${normalized_modes:+$normalized_modes }$mode"
+          done
+          modes="$normalized_modes"
+          for value in "$tls" "$tls_strict"; do
+            case "$value" in
+              0 | 1) ;;
+              *) echo "tls and tls_strict must be 0 or 1" >&2; exit 1 ;;
+            esac
+          done
+          matrix=$(VERSIONS="$versions" python3 - <<'PY'
+          import json, os, sys
+          try:
+              value = json.loads(os.environ["VERSIONS"])
+          except Exception as exc:
+              sys.exit(f"invalid versions JSON: {exc}")
+          if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+              sys.exit("versions must be a JSON array of non-empty strings")
+          print(json.dumps({"version": value}, separators=(",", ":")))
+          PY
+          )
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "modes=$modes" >> "$GITHUB_OUTPUT"
+          echo "tls=$tls" >> "$GITHUB_OUTPUT"
+          echo "tls_strict=$tls_strict" >> "$GITHUB_OUTPUT"
+
+  live:
+    name: live (${{ matrix.version }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run live client E2E
+        env:
+          MODES: ${{ needs.prepare.outputs.modes }}
+          TLS: ${{ needs.prepare.outputs.tls }}
+          TLS_STRICT: ${{ needs.prepare.outputs.tls_strict }}
+          # The matrix value reaches the script through the environment and is
+          # passed as a quoted argument. It is never textually interpolated into
+          # the run block, so a workflow_dispatch value cannot inject syntax.
+          LAPI_VERSION: ${{ matrix.version }}
+        run: ./.github/scripts/lapi-matrix/run-live-tests.sh "$LAPI_VERSION"

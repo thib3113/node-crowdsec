@@ -9,10 +9,12 @@ export abstract class InternalBaseEnricher<T extends Response> implements IInter
     protected abstract databaseType: string;
     protected database?: Reader<T>;
     protected databasePath: string;
+    protected readonly maxmindOpts: OpenOpts;
     protected debug = debug;
 
     public constructor(databasePath: string, maxmindOpts: OpenOpts) {
         this.databasePath = databasePath;
+        this.maxmindOpts = maxmindOpts;
 
         if (!fs.existsSync(this.databasePath)) {
             throw new Error(`database "${this.databasePath}" seems to doesn't exist`);
@@ -20,7 +22,7 @@ export abstract class InternalBaseEnricher<T extends Response> implements IInter
     }
 
     async load(): Promise<void> {
-        const database = await maxmind.open<T>(this.databasePath);
+        const database = await maxmind.open<T>(this.databasePath, this.maxmindOpts);
 
         const { metadata } = database;
         this.debug('load database %o with languages %o builded at %o', metadata.databaseType, metadata.languages, metadata.buildEpoch);

@@ -8,12 +8,12 @@ export interface CrowdSecPrompt {
     name: string;
     title: string;
     description: string;
-    requires?: Array<'watcher'>;
+    requires?: Array<'alerts'>;
     register: (server: McpServer, ctx: AppContext) => void;
 }
 
 export function isPromptAvailable(prompt: CrowdSecPrompt, ctx: AppContext): boolean {
-    return !prompt.requires?.includes('watcher') || ctx.mode === 'watcher';
+    return !prompt.requires?.includes('alerts') || ctx.capabilities.alerts;
 }
 
 function promptResult(description: string, text: string): GetPromptResult {
@@ -32,7 +32,7 @@ function promptResult(description: string, text: string): GetPromptResult {
 }
 
 function writeGuardrail(ctx: AppContext): string {
-    if (ctx.mode === 'bouncer') {
+    if (!ctx.capabilities.write) {
         return 'Write tools are unavailable in bouncer mode: report findings and recommendations only.';
     }
     if (ctx.config.readonly) {
@@ -123,7 +123,7 @@ function renderTriageAlerts(args: TriageAlertsArgs, ctx: AppContext): string {
 
 function renderInvestigateIp(args: InvestigateIpArgs, ctx: AppContext): string {
     const { ip } = args;
-    const isBouncer = ctx.mode === 'bouncer';
+    const isBouncer = !ctx.capabilities.alerts;
 
     let steps: string[];
     let summary: string;
@@ -187,7 +187,7 @@ export const crowdsecPrompts: CrowdSecPrompt[] = [
         name: TriageAlerts.name,
         title: TriageAlerts.title,
         description: TriageAlerts.description,
-        requires: ['watcher'],
+        requires: ['alerts'],
         register: (server, ctx) => {
             server.registerPrompt(
                 TriageAlerts.name,
@@ -220,7 +220,7 @@ export const crowdsecPrompts: CrowdSecPrompt[] = [
         name: BannedFromCountry.name,
         title: BannedFromCountry.title,
         description: BannedFromCountry.description,
-        requires: ['watcher'],
+        requires: ['alerts'],
         register: (server, ctx) => {
             server.registerPrompt(
                 BannedFromCountry.name,

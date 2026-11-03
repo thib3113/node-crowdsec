@@ -12,7 +12,7 @@ const getRequest = (forwardedFor: string, remoteAddress = '1.1.1.1'): IncomingMe
         headers: {
             'X-Forwarded-For': forwardedFor
         }
-    } as unknown as IncomingMessage);
+    }) as unknown as IncomingMessage;
 
 describe('getIpObject', () => {
     it.each<[string, boolean]>([
@@ -61,6 +61,15 @@ describe('XForwardedForChecker', () => {
                 })
             );
         });
+    });
+
+    it('does not reuse the extraction cache across sockets without X-Forwarded-For', () => {
+        const scenario = new XForwardedForChecker({ 'x-forwarded-for': { trustedProxies: [] } });
+        const req1 = { socket: { remoteAddress: '1.1.1.1' }, headers: {} } as unknown as IncomingMessage;
+        const req2 = { socket: { remoteAddress: '9.9.9.9' }, headers: {} } as unknown as IncomingMessage;
+
+        expect(scenario.extractIp(req1)?.ip).toBe('1.1.1.1');
+        expect(scenario.extractIp(req2)?.ip).toBe('9.9.9.9');
     });
 
     describe('ipv4-mapped ipv6 in trusted proxies', () => {

@@ -76,6 +76,7 @@ export class MaxMindEnricher extends BaseScenario {
     public loaded = false;
     public async load() {
         await Promise.all(this.internalEnrichers.map((e) => e.load()));
+        this.loaded = true;
     }
 
     public enrich(alert: APITypes.Alert): APITypes.Alert | undefined {

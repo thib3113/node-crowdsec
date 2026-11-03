@@ -7,15 +7,32 @@ export type AuthMode = 'bouncer' | 'watcher';
 
 export interface Capabilities {
     read: boolean;
+    /** Watcher credentials: alerts, alert deletion and writes. */
+    alerts: boolean;
+    /** Any credentials: decisions can be listed/looked up. */
+    decisions: boolean;
+    /** Bouncer credentials: `/v1/decisions` fast path. */
+    decisionsFast: boolean;
+    /** Watcher credentials: write tools (ban/unban). */
     write: boolean;
+    /** Watcher credentials: allowlists. */
     allowlists: boolean;
 }
 
 export interface AllowlistsPort {
-    list(): Promise<APITypes.GetAllowlistsResponse>;
+    list(withContent?: boolean): Promise<APITypes.GetAllowlistsResponse>;
     get(name: string, withContent?: boolean): Promise<APITypes.GetAllowlistResponse>;
     check(value: string): Promise<APITypes.CheckAllowlistResponse>;
     bulkCheck(targets: string[]): Promise<APITypes.BulkCheckAllowlistResponse>;
+}
+
+export type ReadinessRequirement = 'watcher' | 'bouncer' | 'any' | 'none';
+
+export type ClientReadinessState = 'ok' | 'error';
+
+export interface ClientReadiness {
+    watcher?: ClientReadinessState;
+    bouncer?: ClientReadinessState;
 }
 
 export interface AppContext {
@@ -26,11 +43,14 @@ export interface AppContext {
     allowlists: AllowlistsPort;
     config: Config;
     activeTools?: string[];
-    ensureReady: () => Promise<void>;
+    /** Last login result per configured client, for crowdsec_status. */
+    readiness: ClientReadiness;
+    /** Log in lazily, only for the client(s) the current tool needs. */
+    ensureReady: (requirement?: ReadinessRequirement) => Promise<void>;
     stop: () => Promise<void>;
 }
 
-export type ToolRequirement = 'watcher' | 'allowlists';
+export type ToolRequirement = 'alerts' | 'write' | 'allowlists';
 export type ToolFeature = 'alert-delete';
 
 export interface ToolDefinition {
@@ -40,6 +60,8 @@ export interface ToolDefinition {
     inputSchema: ZodType;
     kind: 'read' | 'write';
     requires?: ToolRequirement[];
+    /** Client that must be logged in before the handler runs. Defaults to watcher when `requires` is set, none otherwise. */
+    client?: ReadinessRequirement;
     feature?: ToolFeature;
     annotations?: ToolAnnotations;
     handler: (input: unknown, ctx: AppContext) => CallToolResult | string | Promise<CallToolResult | string>;

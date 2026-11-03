@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, vi, it, afterEach } from 'vitest';
 import type { WatcherClient as WatcherClientType } from '../../src/Clients/WatcherClient.js';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
 import { EErrorsCodes } from '../../src/Errors/EErrorsCodes.js';
+import { LapiCapability } from '../../src/Capabilities.js';
 
 const { mockDebug, mockDebugExtend, createDebuggerMock, mockDecisionsWatcher, mockAlerts, mockCrowdSecClientConstructor, FakeClient } =
     vi.hoisted(() => {
@@ -17,15 +18,29 @@ const { mockDebug, mockDebugExtend, createDebuggerMock, mockDecisionsWatcher, mo
             setAuthenticationHeaders = vi.fn();
             setAuthenticationByTLS = vi.fn();
             _testConnection = vi.fn();
+            supports = vi.fn();
+            requireCapability = vi.fn();
+            detectCapabilities = vi.fn().mockResolvedValue({ source: 'unknown', values: {} });
+            capabilityContext = { assertSupport: vi.fn(), supports: vi.fn(), getCapabilities: vi.fn(), learn: vi.fn() };
             // @ts-ignore
+            options: any;
             constructor(...args) {
+                this.options = args[0];
                 mockCrowdSecClientConstructor(...args);
             }
             http = 'fake-http';
             static getHTTPClient: unknown;
         }
 
-        return { mockDebug, mockDebugExtend, createDebuggerMock, mockDecisionsWatcher, mockAlerts, mockCrowdSecClientConstructor, FakeClient };
+        return {
+            mockDebug,
+            mockDebugExtend,
+            createDebuggerMock,
+            mockDecisionsWatcher,
+            mockAlerts,
+            mockCrowdSecClientConstructor,
+            FakeClient
+        };
     });
 
 const getFakeTimeout = () => {
@@ -168,6 +183,13 @@ describe('WatcherClient.test.ts', () => {
                 expect(mockHeartbeatLoop).toHaveBeenCalledWith();
                 expect(mockTestConnection).toHaveBeenCalledWith();
             });
+            it('should reject login after stop', async () => {
+                await watcher.stop();
+
+                await expect(watcher.login()).rejects.toThrow('client is stopped');
+                expect(mockLogin).not.toHaveBeenCalled();
+            });
+
             it('should call skip heartLoop if disabled', async () => {
                 mockLogin.mockImplementationOnce(() => Promise.resolve());
                 // @ts-ignore
@@ -249,6 +271,10 @@ describe('WatcherClient.test.ts', () => {
                 });
                 // @ts-ignore
                 watcher.http = { get: httpGetMock, post: httpPostMock };
+                // @ts-ignore
+                watcher.setAuthenticationHeaders = mockSetAuthenticationHeaders;
+                // @ts-ignore
+                _login = watcher._login.bind(watcher);
 
                 httpPostMock.mockImplementationOnce(() => ({
                     data: {
@@ -258,8 +284,6 @@ describe('WatcherClient.test.ts', () => {
                 }));
                 await _login();
                 expect(httpPostMock).toHaveBeenCalledWith('/v1/watchers/login', {
-                    machine_id: 'test_machine_id',
-                    password: 'test_password',
                     scenarios: []
                 });
                 expect(mockSetAuthenticationHeaders).toHaveBeenCalledWith(expect.objectContaining({ Authorization: `Bearer test_token` }));
@@ -470,6 +494,13 @@ describe('WatcherClient.test.ts', () => {
 
                 expect(mockDebug).toHaveBeenCalledWith('error %o', 'fake-error');
             });
+            it('should learn and disable the loop when the heartbeat route is missing', async () => {
+                httpGetMock.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('not found'), { code: 404 })));
+                await heartbeatLoop();
+
+                expect((watcher as any).capabilityContext.learn).toHaveBeenCalledWith(LapiCapability.heartbeat, false);
+                expect(mockSetTimeout).not.toHaveBeenCalled();
+            });
             it('should recall heartbeat', async () => {
                 const [timeout, mockTimeout] = getFakeTimeout();
                 // @ts-ignore
@@ -519,13 +550,15 @@ describe('WatcherClient.test.ts', () => {
             await WatcherClient.registerWatcher({
                 machine_id: 'test_machine_id',
                 password: 'test_password',
+                registration_token: 'registration-token',
                 url: 'https://localhost:8080'
             });
 
             expect(mockGetHTTPClient).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://localhost:8080' }));
             expect(mockPost).toHaveBeenCalledWith('/v1/watchers', {
                 machine_id: 'test_machine_id',
-                password: 'test_password'
+                password: 'test_password',
+                registration_token: 'registration-token'
             });
         });
     });

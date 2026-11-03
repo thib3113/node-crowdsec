@@ -126,8 +126,8 @@ Ask : is it acceptable that a brand-new ban takes up to `pollingInterval`
 > **Recommended** : `company` (up to `/24`).
 
 Real-world malicious traffic is almost always single IPs (`/32`). Larger blocks
-follow who owns them : an abusive datacenter rack is a `/24`, an entire national
-block is `/8` - banning a whole country is almost never intended.
+follow who owns them : an abusive datacenter rack is a `/24`, a national block
+is `/16` - banning a whole country is almost never intended.
 
 - `resident` : only single IPs (`/32`). Most restrictive on false positives.
 - `company` (recommended) : up to `/24` (an ISP / hosting provider block).

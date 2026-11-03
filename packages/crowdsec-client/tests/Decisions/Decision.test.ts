@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockParseExpiration } = vi.hoisted(() => ({
     mockParseExpiration: vi.fn().mockReturnValue(new Date('2023-06-01T17:41:26.499Z'))
@@ -9,6 +9,26 @@ vi.mock('../../src/utils.js', () => ({
 }));
 
 describe('decision', () => {
+    beforeEach(() => {
+        mockParseExpiration.mockClear();
+    });
+
+    it('prefers a valid until date over the duration', async () => {
+        const decision = new (await import('../../src/Decisions/Decision.js')).Decision({
+            id: 1,
+            origin: 'Origin',
+            type: 'type',
+            scope: 'Scope',
+            value: 'value',
+            duration: '1h54m',
+            until: '2024-01-02T03:04:05.000Z',
+            scenario: 'Scenario'
+        });
+
+        expect(decision.endAt.toISOString()).toBe('2024-01-02T03:04:05.000Z');
+        expect(mockParseExpiration).not.toHaveBeenCalled();
+    });
+
     it('should create a Decision object', async () => {
         const rawDecision = {
             id: 1,
@@ -58,7 +78,8 @@ describe('decision', () => {
         expect(decision.duration).toBe(rawDecision.duration);
         expect(decision.until).toBe(rawDecision.until);
         expect(decision.scenario).toBe(rawDecision.scenario.toLowerCase());
-        expect(decision.simulated).toBe(false);
+        // The LAPI may omit `simulated` (notably on `/v1/decisions`).
+        expect(decision.simulated).toBeUndefined();
         expect(decision.endAt.getTime()).toBe(1685641286499);
 
         expect(mockParseExpiration).toHaveBeenCalledWith(decision.duration);

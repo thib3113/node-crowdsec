@@ -221,7 +221,13 @@ export class XForwardedForChecker extends CheckerScenario {
 
         localDebug(`X-Forwarded-For extracted (${xForwardedForHeaderValues.length}) : "${xForwardedForHeaderValues.join('", "')}"`);
         //use cache if this xForwardedFor is always known
-        const cacheKey = xForwardedForHeaderValues.map((h) => crypto.createHash('sha256').update(h).digest('hex')).join('|');
+        // Include the socket address: without X-Forwarded-For the header list is
+        // empty, and a key built from it alone would reuse the first client's
+        // extraction (socket/trusted-proxy result) for every later client.
+        const cacheKey = [
+            String(remoteAddress ?? ''),
+            ...xForwardedForHeaderValues.map((h) => crypto.createHash('sha256').update(h).digest('hex'))
+        ].join('|');
         const cache = this.extractIpCache.get(cacheKey);
         if (cache) {
             return [...cache];

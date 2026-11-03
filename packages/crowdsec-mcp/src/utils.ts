@@ -18,12 +18,23 @@ export function isValidCidr(value: string): boolean {
         return false;
     }
 
-    if (!/^\d+$/.test(prefix)) {
+    // Reject non-canonical prefixes such as /00: Go normalises them to /0, which
+    // would turn a supposedly narrow target into a delete-everything range.
+    if (!/^(0|[1-9]\d*)$/.test(prefix)) {
         return false;
     }
 
     const prefixNumber = Number(prefix);
     return family === 4 ? prefixNumber >= 0 && prefixNumber <= 32 : prefixNumber >= 0 && prefixNumber <= 128;
+}
+
+/**
+ * A /0 range (0.0.0.0/0, ::/0) covers everything. It must never be treated as
+ * a narrow delete target: `confirm=true` is required just like `all=true`.
+ */
+export function isTotalCidr(value: string): boolean {
+    const [address, prefix, ...rest] = value.split('/');
+    return rest.length === 0 && prefix !== undefined && Number(prefix) === 0 && isValidIp(address);
 }
 
 /**
@@ -248,4 +259,42 @@ export function splitList(value?: string): string[] | undefined {
         .map((item) => item.trim())
         .filter(Boolean);
     return items.length > 0 ? items : undefined;
+}
+
+/**
+ * Run an async mapper with a bounded number of in-flight calls. Deleting a
+ * large CIDR or `all=true` can collect thousands of ids; an unbounded
+ * `Promise.all` would exhaust sockets and hammer the LAPI.
+ */
+export async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> {
+    if (limit <= 0) {
+        throw new Error('concurrency limit must be positive');
+    }
+
+    const results = new Array<R>(items.length);
+    let next = 0;
+    let failed = false;
+
+    const worker = async (): Promise<void> => {
+        while (!failed) {
+            const index = next++;
+            if (index >= items.length) {
+                return;
+            }
+
+            try {
+                results[index] = await mapper(items[index]);
+            } catch (error) {
+                // Stop scheduling new work as soon as one item fails: a delete
+                // loop must not keep mutating the LAPI after the tool reported
+                // an error.
+                failed = true;
+                throw error;
+            }
+        }
+    };
+
+    const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
 }

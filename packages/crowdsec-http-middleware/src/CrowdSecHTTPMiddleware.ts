@@ -62,7 +62,8 @@ export class CrowdSecHTTPMiddleware extends CommonsMiddleware {
 
     /**
      * extract current ip from the request .
-     * First try the option getCurrentIp, second check if a scenario allow to extractIp
+     * First try the option getCurrentIp, then a scenario, then the socket address
+     * (the bouncer-only quickstart has no scenario loaded).
      * @param req
      * @private
      */
@@ -71,10 +72,10 @@ export class CrowdSecHTTPMiddleware extends CommonsMiddleware {
             return this.options.getCurrentIp(req);
         }
 
-        const ip = this.watcher?.extractIp(req);
+        const ip = this.watcher?.extractIp(req) ?? req.socket.remoteAddress;
 
         if (!ip) {
-            throw new Error('no scenario can extract the ip from this request . And no option "getCurrentIp" to extract it');
+            throw new Error('cannot determine the client ip: provide getCurrentIp or a scenario');
         }
 
         return ip;

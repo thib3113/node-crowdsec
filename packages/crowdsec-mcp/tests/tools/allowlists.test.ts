@@ -75,7 +75,7 @@ describe('allowlistTools', () => {
 
             const result = (await findTool('list_allowlists').handler({ limit: 10 }, mockCtx)) as string;
 
-            expect(mockAllowlists.list).toHaveBeenCalledWith();
+            expect(mockAllowlists.list).toHaveBeenCalledWith(true);
             expect(result).toContain('| Name');
             expect(result).toContain('Description');
             expect(result).toContain('Created at');
@@ -96,7 +96,19 @@ describe('allowlistTools', () => {
 
             await findTool('list_allowlists').handler({}, mockCtx);
 
-            expect(mockAllowlists.list).toHaveBeenCalledWith();
+            expect(mockAllowlists.list).toHaveBeenCalledWith(true);
+        });
+
+        it('should skip item transfer with with_content=false and show an unknown size', async () => {
+            // The LAPI returns an empty items array (not undefined) when
+            // with_content=false, so the formatter must rely on the flag.
+            mockAllowlists.list.mockResolvedValue([makeAllowlist(0, { name: 'al1', description: 'd', items: [] })]);
+
+            const result = (await findTool('list_allowlists').handler({ with_content: false }, mockCtx)) as string;
+
+            expect(mockAllowlists.list).toHaveBeenCalledWith(false);
+            expect(result).toContain('al1');
+            expect(result).toMatch(/\| -\s+\|/);
         });
 
         it('should truncate rows to the requested limit and hint at hidden rows', async () => {

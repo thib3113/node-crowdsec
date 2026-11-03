@@ -5,7 +5,7 @@ Thanks for contributing to node-crowdsec.
 ## Requirements
 
 - Node.js >= 24
-- pnpm >= 12 (the version is pinned in `packageManager`)
+- pnpm, pinned to `pnpm@12.11.2` through `packageManager` (Corepack uses it automatically)
 
 ## Setup
 

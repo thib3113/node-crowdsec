@@ -51,11 +51,15 @@ export const getUrlRepresentation = (req: RawAxiosRequestConfig, hidePassword = 
 };
 
 export const parseExpiration = (duration: string) => {
-    const durationRe = /(?<multiplier>[-+]?)(?:(?<hours>\d{1,8})h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>\d{1,2}(?:\.\d+)?)s)?/gm.exec(
+    const durationRe = /^(?<multiplier>[-+]?)(?:(?<hours>\d{1,8})h)?(?:(?<minutes>\d{1,2})m)?(?:(?<seconds>\d{1,2}(?:\.\d+)?)s)?$/.exec(
         duration
     );
 
     if (!durationRe?.groups || !durationRe?.[0]) {
+        throw new Error(`fail to parse duration "${duration}"`);
+    }
+
+    if (!durationRe.groups.hours && !durationRe.groups.minutes && !durationRe.groups.seconds) {
         throw new Error(`fail to parse duration "${duration}"`);
     }
 
@@ -75,6 +79,19 @@ export const parseExpiration = (duration: string) => {
 };
 
 export const forceArray = <T>(p: Readonly<T | Array<T>>): Array<T> => (Array.isArray(p) ? (p as T[]) : [p as T]);
+
+/**
+ * A delete filtered by `ip`/`range` must not silently widen to a Range decision
+ * that contains the value. The LAPI `contains` filter defaults to true, so make
+ * the safe value explicit unless the caller chose one.
+ */
+export function withContainsDefault<T extends { ip?: string; range?: string; contains?: boolean }>(options: T): T {
+    if (options.contains === undefined && (options.ip !== undefined || options.range !== undefined)) {
+        return { ...options, contains: false };
+    }
+
+    return options;
+}
 
 /**
  * the job of this function, is to unblock the loop when running a long while

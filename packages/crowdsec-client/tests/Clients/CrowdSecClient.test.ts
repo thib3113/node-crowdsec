@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, vi, it } from 'vitest';
 import type { CrowdSecClient as TypeCrowdSecClient } from '../../src/Clients/CrowdSecClient.js';
 import type { ICrowdSecClientOptions } from '../../src/index.js';
+import { LapiCapability } from '../../src/Capabilities.js';
 import Validate from '../../src/Validate.js';
 import * as https from 'https';
 import { CrowdsecClientError } from '../../src/Errors/CrowdsecClientError.js';
@@ -698,6 +699,41 @@ describe('CrowdSecClient.ts', () => {
                     expect(validateStatus(code)).toBeTruthy();
                 });
             });
+        });
+    });
+
+    describe('detectCapability', () => {
+        class ProbeClient extends FakeClient {
+            public probes: Array<{ capability: import('../../src/Capabilities.js').LapiCapability; request: () => Promise<unknown> }> = [];
+
+            protected async collectProbes() {
+                return this.probes;
+            }
+        }
+
+        it('probes once, records the result and reuses it', async () => {
+            const client = new ProbeClient({ url: 'https://crowdsec.lan' });
+            const request = vi.fn().mockResolvedValue({ status: 200 });
+            client.probes = [{ capability: LapiCapability.allowlists, request }];
+
+            await expect(client.detectCapability('allowlists')).resolves.toBe(true);
+            expect(client.supports('allowlists')).toBe(true);
+            expect(client.getCapabilities().source).toBe('probed');
+
+            await expect(client.detectCapability('allowlists')).resolves.toBe(true);
+            expect(request).toHaveBeenCalledTimes(1);
+        });
+
+        it('re-probes when forced and returns undefined when no probe exists', async () => {
+            const client = new ProbeClient({ url: 'https://crowdsec.lan' });
+            const request = vi.fn().mockResolvedValue({ status: 404 });
+            client.probes = [{ capability: LapiCapability.allowlists, request }];
+
+            await expect(client.detectCapability('allowlists')).resolves.toBe(false);
+            await expect(client.detectCapability('allowlists', { force: true })).resolves.toBe(false);
+            expect(request).toHaveBeenCalledTimes(2);
+
+            await expect(client.detectCapability('alertDeleteById')).resolves.toBeUndefined();
         });
     });
 });

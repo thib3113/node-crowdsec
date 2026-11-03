@@ -39,6 +39,15 @@ them to CrowdSec.
 
 Requires Node.js >= 24 and a CrowdSec LAPI.
 
+> **For LLMs:** give your agent
+> <https://raw.githubusercontent.com/thib3113/node-crowdsec/main/llms.txt>.
+
+The middleware works with CrowdSec LAPI `v1.0.0` and newer. The decision stream
+uses the `scopes` filter (LAPI `1.1.0+`, documented from `1.2.0`); on older
+servers it falls back to an unfiltered stream. See
+[`docs/api-compatibility.md`](../../docs/api-compatibility.md) for the full
+compatibility matrix.
+
 ## Quick start
 
 The simplest setup: install, configure the LAPI URL + a bouncer API key, and
@@ -98,67 +107,12 @@ npm i crowdsec-http-middleware crowdsec-client-scenarios
 
 you can read what are the default scenarios enabled in [crowdsec-client-scenarios](../crowdsec-client-scenarios#defaults-scenarios)
 
-## Usage
+## Configuration
 
-This package is a base package for creating HTTP middleware for HTTP servers.
+Options are described in the [wiki](https://github.com/thib3113/node-crowdsec/wiki/HTTP-Middleware)
+and the [technical documentation](https://thib3113.github.io/node-crowdsec/interfaces/crowdsec_http_middleware.ICrowdSecHTTPMiddlewareOptions.html).
 
-A full example, showing how you stay in control of the response (custom message
-per decision type) :
-
-````typescript
-import * as http from 'http';
-import { CrowdSecHTTPMiddleware } from 'crowdsec-http-middleware';
-
-// init the middleware (we will see the options later)
-const middleware = new CrowdSecHTTPMiddleware(middlewareOptions);
-//wait async stuff like connection to crowdsec LAPI
-await middleware.start();
-
-const server = http.createServer((req: IncomingMessage & { ip?: string; decision?: Decision }, res: ServerResponse) => {
-    try {
-        middleware.getMiddleware()(req, res);
-    } catch (e) {
-        console.error('middleware error', e);
-    }
-
-    if (!req.decision) {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('Hello, World!');
-        return;
-    }
-
-    res.statusCode = 403;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end(`You can't access this api, because you are : ${req.decision?.type}`);
-});
-
-const port: number = 3000;
-server.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
-});
-````
-
-### options
-
-options are described here : [technical documentation](https://thib3113.github.io/node-crowdsec/interfaces/crowdsec_http_middleware.ICrowdSecHTTPMiddlewareOptions.html)
-
-#### Give to your AI agent
-
-Copy-paste this into your AI agent. It reads the setup guide and interviews you
-before writing the config.
-
-````text
-Help me configure the node-crowdsec HTTP middleware (bouncer and/or watcher,
-with optional scenarios).
-
-1. Read this guide: https://raw.githubusercontent.com/thib3113/node-crowdsec/main/docs/agent-setup-guide.md
-2. First tell me if I even need this library, then ask me the questions it lists.
-3. Use the recommended defaults when I have no opinion.
-4. Output the `CrowdSecHTTPMiddleware` config + a short justification.
-````
-
-First the global options
+#### Global options
 
 ````typescript
 const middlewareOptions: ICrowdSecHTTPMiddlewareOptions = {
@@ -215,6 +169,7 @@ const bouncerOptions = {
     pollingInterval: 10000,
     // how far up the prefix hierarchy to consider as malicious.
     // "resident" = only /32, "company" = up to /24 ( default ), "country" = up to /16
+    // IPv6 equivalents: /128, /120, /112 (a /64 is ignored)
     subnetLevel: SubnetLevel.company,
     // optional live mode : checks unknown ips against the LAPI in the background
     live: {
@@ -256,20 +211,6 @@ const middleware = new CrowdSecHTTPMiddleware({
     }
 });
 ````
-
-##### Live mode behavior
-
-On a local cache miss, the current request **always passes** and a live check
-(`GET /v1/decisions?ip=<ip>`) runs in the background. If the LAPI says the IP is
-banned, the decision is injected in the local index, so the **next** request
-from that IP is blocked. A malicious unknown IP can pass once, never twice.
-
-## Benchmarks
-
-`npm run bench` compares the IP lookup strategies explored during the design
-(linear `isInSubnet` scan, current `MapOfMaps` index, packed `MapSMI`, sorted
-`Uint32Array` + binary search, custom open-addressing hash) across hit / miss
-lookups, `subnetLevel` presets and index setup.
 
 ## Debug
 

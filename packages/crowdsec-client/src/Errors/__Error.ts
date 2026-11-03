@@ -1,7 +1,6 @@
 import { EErrorsCodes } from './EErrorsCodes.js';
 
-export class __Error implements Error {
-    public stack: string;
+export class __Error extends Error {
     protected _message: string;
     /**
      * can also contain error like certificates error (https://nodejs.org/api/tls.html#tls_x509_certificate_error_codes) or other errors . Can be a string, or a number
@@ -12,13 +11,14 @@ export class __Error implements Error {
      */
     public code: EErrorsCodes;
     public exception: Error;
-    public message: string;
 
     public constructor(message: string | Error = '', code: EErrorsCodes = EErrorsCodes.UNKNOWN_ERROR, exception?: Error | string | null) {
         if (message instanceof Error) {
             exception = message;
             message = message.message;
         }
+
+        super(typeof message === 'string' ? message : String(message));
 
         this.errorCode = code;
         this.code = code;
@@ -33,7 +33,7 @@ export class __Error implements Error {
             return `${this.name} : ${this._message}\n${tmpStack}`;
         };
 
-        this._message = message;
+        this._message = typeof message === 'string' ? message : String(message);
         this.message = this._message;
         this.exception = typeof exception === typeof '' ? new Error(exception as string) : (exception as Error);
 
@@ -51,7 +51,7 @@ export class __Error implements Error {
 
         strComponents.push(`${name}${errorCodeStr} : ${message} \n`);
 
-        strComponents.push(this.stack);
+        strComponents.push(this.stack ?? '');
 
         return strComponents.join(' ');
     };

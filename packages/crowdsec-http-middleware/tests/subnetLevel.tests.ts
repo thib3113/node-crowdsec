@@ -39,6 +39,15 @@ describe('CrowdSecHTTPBouncerMiddleware subnetLevel', () => {
         }
     });
 
+    it('should not turn a short-prefix mapped dotted-quad into IPv4', () => {
+        for (const level of [undefined, SubnetLevel.resident, SubnetLevel.company, SubnetLevel.country]) {
+            const middleware = makeMiddleware(level);
+
+            expect(addDecision(middleware, '::ffff:10.0.0.0/64')).toBe(false);
+            expect(addDecision(middleware, '::ffff:0.0.0.0/0')).toBe(false);
+        }
+    });
+
     describe('default (company /24)', () => {
         let middleware: CrowdSecHTTPBouncerMiddleware;
         beforeEach(() => {
@@ -61,6 +70,14 @@ describe('CrowdSecHTTPBouncerMiddleware subnetLevel', () => {
             expect(middleware.decisionsCount).toBe(0);
             expect(checkIp(middleware, '10.1.2.3')).toBeUndefined();
         });
+
+        it('should apply the IPv4 policy to IPv6 (/120, not /119)', () => {
+            expect(addDecision(middleware, '2001:db8::/120')).toBe(true);
+            expect(checkIp(middleware, '2001:db8::1')?.value).toBe('2001:db8::/120');
+
+            expect(addDecision(middleware, '2001:db8:1::/119')).toBe(false);
+            expect(checkIp(middleware, '2001:db8:1::1')).toBeUndefined();
+        });
     });
 
     describe('resident (/32 only)', () => {
@@ -72,12 +89,24 @@ describe('CrowdSecHTTPBouncerMiddleware subnetLevel', () => {
         it('should match /32 decisions', () => {
             addDecision(middleware, '10.0.0.5');
             expect(checkIp(middleware, '10.0.0.5')?.value).toBe('10.0.0.5');
+
+            // A real mapped address without a short prefix still becomes IPv4.
+            expect(addDecision(middleware, '::ffff:10.0.0.6')).toBe(true);
+            expect(checkIp(middleware, '10.0.0.6')?.value).toBe('::ffff:10.0.0.6');
         });
 
         it('should ignore /24 decisions', () => {
             addDecision(middleware, '10.0.0.0/24');
             expect(middleware.decisionsCount).toBe(0);
             expect(checkIp(middleware, '10.0.0.123')).toBeUndefined();
+        });
+
+        it('should apply the IPv4 policy to IPv6 (/128, not /64)', () => {
+            expect(addDecision(middleware, '2001:db8::1/128')).toBe(true);
+            expect(checkIp(middleware, '2001:db8::1')?.value).toBe('2001:db8::1/128');
+
+            expect(addDecision(middleware, '2001:db8:2::/64')).toBe(false);
+            expect(checkIp(middleware, '2001:db8:2::5')).toBeUndefined();
         });
     });
 
@@ -96,6 +125,14 @@ describe('CrowdSecHTTPBouncerMiddleware subnetLevel', () => {
             addDecision(middleware, '10.0.0.0/8');
             expect(middleware.decisionsCount).toBe(0);
             expect(checkIp(middleware, '10.1.2.3')).toBeUndefined();
+        });
+
+        it('should apply the IPv4 policy to IPv6 (/112, not /111)', () => {
+            expect(addDecision(middleware, '2001:db8::/112')).toBe(true);
+            expect(checkIp(middleware, '2001:db8::abcd')?.value).toBe('2001:db8::/112');
+
+            expect(addDecision(middleware, '2001:db8:1::/111')).toBe(false);
+            expect(checkIp(middleware, '2001:db8:1::1')).toBeUndefined();
         });
     });
 });

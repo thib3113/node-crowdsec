@@ -28,6 +28,9 @@
 
 This library is a Node.js client for the CrowdSec REST API.
 
+> **For LLMs:** give your agent
+> <https://raw.githubusercontent.com/thib3113/node-crowdsec/main/llms.txt>.
+
 ## Start
 
 install it
@@ -38,126 +41,105 @@ npm i crowdsec-client
 
 and then read the [getting started guide](https://github.com/thib3113/node-crowdsec/wiki/Getting-Started) or the [API reference](https://thib3113.github.io/node-crowdsec/).
 
-## Usage
+## CrowdSec compatibility
 
-### as a Bouncer
+The client works with CrowdSec LAPI `v1.0.0` and newer; features added in later
+releases are unavailable on older servers.
 
-First, create a client pointing to your CrowdSec instance, with a bouncer API key ([doc](https://doc.crowdsec.net/docs/user_guides/bouncers_configuration/)).
+| Feature | Minimum LAPI |
+| --- | --- |
+| Bouncer (decisions, decisions stream) | 1.0.0 |
+| Watcher (alerts) | 1.0.0 |
+| `contains` filter | 1.0.3 |
+| Heartbeat | 1.4.0 |
+| `DELETE /alerts/{id}`, `DELETE /decisions?scenario=` | 1.4.2 |
+| Allowlists (list, get, check) | 1.6.6 |
+| Bulk allowlist check, watcher self-delete | 1.6.9 |
+| `kind` alert filter | 1.7.7 |
 
-````typescript
-import { BouncerClient } from 'crowdsec-client';
+See [`docs/api-compatibility.md`](../../docs/api-compatibility.md) for the full
+matrix, failure modes, probes and fallbacks.
 
-const client = new BouncerClient({
-    url: process.env.CROWDSEC_URL,
-    auth: {
-        apiKey: process.env.CROWDSEC_API_KEY || ''
-    },
-    //use this option if you use a self signed ssl certificate
-    strictSSL: false
-});
-await client.login();
-````
+### Capability detection
 
-Second, ask for a decision
+Declare `lapiVersion` to resolve capabilities without a request, or set
+`detectCapabilities: true` to probe after login. Results are memoised per
+instance; methods that need a newer LAPI throw `FeatureNotSupportedError`, and
+`strictCapabilities` also rejects unverifiable capabilities.
 
-````typescript
-const stream = client.Decisions.getStream({
-    // the stream polls the API at this interval, in ms
-    interval: 10000
-});
-
-//or with filters
-const filteredStream = client.Decisions.getStream({
-    // the stream polls the API at this interval, in ms
-    interval: 10000,
-    scopes: ['ip', 'range'],
-    origins: ['capi'] ,
-    scenarios_containing: ['bruteforce'],
-    scenarios_not_containing: ['slow'],
-});
-````
-
-now, use this stream (`stream` is the object returned by `client.Decisions.getStream()`)
-
-````typescript
-stream.on('added', (decision) => {
-    // emitted when a new decision is added
-});
-
-stream.on('deleted', (decision) => {
-    // emitted when a decision is deleted
-});
-
-// start the stream
-stream.resume();
-
-// pause the stream
-stream.pause();
-
-// check if the stream is paused
-if (stream.paused) {
-    // ...
-}
-````
-
-### as a Watcher
-
-First, create a client pointing to your CrowdSec instance, with a machine login/password ([doc](https://doc.crowdsec.net/docs/user_guides/machines_mgmt)).
-
-````typescript
-import { WatcherClient } from 'crowdsec-client';
-
-const client = new WatcherClient({
-    url: process.env.CROWDSEC_URL,
-    auth: {
-        machineID: 'nameOfTheMachine',
-        password: 'password',
-        // the CrowdSec token is valid for 1h; autoRenew (default: true) keeps it fresh
-        autoRenew: true,
-    },
-    //use this option if you use a self signed ssl certificate
-    strictSSL: false
-});
-await client.login();
-````
-
-Search for Alert
-
-```typescript
-//get alerts with an active decision
-const alerts = await client.Alerts.search({
-    has_active_decision: true
-});
-
-//select one alert
-const alert = alerts[0]
-if(!alert.id) {
-    //do something if no id
-}
-
-//delete it ?
-await client.Alerts.deleteById(alert.id);
-
-//or delete all the alerts about an ip
-await client.Alerts.delete({
-    ip: '127.0.0.1'
-});
+```ts
+const watcher = new WatcherClient({ url, auth, detectCapabilities: true });
+await watcher.login();
+watcher.supports('allowlists'); // true | false | undefined
+watcher.getProbableVersion(); // { probable: '>=1.6.9 <1.7.7' }
 ```
 
-More authentication options (such as TLS) are documented in the [wiki](https://github.com/thib3113/node-crowdsec/wiki/Authentications).
+Two caveats: `DELETE /alerts/{id}` and `DELETE /decisions?scenario=` (1.4.2)
+cannot be probed without sending a `DELETE`, so they stay `undefined`; and a
+decision created on an old or remote LAPI may not be deletable (alert deletion
+is LAPI-host-only). Prefer short durations or delete by decision id.
+
+## Usage
+
+### Quick start
+
+```ts
+import { BouncerClient, WatcherClient } from 'crowdsec-client';
+
+const bouncer = new BouncerClient({
+    url: process.env.CROWDSEC_URL!,
+    auth: { apiKey: process.env.CROWDSEC_API_KEY! }
+});
+await bouncer.login();
+const { new: newDecisions } = await bouncer.Decisions.getRawStream({ startup: true });
+
+const watcher = new WatcherClient({
+    url: process.env.CROWDSEC_URL!,
+    auth: {
+        machineID: process.env.CROWDSEC_MACHINE_ID!,
+        password: process.env.CROWDSEC_PASSWORD!,
+        autoRenew: true
+    },
+    heartbeat: false
+});
+await watcher.login();
+const alerts = await watcher.Alerts.search({ has_active_decision: true, limit: 10 });
+```
+
+Stream filters, alert management and all authentication modes (TLS, mTLS) are
+documented in the [getting started guide](https://github.com/thib3113/node-crowdsec/wiki/Getting-Started)
+and [Authentications](https://github.com/thib3113/node-crowdsec/wiki/Authentications).
 
 ## Type overrides
 
 The generated API types under `src/types/generated` come from the upstream
 CrowdSec swagger and are never edited by hand. Known discrepancies with the
 actual LAPI are typed in `src/types/overrides.ts` and exported as
-`SearchAlertsQuery` / `DeleteAlertsQuery` (also available as
-`APITypes.SearchAlertsQuery` / `APITypes.DeleteAlertsQuery`):
+`SearchAlertsQuery` / `DeleteAlertsQuery` / `DeleteDecisionsQuery` (also
+available as `APITypes.SearchAlertsQuery` / `APITypes.DeleteAlertsQuery` /
+`APITypes.DeleteDecisionsQuery`):
 
 - `since` and `until` are Go durations (`24h`, `7d`) on both alert search and
   alert delete, despite the swagger documenting them as timestamps for delete.
 - `contains` and `kind` are supported by the alert filters but missing from the
   generated search type; `decision_type` is also missing from the delete type.
+- Alert delete accepts `origin` (decision origin), not `alert_source` (rejected
+  by LAPI 1.8.1). `kind`, `contains` and `decision_type` are accepted too.
+- Decision delete uses `scope` before LAPI 1.3.3 and `scopes` from 1.3.3.
+  `Decisions.delete()` uses the `decisionScopesDelete` capability when known;
+  otherwise it tries `scopes`, falls back to `scope` on the specific
+  `500 invalid filter`, and caches the learned value. At the LAPI level
+  `contains` defaults to true; `Alerts.delete()` and `Decisions.delete()` make
+  it explicit (`contains: false`) whenever `ip` or `range` is present, so an
+  IP delete does not also expire Range decisions that contain it. Pass
+  `contains: true` to opt into the wider behaviour.
+- Decision search accepts `simulated`. The LAPI excludes simulated decisions by
+  default and does not return the `simulated` field on `/v1/decisions`; pass
+  `simulated: true` to include them. `Decision.simulated` is therefore
+  `boolean | undefined` in 1.4.0: `undefined` means the connected LAPI omitted
+  the field, not `false`.
+
+These behaviours were validated against `crowdsec:v1.8.1` in Docker.
 
 Run `pnpm run generate-api` to refresh the generated files, then re-check the
 overrides against the new schema.

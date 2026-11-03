@@ -14,30 +14,21 @@ describe('passthrough auth', () => {
         }
     });
 
-    it('rejects both credential headers', () => {
-        expect(() =>
+    it('accepts both credential headers on the same request', () => {
+        expect(
             resolvePassthroughAuth({
                 'x-crowdsec-api-key': 'key',
                 'x-crowdsec-token': 'jwt'
             })
-        ).toThrow(HttpRequestError);
-
-        try {
-            resolvePassthroughAuth({
-                'x-crowdsec-api-key': 'key',
-                'x-crowdsec-token': 'jwt'
-            });
-        } catch (error) {
-            expect(error).toMatchObject({ status: 400, code: -32602 });
-        }
+        ).toEqual({ apiKey: 'key', token: 'jwt' });
     });
 
     it('resolves a bouncer API key', () => {
-        expect(resolvePassthroughAuth({ 'x-crowdsec-api-key': 'key' })).toEqual({ mode: 'bouncer', apiKey: 'key' });
+        expect(resolvePassthroughAuth({ 'x-crowdsec-api-key': 'key' })).toEqual({ apiKey: 'key' });
     });
 
     it('resolves a watcher token', () => {
-        expect(resolvePassthroughAuth({ 'x-crowdsec-token': 'jwt' })).toEqual({ mode: 'watcher', token: 'jwt' });
+        expect(resolvePassthroughAuth({ 'x-crowdsec-token': 'jwt' })).toEqual({ token: 'jwt' });
     });
 });
 
@@ -49,7 +40,14 @@ describe('createPassthroughContext', () => {
 
         try {
             expect(context.mode).toBe('bouncer');
-            expect(context.capabilities).toEqual({ read: true, write: false, allowlists: false });
+            expect(context.capabilities).toEqual({
+                read: true,
+                alerts: false,
+                decisions: true,
+                decisionsFast: true,
+                write: false,
+                allowlists: false
+            });
         } finally {
             await context.stop();
         }
@@ -62,7 +60,36 @@ describe('createPassthroughContext', () => {
 
         try {
             expect(context.mode).toBe('watcher');
-            expect(context.capabilities).toEqual({ read: true, write: true, allowlists: true });
+            expect(context.capabilities).toEqual({
+                read: true,
+                alerts: true,
+                decisions: true,
+                decisionsFast: false,
+                write: true,
+                allowlists: true
+            });
+        } finally {
+            await context.stop();
+        }
+    });
+
+    it('builds both clients when both headers are present', async () => {
+        const context = await createPassthroughContext(makeConfig({ passthrough: true }), {
+            'x-crowdsec-api-key': 'key',
+            'x-crowdsec-token': 'jwt'
+        });
+
+        try {
+            expect(context.watcher).toBeDefined();
+            expect(context.bouncer).toBeDefined();
+            expect(context.capabilities).toEqual({
+                read: true,
+                alerts: true,
+                decisions: true,
+                decisionsFast: true,
+                write: true,
+                allowlists: true
+            });
         } finally {
             await context.stop();
         }

@@ -17,8 +17,18 @@ This repository hosts several packages, listed below with examples.
 
 - [Guides and usage documentation](https://github.com/thib3113/node-crowdsec/wiki): authentication, bouncer/watcher setup, performance notes and the glossary.
 - [API reference](https://thib3113.github.io/node-crowdsec/): generated technical documentation (Typedoc).
+- [CrowdSec API compatibility](./docs/api-compatibility.md): LAPI version matrix, failure modes and fallbacks.
 - [AI agent setup guide](./docs/agent-setup-guide.md): configure the HTTP middleware with an AI agent.
 - [llms.txt](./llms.txt): index for agents and LLM tooling.
+
+## For LLMs
+
+Give this to your agent:
+
+> Read <https://raw.githubusercontent.com/thib3113/node-crowdsec/main/llms.txt> and follow the links for the package you need. Do not ask for credentials: list the environment variables to set. Explain the security impact before enabling write tools.
+
+`llms.txt` indexes the raw README, compatibility matrix and setup guide for each
+package. Wiki pages are for humans only.
 
 ## Features
 
@@ -31,10 +41,12 @@ This repository hosts several packages, listed below with examples.
   background, closing the freshness gap of the stream poll. A malicious unknown
   IP passes at most once.
 - **Configurable trust scope** : `subnetLevel` lets you choose how far up the
-  prefix hierarchy to consider as malicious (`resident` / `company` / `country`),
-  so a whole country block is never banned by accident.
-- **Watcher scenarios** : bundled scenarios (user-agent, ip-extraction...) to
-  detect and alert on malicious requests, with a pluggable scenario system.
+  prefix hierarchy to consider as malicious (`resident` / `company` / `country`,
+  or `/128` / `/120` / `/112` for IPv6), so a whole country block is never
+  banned by accident.
+- **Watcher scenarios** : bundled IP-extraction (`X-Forwarded-For`) and MaxMind
+  enrichment scenarios to detect and alert on malicious requests, with a
+  pluggable scenario system.
 - **MCP server** : expose decisions, alerts and allowlists to an LLM through the
   Model Context Protocol, read-only by default.
 

@@ -17,13 +17,13 @@ dependencies.
 
 ## Obtaining and building
 
-- pnpm is the only package manager (pinned through the `packageManager` field,
-  pnpm >= 12).
+- pnpm is the only package manager, pinned to `pnpm@12.11.2` through the
+  `packageManager` field (Corepack uses that exact version).
 - `pnpm-lock.yaml` is committed. CI installs with
   `pnpm install --frozen-lockfile`, and any dependency change must include the
   matching lockfile update.
 - Node.js >= 24 is required (see the `engines` field).
-- Builds use esbuild and TypeScript and emit to `dist/`; build output is not
+- Builds use esbuild and TypeScript and emit to `lib/`; build output is not
   committed.
 
 ## Tracking and updating

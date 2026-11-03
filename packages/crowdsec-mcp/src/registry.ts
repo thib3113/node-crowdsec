@@ -1,7 +1,7 @@
 import debug from 'debug';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { AppContext, ToolDefinition } from './types.js';
+import type { AppContext, ReadinessRequirement, ToolDefinition } from './types.js';
 import { buildInstructions, docResources } from './docs.js';
 import { isAlertDeleteAvailable } from './config.js';
 import { crowdsecPrompts, isPromptAvailable } from './prompts.js';
@@ -13,7 +13,81 @@ export function textResult(text: string): CallToolResult {
     return { content: [{ type: 'text', text }] };
 }
 
-export function cleanErrorMessage(error: unknown): string {
+export interface ErrorMessageOptions {
+    /** Configured CROWDSEC_TIMEOUT, in milliseconds. */
+    timeout?: number;
+    /** Tool being executed, used to add a contextual hint. */
+    toolName?: string;
+    /** True when a bouncer client is available (fast decision path). */
+    hasBouncer?: boolean;
+}
+
+const MAX_TIMEOUT_MS = 600_000;
+
+function errorChain(error: unknown): unknown[] {
+    const chain: unknown[] = [];
+    let current: unknown = error;
+
+    for (let depth = 0; depth < 5 && current !== undefined && current !== null; depth++) {
+        chain.push(current);
+        const candidate = current as { exception?: unknown; cause?: unknown };
+        current = candidate.exception ?? candidate.cause;
+    }
+
+    return chain;
+}
+
+function timeoutValueMs(error: unknown): number | undefined {
+    for (const item of errorChain(error)) {
+        const message = item instanceof Error ? item.message : typeof item === 'string' ? item : '';
+        const match = /timeout of (\d+)\s*ms exceeded/i.exec(message);
+        if (match) {
+            return Number(match[1]);
+        }
+        const code = (item as { code?: unknown }).code;
+        if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
+            return undefined;
+        }
+    }
+    return undefined;
+}
+
+function isTimeoutError(error: unknown): boolean {
+    for (const item of errorChain(error)) {
+        const message = item instanceof Error ? item.message : typeof item === 'string' ? item : '';
+        if (/timeout of \d+\s*ms exceeded/i.test(message)) {
+            return true;
+        }
+        const code = (item as { code?: unknown }).code;
+        if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
+            return true;
+        }
+    }
+    return false;
+}
+
+function timeoutMessage(error: unknown, options?: ErrorMessageOptions): string {
+    const timeout = timeoutValueMs(error) ?? options?.timeout;
+    const configured = timeout ? ` after ${timeout} ms` : '';
+    const parts = [
+        `CrowdSec LAPI request timed out${configured}.`,
+        'The LAPI builds the whole response before sending it, so the timeout behaves like a total time-to-first-byte budget.',
+        'Narrow the query (since/until, ip, range, scope+value), lower limit, or set all=false.',
+        `CROWDSEC_TIMEOUT is in milliseconds (maximum ${MAX_TIMEOUT_MS}).`
+    ];
+
+    if (!options?.hasBouncer && (options?.toolName === 'list_decisions' || options?.toolName === 'get_decision')) {
+        parts.push('Set CROWDSEC_API_KEY (bouncer): the /v1/decisions path is roughly 60x faster than scanning alerts.');
+    }
+
+    return parts.join(' ');
+}
+
+export function cleanErrorMessage(error: unknown, options?: ErrorMessageOptions): string {
+    if (isTimeoutError(error)) {
+        return timeoutMessage(error, options);
+    }
+
     const raw = error instanceof Error ? error.message : String(error);
     let message = raw.split(/\r?\n/, 1)[0].trim();
 
@@ -39,15 +113,18 @@ export function cleanErrorMessage(error: unknown): string {
         message = 'Access forbidden from this IP (alert deletion is only allowed from the LAPI host)';
     }
 
+    // The client redacts its own URLs/logs. Tool errors can still embed a URL
+    // with userinfo or a token query parameter from a server/proxy message.
+    message = message.replace(/(\/\/)[^/@\s]+@/g, '$1***:***@').replace(/([?&](?:token|api[_-]?key|password)=)[^&\s]+/gi, '$1[redacted]');
+
     return message || 'unknown error';
 }
 
-export function errorResult(error: unknown): CallToolResult {
-    const raw = error instanceof Error ? error.message : String(error);
+export function errorResult(error: unknown, options?: ErrorMessageOptions): CallToolResult {
     // Client errors can embed a full stack in their message. Keep only the first
     // cleaned line so tool output stays actionable and does not leak internals.
-    const message = cleanErrorMessage(error);
-    log('tool error: %s', raw);
+    const message = cleanErrorMessage(error, options);
+    log('tool error: %s', message);
     return {
         content: [{ type: 'text', text: `Error: ${message}` }],
         isError: true
@@ -70,7 +147,11 @@ export function selectTools(tools: ToolDefinition[], ctx: AppContext): ToolDefin
             return false;
         }
 
-        if (tool.requires?.includes('watcher') && context.mode !== 'watcher') {
+        if (tool.requires?.includes('alerts') && !context.capabilities.alerts) {
+            return false;
+        }
+
+        if (tool.requires?.includes('write') && !context.capabilities.write) {
             return false;
         }
 
@@ -85,11 +166,15 @@ export function selectTools(tools: ToolDefinition[], ctx: AppContext): ToolDefin
             return false;
         }
 
-        if (context.config.tools && !context.config.tools.includes(tool.name)) {
+        const allowlisted = context.config.tools?.includes(tool.name) ?? false;
+        // Documented precedence: an explicit allowlist entry wins over the
+        // denylist, so an operator can re-enable one tool without clearing
+        // CROWDSEC_MCP_DISABLE_TOOLS.
+        if (context.config.disableTools.includes(tool.name) && !allowlisted) {
             return false;
         }
 
-        if (context.config.disableTools.includes(tool.name)) {
+        if (context.config.tools && !allowlisted) {
             return false;
         }
 
@@ -113,11 +198,16 @@ export function createServer(tools: ToolDefinition[], ctx: AppContext): McpServe
     for (const tool of tools) {
         const handler = async (input: unknown): Promise<CallToolResult> => {
             try {
-                await ctx.ensureReady();
+                const requirement: ReadinessRequirement = tool.client ?? (tool.requires && tool.requires.length > 0 ? 'watcher' : 'none');
+                await ctx.ensureReady(requirement);
                 const result = await tool.handler(input ?? {}, ctx);
                 return typeof result === 'string' ? textResult(result) : result;
             } catch (error) {
-                return errorResult(error);
+                return errorResult(error, {
+                    timeout: ctx.config.timeout,
+                    toolName: tool.name,
+                    hasBouncer: ctx.capabilities.decisionsFast
+                });
             }
         };
 
