@@ -235,7 +235,7 @@ export abstract class CrowdSecClient {
             return known;
         }
 
-        const probes = await this.collectProbes();
+        const probes = this.collectProbes();
         const probe = probes.find((entry) => entry.capability === key);
         if (!probe) {
             return known;
@@ -260,7 +260,7 @@ export abstract class CrowdSecClient {
             return current;
         }
 
-        const probes = await this.collectProbes();
+        const probes = this.collectProbes();
         const observed: Partial<Record<LapiCapability, boolean>> = {};
 
         await Promise.all(

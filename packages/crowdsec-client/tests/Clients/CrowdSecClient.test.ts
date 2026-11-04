@@ -706,7 +706,7 @@ describe('CrowdSecClient.ts', () => {
         class ProbeClient extends FakeClient {
             public probes: Array<{ capability: import('../../src/Capabilities.js').LapiCapability; request: () => Promise<unknown> }> = [];
 
-            protected async collectProbes() {
+            protected collectProbes() {
                 return this.probes;
             }
         }

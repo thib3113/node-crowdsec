@@ -648,10 +648,12 @@ function unbanTargetState(input: UnbanInput): { totalCidr: boolean; hasNarrowTar
         isValidCidr(trimmedValue) &&
         isTotalCidr(trimmedValue);
     const totalCidr = isTotalValue(input.ip) || isTotalValue(input.range) || totalScopeValue;
-    const hasNarrowTarget =
-        (input.ip !== undefined && !isTotalValue(input.ip)) ||
-        (input.range !== undefined && !isTotalValue(input.range)) ||
-        (input.scope !== undefined && input.value !== undefined && !totalScopeValue);
+    // Keep the truthy semantics: an empty string is not a narrowing target.
+    const hasNarrowTarget = Boolean(
+        (input.ip && !isTotalValue(input.ip)) ||
+        (input.range && !isTotalValue(input.range)) ||
+        (input.scope && input.value && !totalScopeValue)
+    );
 
     return { totalCidr, hasNarrowTarget };
 }

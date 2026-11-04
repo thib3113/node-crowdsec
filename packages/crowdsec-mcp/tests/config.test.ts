@@ -373,8 +373,8 @@ describe('config', () => {
         expect(config.lapiVersion).toBe('1.6.6');
     });
 
-    it('reads secrets from _FILE variables and strips the trailing newline', () => {
-        const keyFile = secretFile('api_key', 'file-key\n');
+    it('reads secrets from _FILE variables and strips trailing newlines', () => {
+        const keyFile = secretFile('api_key', 'file-key\r\n\r\n');
         const machineFile = secretFile('machine_id', 'file-machine\n');
         const passwordFile = secretFile('password', 'file-password\n');
 

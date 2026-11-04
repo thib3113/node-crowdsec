@@ -960,6 +960,14 @@ describe('decisionTools', () => {
             expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
         });
 
+        it('should require confirm=true when ip is empty and only a type is set', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ ip: '', type: 'ban' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
         it('should reject a non-canonical /00 range', async () => {
             const ctx = createMockContext();
             const tool = findTool('unban_ip');
