@@ -20,14 +20,12 @@ on:
         required: false
         default: "1"
   # A reduced matrix (oldest + latest tag, one mode, HTTP only) keeps PR
-  # feedback fast. The full matrix above still runs weekly and on demand.
+  # feedback fast. The full matrix still runs on demand.
   pull_request:
     paths:
       - "packages/crowdsec-client/**"
       - ".github/scripts/lapi-matrix/**"
       - ".github/workflows/client-live-matrix.yml"
-  schedule:
-    - cron: "17 4 * * 1"
 
 permissions:
   contents: read

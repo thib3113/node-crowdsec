@@ -218,7 +218,7 @@ prefix with the single-value route.
 Docker (`both`, `watcher`, `bouncer`, HTTP and TLS). The suite asserts detected
 capabilities against each tag's minimum and exercises the gated methods.
 Pull requests touching the client run a reduced matrix (oldest and latest tag,
-`both` mode, HTTP only); the full matrix runs weekly and on demand.
+`both` mode, HTTP only); the full matrix runs on demand via `workflow_dispatch`.
 `packages/crowdsec-client` exposes it as `pnpm test:live:matrix`.
 
 ## JSDoc convention
