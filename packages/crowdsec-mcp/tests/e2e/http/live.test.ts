@@ -100,14 +100,27 @@ describe.skipIf(!enabled || !mcpUrl || !openMcpUrl || !bouncerKey || !watcherTok
             await response.text();
         });
 
-        it('rejects both bouncer and watcher credentials', async () => {
-            const response = await post(mcpUrl!, {
+        it('accepts both bouncer and watcher credentials and exposes the union', async () => {
+            const headers = {
                 authorization: `Bearer ${serviceToken}`,
                 'x-crowdsec-api-key': bouncerKey!,
                 'x-crowdsec-token': watcherToken
-            });
-            expect(response.status).toBe(400);
+            };
+            const response = await post(mcpUrl!, headers);
+            expect(response.status).toBe(200);
             await response.text();
+
+            await withClient(mcpUrl!, headers, async (client) => {
+                const names = (await client.listTools()).tools.map((tool) => tool.name);
+                expect(names).toContain('list_alerts');
+                expect(names).toContain('get_alert');
+                expect(names).toContain('list_decisions');
+                expect(names).toContain('get_decision');
+
+                const status = textOf(await client.callTool({ name: 'crowdsec_status', arguments: {} }));
+                expect(status).toContain('watcher');
+                expect(status).toContain('bouncer');
+            });
         });
 
         it('exposes bouncer tools and reads decisions', async () => {

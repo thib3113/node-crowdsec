@@ -1,1 +1,1 @@
-export const pkg = { name: 'crowdsec-mcp', version: '0.0.6' };
+export const pkg = { name: 'crowdsec-mcp', version: '0.1.0' };

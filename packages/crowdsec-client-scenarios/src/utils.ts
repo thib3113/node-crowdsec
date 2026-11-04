@@ -45,8 +45,11 @@ export const getIpObject = (ip: string): AddressObject => {
 
         //maybe it's a valid IPv6
         const address = new Address6(ip);
-        //IPv4-mapped IPv6 are compared as IPv4 ( https://github.com/thib3113/node-crowdsec/issues/88 )
-        if (address.is4() && address.address4) {
+        // IPv4-mapped IPv6 are compared as IPv4 ( https://github.com/thib3113/node-crowdsec/issues/88 ).
+        // `is4()` is notation-level and also matches non-mapped dotted-quad
+        // forms; require a real mapped address and a /96+ prefix so a
+        // `::ffff:10.0.0.0/64` is not silently turned into an IPv4 /32.
+        if (address.isMapped4() && address.subnetMask >= 96 && address.address4) {
             return address.address4;
         }
 

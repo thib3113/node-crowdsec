@@ -14,7 +14,13 @@ export class HTTPEnricher extends EnricherScenario {
     }
 
     enrich(alert: APITypes.Alert, req: IncomingMessage): APITypes.Alert | undefined {
-        const url = new URL(req.url ?? '', 'http://localhost');
+        let url: URL;
+        try {
+            url = new URL(req.url ?? '', 'http://localhost');
+        } catch {
+            debug('invalid request url %o', req.url);
+            return alert;
+        }
 
         //allow to get 0 when only ? . and 0 when nothing
         const http_args_len = String((url.search.length || 1) - 1);

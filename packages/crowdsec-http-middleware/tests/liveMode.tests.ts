@@ -63,6 +63,26 @@ describe('CrowdSecHTTPBouncerMiddleware live mode', () => {
         expect((await checkIp(middleware, '10.0.0.5'))?.value).toBe('10.0.0.5');
     });
 
+    it('should keep valid bans and ignore non-ip or malformed decisions in a mixed response', async () => {
+        mockSearch.mockResolvedValueOnce([
+            { type: 'ban', value: '10.0.0.5', duration: '1h', scope: 'ip' },
+            { type: 'ban', value: 'FR', duration: '1h', scope: 'country' },
+            { type: 'ban', value: 'not-an-ip', duration: '1h', scope: 'ip' }
+        ]);
+        const errors: unknown[] = [];
+        // @ts-ignore event typing is internal
+        middleware.liveEvents.on('liveCheckError', (e: unknown) => errors.push(e));
+
+        const req = {} as IncomingMessage & { decision?: Decision };
+        // @ts-ignore
+        middleware.middleware('10.0.0.5', req);
+        await waitForLiveEvent(middleware, 'liveDecisionAdded');
+
+        expect(middleware.decisionsCount).toBe(1);
+        expect((await checkIp(middleware, '10.0.0.5'))?.value).toBe('10.0.0.5');
+        expect(errors).toHaveLength(0);
+    });
+
     it('should cache a clean verdict and not re-check', async () => {
         mockSearch.mockResolvedValueOnce([]);
 

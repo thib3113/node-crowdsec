@@ -1,4 +1,5 @@
 import { BaseSubObject } from '../BaseSubObject.js';
+import { LapiCapability } from '../Capabilities.js';
 import type { decisionOrigin, Decisions } from '../types/index.js';
 import { createDebugger, forceArray } from '../utils.js';
 import { DecisionsStream } from './DecisionsStream.js';
@@ -22,8 +23,16 @@ export type commaSeparatedParams = 'scopes' | 'origins' | 'scenarios_containing'
 export class DecisionsBouncer extends BaseSubObject {
     private runningStreams: Array<DecisionsStream<any>> = [];
 
-    private getStreamTimeout?: NodeJS.Timeout;
+    /** Per-stream timer: pausing/closing one stream must not stop another. */
+    private readonly streamTimeouts = new WeakMap<DecisionsStream<any>, NodeJS.Timeout>();
+    private readonly streamRunning = new WeakSet<DecisionsStream<any>>();
 
+    /**
+     * Fetch one page of the decisions stream.
+     * @since CrowdSec 1.0.0
+     * @remarks `scopes` requires CrowdSec LAPI 1.1.0; `origins` and `scenarios_*` require 1.3.3.
+     * @throws {FeatureNotSupportedError} when a used filter is not supported by the connected LAPI.
+     */
     public async getRawStream(options?: {
         startup?: boolean;
         scopes?: string | Array<string>;
@@ -32,6 +41,17 @@ export class DecisionsBouncer extends BaseSubObject {
         scenarios_not_containing?: string | Array<string>;
     }): Promise<Decisions.GetDecisionsStream.ResponseBody> {
         debug('getRawStream(%o)', options);
+
+        if (options?.scopes !== undefined) {
+            this.requireCapability(LapiCapability.streamScopes);
+        }
+        if (
+            options?.origins !== undefined ||
+            options?.scenarios_containing !== undefined ||
+            options?.scenarios_not_containing !== undefined
+        ) {
+            this.requireCapability(LapiCapability.decisionOriginsFilter);
+        }
 
         const params = ((): Decisions.GetDecisionsStream.RequestQuery => ({
             ...options,
@@ -57,6 +77,12 @@ export class DecisionsBouncer extends BaseSubObject {
         }
     }
 
+    /**
+     * Start a decision stream that polls the LAPI.
+     * @since CrowdSec 1.0.0
+     * @remarks `scopes` requires CrowdSec LAPI 1.1.0; `origins` and `scenarios_*` require 1.3.3.
+     * @throws {FeatureNotSupportedError} when a used filter is not supported by the connected LAPI.
+     */
     public getStream<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
         optionsParam?: {
             interval?: number;
@@ -69,6 +95,17 @@ export class DecisionsBouncer extends BaseSubObject {
     ): DecisionsStream<Scopes, Origins> {
         const localDebug = debug.extend('getStream');
         localDebug('(%o) with cb %o', optionsParam, !!cb);
+
+        if (optionsParam?.scopes !== undefined) {
+            this.requireCapability(LapiCapability.streamScopes);
+        }
+        if (
+            optionsParam?.origins !== undefined ||
+            optionsParam?.scenarios_containing !== undefined ||
+            optionsParam?.scenarios_not_containing !== undefined
+        ) {
+            this.requireCapability(LapiCapability.decisionOriginsFilter);
+        }
 
         const interval = optionsParam?.interval ?? 10000;
         const options = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
@@ -89,7 +126,12 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.once('close', () => {
             localDebug('receive close event');
-            clearTimeout(this.getStreamTimeout);
+            const timeout = this.streamTimeouts.get(decisionStream);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            this.streamTimeouts.delete(decisionStream);
+            this.streamRunning.delete(decisionStream);
 
             //remove from running streams
             this.runningStreams = this.runningStreams.filter((stream) => stream != decisionStream);
@@ -97,7 +139,11 @@ export class DecisionsBouncer extends BaseSubObject {
 
         decisionStream.on('pause', () => {
             localDebug('receive pause event');
-            clearTimeout(this.getStreamTimeout);
+            const timeout = this.streamTimeouts.get(decisionStream);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            this.streamTimeouts.delete(decisionStream);
         });
 
         decisionStream.on('resume', () => {
@@ -142,8 +188,17 @@ export class DecisionsBouncer extends BaseSubObject {
     ) {
         const localDebug = debug.extend('getStreamLoop');
         localDebug('start loop');
-        if (this.getStreamTimeout) {
-            clearTimeout(this.getStreamTimeout);
+
+        if (this.streamRunning.has(decisionStream)) {
+            localDebug('loop already running, skipping');
+            return;
+        }
+        this.streamRunning.add(decisionStream);
+
+        const existing = this.streamTimeouts.get(decisionStream);
+        if (existing) {
+            clearTimeout(existing);
+            this.streamTimeouts.delete(decisionStream);
         }
 
         try {
@@ -152,6 +207,8 @@ export class DecisionsBouncer extends BaseSubObject {
         } catch (e) {
             localDebug('loop error %o', e);
             decisionStream.emit('error', e);
+        } finally {
+            this.streamRunning.delete(decisionStream);
         }
 
         localDebug('end loop');
@@ -161,7 +218,8 @@ export class DecisionsBouncer extends BaseSubObject {
         }
 
         localDebug('prepare next loop');
-        this.getStreamTimeout = setTimeout(() => {
+        const timeout = setTimeout(() => {
+            this.streamTimeouts.delete(decisionStream);
             this.getStreamLoopWrapper(
                 {
                     ...options,
@@ -171,6 +229,7 @@ export class DecisionsBouncer extends BaseSubObject {
                 interval
             );
         }, interval);
+        this.streamTimeouts.set(decisionStream, timeout);
     }
 
     private streamToCallback<Scopes extends string = 'ip', Origins extends string = decisionOrigin>(
@@ -203,6 +262,16 @@ export class DecisionsBouncer extends BaseSubObject {
         this.runningStreams.forEach((stream) => stream.close());
     }
 
+    /**
+     * Search decisions.
+     * @since CrowdSec 1.0.0
+     * @remarks
+     * - `contains` requires CrowdSec LAPI 1.0.3; `origins` and `scenarios_*` require 1.3.3.
+     * - The decision `scope` filter is silently ignored on LAPI 1.3.3-1.6.0. Use
+     *   `Alerts.search` (watcher) or a LAPI version outside that range when the
+     *   scope must be enforced.
+     * @throws {FeatureNotSupportedError} when a used filter is not supported by the connected LAPI.
+     */
     public async search(
         options?: Omit<Decisions.GetDecisions.RequestQuery, commaSeparatedParams> & {
             /** name of origins. If provided, then only the decisions originating from provided origins would be returned. */
@@ -211,9 +280,25 @@ export class DecisionsBouncer extends BaseSubObject {
             scenarios_containing?: string | Array<string>;
             /** If provided, only the decisions created by scenarios, not containing any of the provided word would be returned. */
             scenarios_not_containing?: string | Array<string>;
+            /**
+             * Include simulated decisions. The LAPI excludes them by default and
+             * does not return the `simulated` field on `/v1/decisions`.
+             */
+            simulated?: boolean;
         }
     ): Promise<Decisions.GetDecisions.ResponseBody> {
         debug('search(%o)', options);
+
+        if (options?.contains !== undefined) {
+            this.requireCapability(LapiCapability.containsFilter);
+        }
+        if (
+            options?.origins !== undefined ||
+            options?.scenarios_containing !== undefined ||
+            options?.scenarios_not_containing !== undefined
+        ) {
+            this.requireCapability(LapiCapability.decisionOriginsFilter);
+        }
         const params = ((): Omit<Decisions.GetDecisionsStream.RequestQuery, 'startup'> => ({
             ...options,
             origins: options?.origins ? forceArray<string>(options.origins).join(',') : undefined,

@@ -90,13 +90,13 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
             return undefined;
         });
 
-        //delete empty decisions, keep new decisions
-        decisions.forEach((_, index, array) => {
-            const i = array.length - index;
-            if (!array[i]) {
-                array.splice(i, 1);
+        // Delete empty decisions (processed above), keep the ones that were not
+        // emitted because the stream was paused.
+        for (let i = decisions.length - 1; i >= 0; i--) {
+            if (!decisions[i]) {
+                decisions.splice(i, 1);
             }
-        });
+        }
     }
 
     private loopWrapper() {
@@ -116,10 +116,11 @@ export class DecisionsStream<Scopes extends string = 'ip', Origins extends strin
         this.looping = true;
         return (async () => {
             try {
-                await Promise.all([
-                    this.emitDecisions('deleted', this.decisions.deleted),
-                    this.emitDecisions('added', this.decisions.added)
-                ]);
+                // Apply deletions before additions: a renewal can appear as a
+                // deleted+added pair in the same poll, and running them
+                // concurrently could re-add an entry that was just removed.
+                await this.emitDecisions('deleted', this.decisions.deleted);
+                await this.emitDecisions('added', this.decisions.added);
             } catch (e) {
                 this.handleError(new CrowdsecClientError('loop error', EErrorsCodes.UNKNOWN_ERROR, e as Error));
             } finally {

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
     assertValidScopeValue,
     formatDuration,
+    isTotalCidr,
     isValidCidr,
     isValidIp,
     isValidTimeFilter,
+    mapWithConcurrency,
     normalizeScope,
     parseDuration,
     splitList,
@@ -100,5 +102,30 @@ describe('utils', () => {
         expect(splitList('a, b ,c')).toEqual(['a', 'b', 'c']);
         expect(splitList('')).toBeUndefined();
         expect(splitList(undefined)).toBeUndefined();
+    });
+
+    it('detects total ranges and rejects non-canonical prefixes', () => {
+        expect(isTotalCidr('0.0.0.0/0')).toBe(true);
+        expect(isTotalCidr('::/0')).toBe(true);
+        expect(isTotalCidr('10.0.0.0/8')).toBe(false);
+        // Go normalises /00 to /0, which would bypass the confirm gate.
+        expect(isValidCidr('0.0.0.0/00')).toBe(false);
+        expect(isValidCidr('0.0.0.0/0')).toBe(true);
+    });
+
+    it('stops scheduling work after the first failure', async () => {
+        const seen: number[] = [];
+
+        await expect(
+            mapWithConcurrency([1, 2, 3, 4], 2, async (item) => {
+                seen.push(item);
+                if (item === 1) {
+                    throw new Error('boom');
+                }
+                return item;
+            })
+        ).rejects.toThrow('boom');
+
+        expect(seen.length).toBeLessThan(4);
     });
 });

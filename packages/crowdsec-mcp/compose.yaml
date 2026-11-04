@@ -8,7 +8,9 @@ services:
       # 3939 is published by CrowdSec because the MCP shares its network
       # namespace (Docker does not allow `ports` on the sidecar service).
       - "8080:8080"
-      - "3939:3939"
+      # Keep the MCP write surface local: passthrough writes without a service
+      # token must not be reachable from the network.
+      - "127.0.0.1:3939:3939"
     volumes:
       - crowdsec-data:/var/lib/crowdsec/data
       - crowdsec-config:/etc/crowdsec
@@ -42,6 +44,12 @@ services:
       # empty the tool stays hidden, unless
       # CROWDSEC_MCP_ALLOW_ALERT_DELETE_WITHOUT_TOKEN=true (dangerous) is set.
       CROWDSEC_MCP_HTTP_TOKEN: ${CROWDSEC_MCP_HTTP_TOKEN:-}
+      # Static credentials can be mounted as files instead of env vars:
+      # CROWDSEC_API_KEY_FILE: /run/secrets/crowdsec_api_key
+      # CROWDSEC_MCP_HTTP_TOKEN_FILE: /run/secrets/crowdsec_mcp_http_token
+    # secrets:
+    #   - crowdsec_api_key
+    #   - crowdsec_mcp_http_token
     read_only: true
     tmpfs:
       - /tmp
@@ -53,3 +61,11 @@ services:
 volumes:
   crowdsec-data:
   crowdsec-config:
+
+# To use file-backed secrets instead of environment variables, uncomment the
+# service `secrets:` block above and this top-level declaration:
+# secrets:
+#   crowdsec_api_key:
+#     file: ./crowdsec_api_key
+#   crowdsec_mcp_http_token:
+#     file: ./crowdsec_mcp_http_token

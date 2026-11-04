@@ -7,7 +7,7 @@ after CI and the Snyk gate pass.
 
 1. Bump the version in the package's `package.json` and merge it to `main`.
 2. Create a **draft** release whose tag is `<package>/v<version>`
-   (e.g. `crowdsec-mcp/v0.0.7`), with the release notes.
+   (e.g. `crowdsec-mcp/v<version>`), with the release notes.
 3. Trigger the workflow (no input: it picks up the single open draft):
 
    ```bash
@@ -35,9 +35,10 @@ the only path.
 
 Every release is published from CI. A release page contains:
 
-- the npm tarball, e.g. `crowdsec-mcp-0.0.6.tgz`;
-- its keyless cosign signature, `crowdsec-mcp-0.0.6.tgz.sigstore`;
-- its SLSA build provenance, `crowdsec-mcp-0.0.6.tgz.intoto.jsonl`.
+- the npm tarball, e.g. `crowdsec-mcp-<version>.tgz`;
+- its keyless cosign signature, `crowdsec-mcp-<version>.tgz.sigstore`;
+- its SLSA build provenance, `crowdsec-mcp-<version>.tgz.intoto.jsonl`;
+- its CycloneDX SBOM (`*.cdx.json`).
 
 Container images are published separately with build provenance and an SBOM;
 see the image documentation for their digests.
@@ -47,8 +48,8 @@ see the image documentation for their digests.
 The tarball hash can be checked against the digest recorded by npm:
 
 ```bash
-sha256sum crowdsec-mcp-0.0.6.tgz
-npm view crowdsec-mcp@0.0.6 dist.integrity
+sha256sum crowdsec-mcp-<version>.tgz
+npm view crowdsec-mcp@<version> dist.integrity
 ```
 
 For an installed dependency set, `npm audit signatures` verifies the registry
@@ -62,17 +63,17 @@ release workflow. Verify it with cosign, checking both the certificate identity
 
 ```bash
 cosign verify-blob \
-  --bundle crowdsec-mcp-0.0.6.tgz.sigstore \
+  --bundle crowdsec-mcp-<version>.tgz.sigstore \
   --certificate-identity-regexp 'https://github.com/thib3113/node-crowdsec/.github/workflows/release.yml@refs/tags/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  crowdsec-mcp-0.0.6.tgz
+  crowdsec-mcp-<version>.tgz
 ```
 
 The SLSA provenance records the same identity and the commit that produced the
 artifact:
 
 ```bash
-gh attestation verify crowdsec-mcp-0.0.6.tgz \
+gh attestation verify crowdsec-mcp-<version>.tgz \
   --repo thib3113/node-crowdsec
 ```
 

@@ -29,4 +29,21 @@ describe('crowdsec_status', () => {
 
         expect(result).toContain('write=yes,');
     });
+
+    it('shows the declared LAPI version, or that it is not declared', async () => {
+        const declared = makeContext({ config: makeConfig({ lapiVersion: '1.8.2' }) });
+        expect(await statusTool.handler({}, declared)).toContain('LAPI version: 1.8.2');
+
+        const unknown = makeContext({ config: makeConfig({ lapiVersion: undefined }) });
+        expect(await statusTool.handler({}, unknown)).toContain('LAPI version: not declared');
+    });
+
+    it('reports a failed connection instead of throwing', async () => {
+        const context = makeContext({ ensureReady: () => Promise.reject(new Error('boom')) });
+
+        const result = await statusTool.handler({}, context);
+
+        expect(result).toContain('CrowdSec MCP is connection failed.');
+        expect(result).toContain('Readiness: watcher=unknown, bouncer=unknown');
+    });
 });

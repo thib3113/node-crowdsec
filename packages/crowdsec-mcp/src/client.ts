@@ -2,22 +2,28 @@ import { readFile } from 'node:fs/promises';
 import type { IncomingHttpHeaders } from 'node:http';
 import { BouncerClient, CrowdsecClientError, WatcherClient } from 'crowdsec-client';
 import type { Config } from './config.js';
-import type { AppContext } from './types.js';
+import type { AppContext, ClientReadiness, ReadinessRequirement } from './types.js';
 import { createAllowlistsPort, unavailableAllowlistsPort } from './allowlists-port.js';
 import { HttpRequestError } from './http-error.js';
 
 interface TokenWatcherClientOptions {
     url: string;
     token: string;
+    lapiVersion?: string;
     strictSSL?: boolean;
     timeout?: number;
 }
 
 function isAuthenticationFailure(error: unknown): boolean {
     // CrowdSec answers 403 for an invalid key/token and 401 for a missing one.
-    // The client wraps 403 as UNEXPECTED_KEY and any other status as
-    // UNEXPECTED_STATUS_CODE, so the status has to be read from the cause.
+    // Login/connection failures are wrapped as CrowdSecServerError, which
+    // carries the HTTP status in `code` but is not a CrowdsecClientError
+    // subclass; other paths use UNEXPECTED_KEY / UNEXPECTED_STATUS_CODE.
     // Anything else (DNS, timeout, TLS, 5xx) must keep its original message.
+    const code = (error as { code?: unknown } | undefined)?.code;
+    if (code === 401 || code === 403) {
+        return true;
+    }
     if (!(error instanceof CrowdsecClientError)) {
         return false;
     }
@@ -31,6 +37,7 @@ class TokenWatcherClient extends WatcherClient {
     public constructor(options: TokenWatcherClientOptions) {
         super({
             url: options.url,
+            lapiVersion: options.lapiVersion,
             auth: {
                 machineID: 'passthrough',
                 password: 'passthrough'
@@ -57,7 +64,10 @@ class TokenWatcherClient extends WatcherClient {
     }
 }
 
-export type PassthroughAuth = { mode: 'bouncer'; apiKey: string } | { mode: 'watcher'; token: string };
+export interface PassthroughAuth {
+    apiKey?: string;
+    token?: string;
+}
 
 function headerValue(headers: IncomingHttpHeaders, name: string): string | undefined {
     const value = headers[name];
@@ -68,17 +78,13 @@ export function resolvePassthroughAuth(headers: IncomingHttpHeaders): Passthroug
     const apiKey = headerValue(headers, 'x-crowdsec-api-key')?.trim();
     const token = headerValue(headers, 'x-crowdsec-token')?.trim();
 
-    if (apiKey && token) {
-        throw new HttpRequestError(400, -32602, 'Provide either X-CrowdSec-Api-Key or X-CrowdSec-Token, not both');
-    }
-    if (apiKey) {
-        return { mode: 'bouncer', apiKey };
-    }
-    if (token) {
-        return { mode: 'watcher', token };
+    if (!apiKey && !token) {
+        throw new HttpRequestError(401, -32001, 'Missing X-CrowdSec-Api-Key or X-CrowdSec-Token');
     }
 
-    throw new HttpRequestError(401, -32001, 'Missing X-CrowdSec-Api-Key or X-CrowdSec-Token');
+    // Both headers on the same request enable the fast decision path and the
+    // richer watcher tools at once, mirroring static dual credentials.
+    return { ...(apiKey ? { apiKey } : {}), ...(token ? { token } : {}) };
 }
 
 async function loadTls(config: Config) {
@@ -91,137 +97,195 @@ async function loadTls(config: Config) {
     return { cert, key, ca };
 }
 
-export async function createContext(config: Config): Promise<AppContext> {
-    const tls = await loadTls(config);
+function buildCapabilities(watcher: WatcherClient | undefined, bouncer: BouncerClient | undefined): AppContext['capabilities'] {
+    return {
+        read: true,
+        alerts: watcher !== undefined,
+        decisions: watcher !== undefined || bouncer !== undefined,
+        decisionsFast: bouncer !== undefined,
+        write: watcher !== undefined,
+        allowlists: watcher !== undefined
+    };
+}
 
-    let watcher: WatcherClient | undefined;
-    let bouncer: BouncerClient | undefined;
-
-    if (config.auth === 'bouncer') {
-        bouncer = new BouncerClient({
-            url: config.url,
-            auth: tls ?? { apiKey: config.apiKey! },
-            strictSSL: config.strictSSL,
-            timeout: config.timeout
-        });
-    } else {
-        watcher = new WatcherClient({
-            url: config.url,
-            auth: tls ?? {
-                machineID: config.machineId!,
-                password: config.password!,
-                autoRenew: true
-            },
-            strictSSL: config.strictSSL,
-            timeout: config.timeout,
-            heartbeat: false
-        });
-    }
-
-    let loginPromise: Promise<void> | undefined;
-
-    const ensureReady = async (): Promise<void> => {
-        loginPromise ??= (watcher ?? bouncer)!.login();
+function createReadiness(
+    watcher: WatcherClient | undefined,
+    bouncer: BouncerClient | undefined,
+    readiness: ClientReadiness,
+    mapError?: (error: unknown) => unknown
+): (requirement?: ReadinessRequirement) => Promise<void> {
+    // Login lazily and once per client. A watcher-only tool must not fail
+    // because the bouncer key is invalid, and vice versa.
+    const loginPromises = new WeakMap<WatcherClient | BouncerClient, Promise<void>>();
+    const loginOnce = async (client: WatcherClient | BouncerClient): Promise<void> => {
+        const key = client === watcher ? 'watcher' : 'bouncer';
+        let promise = loginPromises.get(client);
+        if (!promise) {
+            promise = client.login();
+            loginPromises.set(client, promise);
+        }
 
         try {
-            await loginPromise;
+            await promise;
+            readiness[key] = 'ok';
         } catch (error) {
-            loginPromise = undefined;
-            throw error;
+            loginPromises.delete(client);
+            readiness[key] = 'error';
+            throw mapError ? mapError(error) : error;
         }
     };
 
-    const stop = async (): Promise<void> => {
-        await (watcher ?? bouncer)?.stop();
+    return async (requirement: ReadinessRequirement = 'any'): Promise<void> => {
+        if (requirement === 'none') {
+            return;
+        }
+
+        if (requirement === 'watcher') {
+            if (!watcher) {
+                throw new Error('Watcher credentials are not configured');
+            }
+            await loginOnce(watcher);
+            return;
+        }
+
+        if (requirement === 'bouncer') {
+            if (!bouncer) {
+                throw new Error('Bouncer credentials are not configured');
+            }
+            await loginOnce(bouncer);
+            return;
+        }
+
+        // `any` is used by crowdsec_status: prefer the bouncer (cheaper), fall
+        // back to the watcher, and succeed as soon as one credential works.
+        let lastError: unknown;
+        if (bouncer) {
+            try {
+                await loginOnce(bouncer);
+                return;
+            } catch (error) {
+                lastError = error;
+            }
+        }
+        if (watcher) {
+            try {
+                await loginOnce(watcher);
+                return;
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
+        throw new Error('No CrowdSec credentials are configured');
     };
+}
+
+function createAuthErrorMapper(watcher: WatcherClient | undefined, bouncer: BouncerClient | undefined): (error: unknown) => unknown {
+    return (error) => {
+        if (!isAuthenticationFailure(error)) {
+            return error;
+        }
+        if (watcher && bouncer) {
+            return new Error('Invalid CrowdSec credentials');
+        }
+        return new Error(watcher ? 'Invalid CrowdSec token' : 'Invalid CrowdSec API key');
+    };
+}
+
+function stopClients(watcher: WatcherClient | undefined, bouncer: BouncerClient | undefined): Promise<void> {
+    return Promise.all([watcher?.stop(), bouncer?.stop()]).then(() => undefined);
+}
+
+export async function createContext(config: Config): Promise<AppContext> {
+    // Only read the certificate files when a configured client actually needs
+    // them: an explicit machine pair or API key takes precedence, so unreadable
+    // TLS files must not break an otherwise valid configuration.
+    const needsTls = (config.watcher && !(config.machineId && config.password)) || (config.bouncer && !config.apiKey);
+    const tls = needsTls ? await loadTls(config) : undefined;
+
+    // Credentials are selected per client: an explicit machine pair/API key
+    // always wins over the ambiguous TLS certificate.
+    const watcher = config.watcher
+        ? new WatcherClient({
+              url: config.url,
+              lapiVersion: config.lapiVersion,
+              auth:
+                  config.machineId && config.password
+                      ? {
+                            machineID: config.machineId,
+                            password: config.password,
+                            autoRenew: true
+                        }
+                      : (tls ?? { machineID: config.machineId!, password: config.password!, autoRenew: true }),
+              strictSSL: config.strictSSL,
+              timeout: config.timeout,
+              heartbeat: false
+          })
+        : undefined;
+
+    const bouncer = config.bouncer
+        ? new BouncerClient({
+              url: config.url,
+              lapiVersion: config.lapiVersion,
+              auth: config.apiKey ? { apiKey: config.apiKey } : (tls ?? { apiKey: config.apiKey! }),
+              strictSSL: config.strictSSL,
+              timeout: config.timeout
+          })
+        : undefined;
+
+    const readiness: ClientReadiness = {};
 
     return {
         mode: config.auth,
-        capabilities: {
-            read: true,
-            write: config.auth === 'watcher',
-            allowlists: config.auth === 'watcher'
-        },
+        capabilities: buildCapabilities(watcher, bouncer),
         watcher,
         bouncer,
         allowlists: watcher ? createAllowlistsPort(watcher) : unavailableAllowlistsPort(),
         config,
-        ensureReady,
-        stop
+        readiness,
+        ensureReady: createReadiness(watcher, bouncer, readiness, createAuthErrorMapper(watcher, bouncer)),
+        stop: () => stopClients(watcher, bouncer)
     };
 }
 
 export function createPassthroughContext(config: Config, headers: IncomingHttpHeaders): AppContext {
     const auth = resolvePassthroughAuth(headers);
 
-    if (auth.mode === 'bouncer') {
-        const bouncer = new BouncerClient({
-            url: config.url,
-            auth: { apiKey: auth.apiKey },
-            strictSSL: config.strictSSL,
-            timeout: config.timeout
-        });
+    const bouncer = auth.apiKey
+        ? new BouncerClient({
+              url: config.url,
+              lapiVersion: config.lapiVersion,
+              auth: { apiKey: auth.apiKey },
+              strictSSL: config.strictSSL,
+              timeout: config.timeout
+          })
+        : undefined;
 
-        let loginPromise: Promise<void> | undefined;
-        const ensureReady = async (): Promise<void> => {
-            loginPromise ??= bouncer.login();
+    const watcher = auth.token
+        ? new TokenWatcherClient({
+              url: config.url,
+              lapiVersion: config.lapiVersion,
+              token: auth.token,
+              strictSSL: config.strictSSL,
+              timeout: config.timeout
+          })
+        : undefined;
 
-            try {
-                await loginPromise;
-            } catch (error) {
-                loginPromise = undefined;
-                if (isAuthenticationFailure(error)) {
-                    throw new Error('Invalid CrowdSec API key');
-                }
-                throw error;
-            }
-        };
-
-        return {
-            mode: 'bouncer',
-            capabilities: {
-                read: true,
-                write: false,
-                allowlists: false
-            },
-            bouncer,
-            allowlists: unavailableAllowlistsPort(),
-            config,
-            ensureReady,
-            stop: () => bouncer.stop()
-        };
-    }
-
-    const watcher = new TokenWatcherClient({
-        url: config.url,
-        token: auth.token,
-        strictSSL: config.strictSSL,
-        timeout: config.timeout
-    });
-
-    let loginPromise: Promise<void> | undefined;
-    const ensureReady = async (): Promise<void> => {
-        loginPromise ??= watcher.login();
-
-        try {
-            await loginPromise;
-        } catch (error) {
-            loginPromise = undefined;
-            throw error;
-        }
-    };
+    const readiness: ClientReadiness = {};
+    const ensureReady = createReadiness(watcher, bouncer, readiness, createAuthErrorMapper(watcher, bouncer));
 
     return {
-        mode: 'watcher',
-        capabilities: {
-            read: true,
-            write: true,
-            allowlists: true
-        },
+        mode: watcher ? 'watcher' : 'bouncer',
+        capabilities: buildCapabilities(watcher, bouncer),
         watcher,
-        allowlists: createAllowlistsPort(watcher),
+        bouncer,
+        allowlists: watcher ? createAllowlistsPort(watcher) : unavailableAllowlistsPort(),
         config,
+        readiness,
         ensureReady,
-        stop: () => watcher.stop()
+        stop: () => stopClients(watcher, bouncer)
     };
 }

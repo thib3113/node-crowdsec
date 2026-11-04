@@ -1,7 +1,7 @@
 import type { IBouncerAuthentication, ITLSAuthentication, IWatcherAuthentication } from 'crowdsec-client';
 import { ICrowdSecClientOptions } from 'crowdsec-client';
 import { IncomingMessage } from 'http';
-import { IScenarioConstructor, IScenarioOptions } from 'crowdsec-client-scenarios';
+import type { IScenarioConstructor, IScenarioOptions } from './scenarios-types.js';
 
 export type logFn = (message?: any, ...optionalParams: any[]) => void;
 export type logger = {
@@ -29,6 +29,10 @@ export interface ICommonOptions {
  * hosts abusive customers but the whole datacenter is rarely banned. Checking
  * country-sized blocks is an extreme edge case, so this lets the operator
  * choose how far up the prefix hierarchy to look.
+ *
+ * IPv6 uses the equivalent masks: `resident` = /128, `company` = /120,
+ * `country` = /112. A broader IPv6 range (for example /64) is ignored at every
+ * level.
  */
 export enum SubnetLevel {
     /** only single IPs ( /32 ) : an individual attacker */

@@ -96,7 +96,11 @@ function formatDecisionRow(decision: APITypes.Decision): string[] {
     const duration = decision.duration ?? '-';
     const expiryInfo = resolveDecisionExpiry(decision);
     const until = formatDecisionExpiry(expiryInfo);
-    const simulated = decision.simulated === true ? 'yes' : 'no';
+    // Older LAPIs may omit the field: report it as unknown, not as "no".
+    let simulated = '-';
+    if (decision.simulated !== undefined) {
+        simulated = decision.simulated ? 'yes' : 'no';
+    }
 
     return [
         escapeCell(decision.id ?? '-'),

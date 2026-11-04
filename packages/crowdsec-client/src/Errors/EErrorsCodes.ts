@@ -4,7 +4,11 @@ export enum EErrorsCodes {
     CONNECTION_TEST_FAILED = 1,
     CONNECTION_FAILED = 2,
 
-    // CODE THAT CAN COME FROM UNIFI ( 100 to 600 )
+    /** The connected LAPI does not support a required capability. */
+    FEATURE_NOT_SUPPORTED = 3,
+    /** The capability is unknown and the client runs in strict mode. */
+    LAPI_VERSION_UNKNOWN = 4,
+
     CONTINUE = 100,
     SWITCHING_PROTOCOLS = 101,
     OK = 200,

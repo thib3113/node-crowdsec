@@ -5,7 +5,7 @@ const unavailable = (): Promise<never> => Promise.reject(new Error('allowlists a
 
 export function createAllowlistsPort(watcher: WatcherClient): AllowlistsPort {
     return {
-        list: () => watcher.Allowlists.list(),
+        list: (withContent = true) => watcher.Allowlists.list(withContent),
         get: (name, withContent) => watcher.Allowlists.get(name, withContent),
         check: (value) => watcher.Allowlists.check(value),
         bulkCheck: (targets) => watcher.Allowlists.bulkCheck(targets)

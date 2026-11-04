@@ -14,11 +14,13 @@ import {
     IBouncerAuthentication,
     ICrowdSecClientOptions,
     ITLSAuthentication,
+    LapiCapability,
     TypedEventEmitter
 } from 'crowdsec-client';
 import { AddressObject } from './utils.js';
 import { IpObjectsCacher } from './IpObjectsCacher.js';
 import { IpDecisionDB } from './IpDecisionDB.js';
+import { Address6 } from 'ip-address';
 import { IncomingMessage, ServerResponse } from 'http';
 import { CommonsMiddleware } from './CommonsMiddleware.js';
 import { LRUCache } from 'lru-cache';
@@ -121,6 +123,9 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
             userAgent: this.clientOptions.userAgent,
             timeout: this.clientOptions.timeout,
             strictSSL: this.clientOptions.strictSSL,
+            lapiVersion: this.clientOptions.lapiVersion,
+            detectCapabilities: this.clientOptions.detectCapabilities,
+            strictCapabilities: this.clientOptions.strictCapabilities,
             auth
         });
 
@@ -150,10 +155,17 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
         this.logger.info('start');
         await this.client.login();
 
-        this._decisionStream = this.client.Decisions.getStream({
-            interval: this.options?.pollingInterval,
-            scopes: ['ip', 'range']
-        });
+        // `scopes` requires LAPI 1.1.0. With an unknown version and strict
+        // capabilities, sending it would make start() fail instead of falling
+        // back; the unfiltered stream is narrowed in addDecision().
+        const streamOptions: { interval?: number; scopes?: Array<decisionScope> } = {
+            interval: this.options?.pollingInterval
+        };
+        if (this.client.supports(LapiCapability.streamScopes) === true) {
+            streamOptions.scopes = ['ip', 'range'];
+        }
+
+        this._decisionStream = this.client.Decisions.getStream(streamOptions);
 
         this._decisionStream.on('error', (e) => {
             this.logger.error('client stream error', e);
@@ -196,7 +208,28 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
         return `${decision.value}:${decision.type}`;
     }
 
+    /**
+     * `SubnetLevel` is expressed for IPv4 (/32, /24, /16). An IPv6 address has
+     * 96 more bits, so the same policy means /128, /120, /112. Comparing the raw
+     * masks inter-family would accept an IPv6 /32 (2^96 addresses) as "resident".
+     */
+    private minMaskFor(ipObject: AddressObject): number {
+        return ipObject instanceof Address6 ? this.minMask + 96 : this.minMask;
+    }
+
+    private isAllowedMask(ipObject: AddressObject): boolean {
+        return ipObject.subnetMask >= this.minMaskFor(ipObject);
+    }
+
     private addDecision(decision: decisionType): boolean {
+        // The stream may be unfiltered on LAPI < 1.1.0; only ip/range scopes can
+        // be stored in the IP decision database. An absent scope is kept for
+        // callers that build a decision without the field.
+        const scope: string | undefined = decision.scope;
+        if (scope !== undefined && scope !== 'ip' && scope !== 'range') {
+            return false;
+        }
+
         const key = this.decisionKey(decision);
         if (this.decisionKeys.has(key)) {
             return false;
@@ -204,8 +237,13 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
         const ipObject = this.ipObjectCache.getIpObjectWithCache(decision.value);
 
         // ignore decisions with a bigger subnet than configured (e.g. /8 country blocks)
-        if (ipObject.subnetMask < this.minMask) {
-            this.logger.debug('ignore decision %s: subnet mask %o < minMask %o', decision.value, ipObject.subnetMask, this.minMask);
+        if (!this.isAllowedMask(ipObject)) {
+            this.logger.debug(
+                'ignore decision %s: subnet mask %o < minMask %o',
+                decision.value,
+                ipObject.subnetMask,
+                this.minMaskFor(ipObject)
+            );
             return false;
         }
 
@@ -319,8 +357,22 @@ export class CrowdSecHTTPBouncerMiddleware extends CommonsMiddleware {
                 if (d.type !== 'ban' && d.type !== 'captcha') {
                     return false;
                 }
-                const ipObject = this.ipObjectCache.getIpObjectWithCache(d.value);
-                return ipObject.subnetMask >= this.minMask;
+                const scope: string | undefined = d.scope;
+                if (scope !== undefined && scope !== 'ip' && scope !== 'range') {
+                    return false;
+                }
+                if (typeof d.value !== 'string' || !d.value) {
+                    return false;
+                }
+
+                try {
+                    return this.isAllowedMask(this.ipObjectCache.getIpObjectWithCache(d.value));
+                } catch (e) {
+                    // One malformed decision must not discard the valid bans in
+                    // the same live-check response.
+                    localDebug.debug('ignore malformed live decision %o : %o', d.value, e);
+                    return false;
+                }
             });
 
             if (blocking.length === 0) {

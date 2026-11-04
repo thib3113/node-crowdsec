@@ -5,6 +5,8 @@ export function makeConfig(overrides: Partial<Config> = {}): Config {
     return {
         url: 'http://127.0.0.1:8080',
         auth: 'watcher',
+        watcher: true,
+        bouncer: false,
         machineId: 'machine',
         password: 'password',
         strictSSL: true,
@@ -33,6 +35,9 @@ export function makeContext(overrides: Partial<AppContext> = {}): AppContext {
         mode: 'watcher',
         capabilities: {
             read: true,
+            alerts: true,
+            decisions: true,
+            decisionsFast: false,
             write: true,
             allowlists: true
         },
@@ -43,6 +48,7 @@ export function makeContext(overrides: Partial<AppContext> = {}): AppContext {
             bulkCheck: () => Promise.resolve({ results: [] })
         },
         config: makeConfig(),
+        readiness: {},
         ensureReady: () => {
             readyCalls++;
             return Promise.resolve();

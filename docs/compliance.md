@@ -22,7 +22,9 @@ All of these are expected to pass before a pull request is merged.
 
 | Area | Mechanism | Where |
 | --- | --- | --- |
-| Build, tests, types, lint | CI matrix (4 packages x Node 24 / lts / latest) | `.github/workflows/CI.yml` |
+| Build, tests | CI matrix (4 packages x Node 24 / lts / latest) | `.github/workflows/CI.yml` |
+| Types, format | `quality` job (single Node lts run) | `.github/workflows/CI.yml` |
+| Lint | `metrics` job (`check=true`) | `.github/workflows/CI.yml` |
 | Static analysis (SAST) | CodeQL `Analyze (javascript)` | `CI.yml`, `codeql.yml` |
 | Dependency analysis (SCA) | `pnpm audit --prod` (blocking), OSV-Scanner (report-only) on PR/push, Snyk weekly + release gate (shipped components) | `CI.yml`, `snyk.yml`, `release.yml` |
 | Secrets | GitHub secret scanning and push protection | GitHub repository settings |
@@ -79,5 +81,5 @@ changes.
 | Item | Why N/A | Re-check when |
 | --- | --- | --- |
 | OSPS-QA-04.01 / QA-04.02 (multiple repositories) | Single monorepo | A second repository is added |
-| OSPS-BR-01.04 (collaborator input in CI) | No workflow accepts free-form collaborator input | A `workflow_dispatch` input is added |
+| OSPS-BR-01.04 (collaborator input in CI) | `workflow_dispatch` inputs are enumerated (versions/modes/TLS) and validated; no free-form command input | A free-form or shell-interpolated input is added |
 | OSPS-VM-04.02 (VEX) | No shipped component is affected today (`pnpm audit --prod` is clean) | A runtime advisory is assessed as non-exploitable |

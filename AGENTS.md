@@ -10,8 +10,9 @@ truth; this file says what to run and where to look.
 - `packages/crowdsec-http-middleware` — HTTP middleware, scenarios, `IpDecisionDB`.
 - `packages/crowdsec-client-scenarios` — detection scenarios.
 - `packages/crowdsec-mcp` — MCP server (alerts, decisions, allowlists).
-- `docs/` — `architecture.md` (design and threat model), `dependencies.md`
-  (dependency and finding policy), `releases.md` (release verification).
+- `docs/` — `architecture.md` (design and threat model), `api-compatibility.md`
+  (LAPI version matrix and fallbacks), `dependencies.md` (dependency and finding
+  policy), `releases.md` (release verification).
 - `GOVERNANCE.md`, `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md` — governance,
   security, support and contribution rules.
 - `.github/workflows/` — CI, CodeQL, release, Docker and end-to-end tests.
@@ -60,6 +61,9 @@ pnpm audit --prod --audit-level=high
 ## Keep in sync
 
 - `docs/architecture.md` — components, actors, attack surface, threat model.
+- `docs/api-compatibility.md` — LAPI versions, feature matrix, probes and
+  fallbacks. Update it when a package starts using a new LAPI endpoint, query
+  parameter or response field.
 - `docs/dependencies.md` — dependency, SCA/SAST thresholds, VEX.
 - `docs/releases.md` — how to verify a release.
 - `GOVERNANCE.md` — maintainers, roles, access.

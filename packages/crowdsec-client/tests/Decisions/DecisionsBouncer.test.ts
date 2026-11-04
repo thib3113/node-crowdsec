@@ -56,7 +56,11 @@ vi.mock('../../src/utils.js', () => ({
     createDebugger: createDebuggerMock,
     forceArray: mockForceArray
 }));
-vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
+vi.mock('../../src/BaseSubObject.js', () => ({
+    BaseSubObject: class {
+        requireCapability = vi.fn();
+    }
+}));
 
 vi.mock('../../src/Decisions/DecisionsStream.js', () => ({
     DecisionsStream: mockDecisionStreamConstructor
@@ -127,12 +131,12 @@ describe('DecisionsBouncer', () => {
             mockSetTimeout.mockReturnValue('fakeTimeout');
 
             // @ts-ignore
-            expect(bouncer.getStreamTimeout).not.toBeDefined();
+            expect(bouncer.streamTimeouts.get(localDecisionStream)).not.toBeDefined();
 
             await getStreamLoop(options, localDecisionStream, interval);
 
             // @ts-ignore
-            expect(bouncer.getStreamTimeout).toBe('fakeTimeout');
+            expect(bouncer.streamTimeouts.get(localDecisionStream)).toBe('fakeTimeout');
 
             expect(mockGetRawStream).toHaveBeenCalledWith({});
             expect(global.setTimeout).toHaveBeenCalledWith(expect.any(Function), interval);
@@ -155,7 +159,7 @@ describe('DecisionsBouncer', () => {
             const interval = 2;
             const options = {};
             // @ts-ignore
-            bouncer.getStreamTimeout = fakeTimeout;
+            bouncer.streamTimeouts.set(localDecisionStream, fakeTimeout);
 
             await getStreamLoop(options, localDecisionStream, interval);
 
@@ -192,6 +196,36 @@ describe('DecisionsBouncer', () => {
             expect(global.setTimeout).not.toHaveBeenCalled();
 
             expect(localDecisionStream.emit).toHaveBeenCalledWith('error', fakeError);
+        });
+
+        it('should not start a second loop for the same stream', async () => {
+            // @ts-ignore
+            localDecisionStream.paused = true;
+            let release!: () => void;
+            mockGetRawStream.mockImplementationOnce(() => new Promise<void>((resolve) => (release = resolve)));
+
+            const first = getStreamLoop({}, localDecisionStream, 2);
+            const second = getStreamLoop({}, localDecisionStream, 2);
+
+            release();
+            await Promise.all([first, second]);
+
+            expect(mockGetRawStream).toHaveBeenCalledTimes(1);
+        });
+
+        it('should keep one timer per stream', async () => {
+            // @ts-ignore
+            localDecisionStream.paused = false;
+            const otherStream = { paused: false, emit: vi.fn(), push: vi.fn() } as unknown as DecisionsStream;
+            mockSetTimeout.mockReturnValueOnce('timer-1').mockReturnValueOnce('timer-2');
+
+            await getStreamLoop({}, localDecisionStream, 2);
+            await getStreamLoop({}, otherStream, 2);
+
+            // @ts-ignore
+            expect(bouncer.streamTimeouts.get(localDecisionStream)).toBe('timer-1');
+            // @ts-ignore
+            expect(bouncer.streamTimeouts.get(otherStream)).toBe('timer-2');
         });
     });
     describe('streamToCallback', () => {
@@ -333,6 +367,7 @@ describe('DecisionsBouncer', () => {
                     ip: '',
                     range: '',
                     contains: false,
+                    simulated: true,
                     origins: '',
                     scenarios_containing: '',
                     scenarios_not_containing: ''
@@ -353,6 +388,7 @@ describe('DecisionsBouncer', () => {
                     ip: '',
                     range: '',
                     contains: false,
+                    simulated: true,
                     origins: undefined,
                     scenarios_containing: undefined,
                     scenarios_not_containing: undefined
@@ -484,6 +520,18 @@ describe('DecisionsBouncer', () => {
             return listeners;
         };
         const getStreamLoopWrapper = vi.fn().mockImplementation(() => Promise.resolve());
+        const expectResumeWiring = () => {
+            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
+            resume();
+            resume();
+
+            const calls = getStreamLoopWrapper.mock.calls;
+            expect(calls).toHaveLength(2);
+            expect(calls[0][0]).toEqual(expect.objectContaining({ startup: true }));
+            expect(calls[1][0]).toEqual(expect.objectContaining({ startup: false }));
+            expect(calls[0][1]).toBe(mockDecisionStream);
+            expect(calls[1][1]).toBe(mockDecisionStream);
+        };
         beforeEach(() => {
             // @ts-ignore
             bouncer.getStreamLoopWrapper = getStreamLoopWrapper;
@@ -504,17 +552,7 @@ describe('DecisionsBouncer', () => {
 
             expect(await bouncer.getStream(params)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockDecisionStreamConstructor).toHaveBeenCalledWith(expect.any(String));
             expect(mockStreamOnce).toHaveBeenCalledWith('close', expect.any(Function));
@@ -528,17 +566,7 @@ describe('DecisionsBouncer', () => {
             };
             expect(await bouncer.getStream(params)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockDecisionStreamConstructor).toHaveBeenCalledWith(expect.any(String));
             expect(mockStreamOnce).toHaveBeenCalledWith('close', expect.any(Function));
@@ -550,15 +578,7 @@ describe('DecisionsBouncer', () => {
             const params = undefined;
             expect(await bouncer.getStream(params)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockDecisionStreamConstructor).toHaveBeenCalledWith(expect.any(String));
             expect(mockStreamOnce).toHaveBeenCalledWith('close', expect.any(Function));
@@ -576,17 +596,7 @@ describe('DecisionsBouncer', () => {
             };
             expect(await bouncer.getStream(params)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockDecisionStreamConstructor).toHaveBeenCalledWith(expect.any(String));
             expect(mockStreamOnce).toHaveBeenCalledWith('close', expect.any(Function));
@@ -605,17 +615,7 @@ describe('DecisionsBouncer', () => {
 
             expect(await bouncer.getStream(params)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                ...params,
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockDecisionStreamConstructor).toHaveBeenCalledWith(expect.any(String));
             expect(mockStreamOnce).toHaveBeenCalledWith('close', expect.any(Function));
@@ -633,15 +633,7 @@ describe('DecisionsBouncer', () => {
 
             expect(await bouncer.getStream(params, mockCB)).toBe(mockDecisionStream);
 
-            const { resume } = getStreamListeners([mockStreamOn, mockStreamOnce]);
-            resume();
-            getStreamLoopWrapper({
-                startup: true
-            });
-            resume();
-            getStreamLoopWrapper({
-                startup: false
-            });
+            expectResumeWiring();
 
             expect(mockStreamToCallback).toHaveBeenCalledWith(mockDecisionStream, mockCB);
 
@@ -676,7 +668,7 @@ describe('DecisionsBouncer', () => {
 
             it('should handle the close listener', async () => {
                 // @ts-ignore
-                bouncer.getStreamTimeout = fakeTimeout;
+                bouncer.streamTimeouts.set(mockDecisionStream, fakeTimeout);
                 // @ts-ignore
                 bouncer.runningStreams = [mockDecisionStream];
 
@@ -694,7 +686,7 @@ describe('DecisionsBouncer', () => {
 
             it('should handle the pause listener', async () => {
                 // @ts-ignore
-                bouncer.getStreamTimeout = fakeTimeout;
+                bouncer.streamTimeouts.set(mockDecisionStream, fakeTimeout);
                 // @ts-ignore
                 bouncer.runningStreams = [mockDecisionStream];
 

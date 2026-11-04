@@ -46,8 +46,8 @@ const watcherContext = (): AppContext => makeContext();
 const bouncerContext = (): AppContext =>
     makeContext({
         mode: 'bouncer',
-        capabilities: { read: true, write: false, allowlists: false },
-        config: makeConfig({ readonly: true })
+        capabilities: { read: true, alerts: false, decisions: true, decisionsFast: true, write: false, allowlists: false },
+        config: makeConfig({ auth: 'bouncer', watcher: false, bouncer: true, readonly: true })
     });
 
 describe('server instructions', () => {

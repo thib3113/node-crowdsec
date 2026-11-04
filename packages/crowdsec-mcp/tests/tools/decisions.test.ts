@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { FeatureNotSupportedError, LapiCapability } from 'crowdsec-client';
 import { decisionTools } from '../../src/tools/decisions.js';
 
 describe('decisionTools', () => {
     const createMockWatcher = () => ({
+        supports: vi.fn(),
         Alerts: {
             search: vi.fn(),
             pushAlerts: vi.fn()
@@ -131,13 +133,118 @@ describe('decisionTools', () => {
             const result = await tool!.handler({ limit: 10 }, ctx as any);
 
             expect(ctx.bouncer!.Decisions.search).toHaveBeenCalledWith(
-                expect.not.objectContaining({
-                    limit: expect.anything()
+                expect.objectContaining({
+                    simulated: true
                 })
             );
+            expect(ctx.bouncer!.Decisions.search.mock.calls[0][0]).not.toHaveProperty('limit');
+            expect(ctx.bouncer!.Decisions.search.mock.calls[0][0]).not.toHaveProperty('contains');
             expect(result).toContain('ban');
             expect(result).toContain('1.2.3.4');
             expect(result).not.toContain('never');
+        });
+
+        it('should reject since/until without watcher credentials instead of ignoring them', async () => {
+            const ctx = createMockContext({ mode: 'bouncer', watcher: undefined, bouncer: createMockBouncer() });
+            const tool = findTool('list_decisions')!;
+
+            await expect(tool.handler({ since: '24h' }, ctx as any)).rejects.toThrow(/since\/until filter alerts/);
+            await expect(tool.handler({ until: '1h' }, ctx as any)).rejects.toThrow(/since\/until filter alerts/);
+            expect(ctx.bouncer!.Decisions.search).not.toHaveBeenCalled();
+        });
+
+        it('should ask the bouncer to include simulated decisions by default', async () => {
+            const ctx = createMockContext({ mode: 'bouncer', watcher: undefined, bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockResolvedValue([
+                { id: 1, type: 'ban', scope: 'Ip', value: '1.1.1.1', origin: 'cscli', duration: '4h', simulated: true },
+                { id: 2, type: 'ban', scope: 'Ip', value: '2.2.2.2', origin: 'cscli', duration: '4h', simulated: false }
+            ]);
+
+            const result = await findTool('list_decisions')!.handler({}, ctx as any);
+
+            expect(ctx.bouncer!.Decisions.search).toHaveBeenCalledWith(expect.objectContaining({ simulated: true }));
+            expect(result).toContain('1.1.1.1');
+            expect(result).toContain('2.2.2.2');
+        });
+
+        it('should ask the bouncer to exclude simulated decisions with no_simulated=true', async () => {
+            const ctx = createMockContext({ mode: 'bouncer', watcher: undefined, bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockResolvedValue([
+                { id: 2, type: 'ban', scope: 'Ip', value: '2.2.2.2', origin: 'cscli', duration: '4h', simulated: false }
+            ]);
+
+            const result = await findTool('list_decisions')!.handler({ no_simulated: true }, ctx as any);
+
+            expect(ctx.bouncer!.Decisions.search).toHaveBeenCalledWith(expect.objectContaining({ simulated: false }));
+            expect(result).toContain('2.2.2.2');
+        });
+
+        it('should include simulated decisions on the watcher path by default', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.search.mockResolvedValue([]);
+
+            await findTool('list_decisions')!.handler({}, ctx as any);
+
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ simulated: true }));
+        });
+
+        it('should retry without simulated when the LAPI rejects the alert filter', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.search.mockRejectedValueOnce(
+                Object.assign(new Error("'simulated' doesn't exist: invalid filter"), { code: 500 })
+            ).mockResolvedValueOnce([]);
+
+            await findTool('list_decisions')!.handler({}, ctx as any);
+
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledTimes(2);
+            expect(ctx.watcher!.Alerts.search.mock.calls[1][0]).not.toHaveProperty('simulated');
+        });
+
+        it('should not widen no_simulated when the LAPI rejects the alert filter', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.search.mockRejectedValueOnce(
+                Object.assign(new Error("'simulated' doesn't exist: invalid filter"), { code: 500 })
+            );
+
+            await expect(findTool('list_decisions')!.handler({ no_simulated: true }, ctx as any)).rejects.toThrow(/invalid filter/);
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledTimes(1);
+        });
+
+        it('should report the simulation state as unknown when the bouncer omits the field', async () => {
+            const ctx = createMockContext({ mode: 'bouncer', watcher: undefined, bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockResolvedValue([
+                // `/v1/decisions` does not return `simulated`: it must not be
+                // reported as `no`.
+                { id: 3, type: 'ban', scope: 'Ip', value: '3.3.3.3', origin: 'cscli', duration: '4h' }
+            ]);
+
+            const result = await findTool('list_decisions')!.handler({}, ctx as any);
+            const row = result.split('\n').find((line) => line.includes('3.3.3.3'));
+
+            expect(row).toBeDefined();
+            expect(row!.trimEnd()).toMatch(/\|\s*-\s*\|$/);
+        });
+
+        it('should fall back to the watcher when the bouncer search fails', async () => {
+            const ctx = createMockContext({ bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockRejectedValue(new Error('bouncer down'));
+            ctx.watcher!.Alerts.search.mockResolvedValue(makeDecisionAlerts(1));
+
+            const result = await findTool('list_decisions')!.handler({}, ctx as any);
+
+            expect(ctx.bouncer!.Decisions.search).toHaveBeenCalled();
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalled();
+            expect(result).toContain('198.51.100.1');
+        });
+
+        it('should use the watcher for scope queries even when a bouncer is configured', async () => {
+            const ctx = createMockContext({ bouncer: createMockBouncer() });
+            ctx.watcher!.Alerts.search.mockResolvedValue([]);
+
+            await findTool('list_decisions')!.handler({ scope: 'Country', value: 'FR' }, ctx as any);
+
+            expect(ctx.bouncer!.Decisions.search).not.toHaveBeenCalled();
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ scope: 'Country', value: 'FR' }));
         });
 
         it('should normalize scope and value before querying the LAPI', async () => {
@@ -152,6 +259,7 @@ describe('decisionTools', () => {
                     value: '1.2.3.4'
                 })
             );
+            expect(ctx.watcher!.Alerts.search.mock.calls[0][0]).not.toHaveProperty('contains');
         });
 
         it('should hide expired decisions', async () => {
@@ -423,6 +531,7 @@ describe('decisionTools', () => {
             expect(result).toContain('### Decision #123');
             expect(result).toContain('1.2.3.4');
             expect(result).toContain('Alert #10');
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ simulated: true }));
         });
 
         it('should reject unknown decision ids', async () => {
@@ -438,6 +547,35 @@ describe('decisionTools', () => {
             await expect(findTool('get_decision')!.handler({ id: 'abc' }, ctx as any)).rejects.toThrow(
                 'decision id must be a positive integer'
             );
+        });
+
+        it('should fall back to the bouncer decision list without watcher credentials', async () => {
+            const ctx = createMockContext({ watcher: undefined, bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockResolvedValue([
+                {
+                    id: 123,
+                    type: 'ban',
+                    scope: 'Ip',
+                    value: '1.2.3.4',
+                    origin: 'cscli',
+                    scenario: 'test',
+                    duration: '1h',
+                    simulated: false
+                }
+            ]);
+
+            const result = await findTool('get_decision')!.handler({ id: 123 }, ctx as any);
+
+            expect(ctx.bouncer!.Decisions.search).toHaveBeenCalledWith({ simulated: true });
+            expect(result).toContain('### Decision #123');
+            expect(result).toContain('1.2.3.4');
+        });
+
+        it('should report a missing decision when the bouncer list has no match', async () => {
+            const ctx = createMockContext({ watcher: undefined, bouncer: createMockBouncer() });
+            ctx.bouncer!.Decisions.search.mockResolvedValue([]);
+
+            await expect(findTool('get_decision')!.handler({ id: 999 }, ctx as any)).rejects.toThrow('Decision 999 not found');
         });
     });
 
@@ -473,6 +611,28 @@ describe('decisionTools', () => {
                     })
                 ])
             );
+        });
+
+        it('should not block a ban when the allowlist route is missing (LAPI < 1.6.6)', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.pushAlerts.mockResolvedValue(['alert-123']);
+            ctx.allowlists.check.mockRejectedValue(Object.assign(new Error('not found'), { code: 404 }));
+
+            const result = await findTool('ban_ip')!.handler({ ip: '1.2.3.4' }, ctx as any);
+
+            expect(result).toContain('1.2.3.4');
+            expect(ctx.watcher!.Alerts.pushAlerts).toHaveBeenCalled();
+        });
+
+        it('should not block a ban when the allowlist capability is known unsupported', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Alerts.pushAlerts.mockResolvedValue(['alert-123']);
+            ctx.allowlists.check.mockRejectedValue(new FeatureNotSupportedError(LapiCapability.allowlists, '1.6.6'));
+
+            const result = await findTool('ban_ip')!.handler({ ip: '1.2.3.4' }, ctx as any);
+
+            expect(result).toContain('1.2.3.4');
+            expect(ctx.watcher!.Alerts.pushAlerts).toHaveBeenCalled();
         });
 
         it('should use range as scope Range when provided', async () => {
@@ -776,6 +936,46 @@ describe('decisionTools', () => {
             await expect(tool!.handler({ all: true }, ctx as any)).rejects.toThrow('Deleting all decisions requires confirm=true');
         });
 
+        it('should require confirm=true for a /0 range', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ range: '0.0.0.0/0' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm=true for a /0 value with scope=Range', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ scope: 'Range', value: '0.0.0.0/0' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm=true for a padded /0 value with scope=Range', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ scope: 'Range', value: ' 0.0.0.0/0 ' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should require confirm=true when ip is empty and only a type is set', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ ip: '', type: 'ban' }, ctx as any)).rejects.toThrow(/requires confirm=true/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
+        it('should reject a non-canonical /00 range', async () => {
+            const ctx = createMockContext();
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ range: '0.0.0.0/00' }, ctx as any)).rejects.toThrow(/not a valid range/);
+            expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+        });
+
         it('should delete all active decisions when all=true and confirm=true', async () => {
             const ctx = createMockContext();
             ctx.watcher!.Alerts.search.mockResolvedValue([
@@ -790,6 +990,7 @@ describe('decisionTools', () => {
             expect(result).toContain('2 decision(s) deleted');
             expect(ctx.watcher!.Decisions.deleteById).toHaveBeenCalledTimes(2);
             expect(ctx.watcher!.Decisions.delete).not.toHaveBeenCalled();
+            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(expect.objectContaining({ simulated: true }));
         });
 
         it('should reject scope without value', async () => {
@@ -850,26 +1051,21 @@ describe('decisionTools', () => {
             await expect(tool!.handler({ id: '123' }, ctx as any)).rejects.toThrow('Decision 123 not found');
         });
 
-        it('should delete decisions contained in a range through a search', async () => {
+        it('should delete decisions contained in a range with the server-side filter', async () => {
             const ctx = createMockContext();
-            ctx.watcher!.Alerts.search.mockResolvedValue([
-                { id: 1, decisions: [{ id: 11 }] },
-                { id: 2, decisions: [{ id: 12 }] }
-            ]);
-            ctx.watcher!.Decisions.deleteById.mockResolvedValue({ nbDeleted: '1' });
+            ctx.watcher!.Decisions.delete.mockResolvedValue({ nbDeleted: '2' });
             const tool = findTool('unban_ip');
 
             const result = await tool!.handler({ range: '198.51.100.0/24' }, ctx as any);
 
-            expect(ctx.watcher!.Alerts.search).toHaveBeenCalledWith(
+            expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ip: '198.51.100.0/24',
-                    contains: false,
-                    has_active_decision: true,
-                    limit: 0
+                    range: '198.51.100.0/24',
+                    contains: false
                 })
             );
-            expect(ctx.watcher!.Decisions.deleteById).toHaveBeenCalledTimes(2);
+            expect(ctx.watcher!.Alerts.search).not.toHaveBeenCalled();
+            expect(ctx.watcher!.Decisions.deleteById).not.toHaveBeenCalled();
             expect(result).toContain('2 decision(s) deleted');
         });
 
@@ -884,9 +1080,71 @@ describe('decisionTools', () => {
             expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ip: '1.2.3.4',
-                    type: 'ban'
+                    type: 'ban',
+                    contains: false
                 })
             );
+        });
+
+        it('should forward type and scenario to the server-side range filter', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Decisions.delete.mockResolvedValue({ nbDeleted: '1' });
+            const tool = findTool('unban_ip');
+
+            const result = await tool!.handler({ range: '198.51.100.0/24', type: 'ban', scenario: 'ssh-bf' }, ctx as any);
+
+            expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    range: '198.51.100.0/24',
+                    contains: false,
+                    type: 'ban',
+                    scenario: 'ssh-bf'
+                })
+            );
+            expect(ctx.watcher!.Alerts.search).not.toHaveBeenCalled();
+            expect(ctx.watcher!.Decisions.deleteById).not.toHaveBeenCalled();
+            expect(result).toContain('1 decision(s) deleted');
+        });
+
+        it('should not delete decisions the fallback filter did not target', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.Decisions.delete.mockRejectedValue(
+                Object.assign(new Error("'scenario' doesn't exist: invalid filter"), { code: 500 })
+            );
+            ctx.watcher!.Alerts.search.mockResolvedValue([
+                {
+                    id: 1,
+                    decisions: [
+                        { id: 11, type: 'ban', scope: 'Ip', value: '1.2.3.4', scenario: 'ssh-bf' },
+                        { id: 12, type: 'captcha', scope: 'Ip', value: '1.2.3.4', scenario: 'ssh-bf' },
+                        { id: 13, type: 'ban', scope: 'Ip', value: '5.6.7.8', scenario: 'ssh-bf' },
+                        { id: 14, type: 'ban', scope: 'Ip', value: '1.2.3.4', scenario: 'other' },
+                        // Missing scope must not be defaulted to Ip.
+                        { id: 15, type: 'ban', value: '1.2.3.4', scenario: 'ssh-bf' }
+                    ]
+                }
+            ]);
+            ctx.watcher!.Decisions.deleteById.mockResolvedValue({ nbDeleted: '1' });
+            const tool = findTool('unban_ip');
+
+            const result = await tool!.handler({ ip: '1.2.3.4', type: 'ban', scenario: 'ssh-bf' }, ctx as any);
+
+            expect(ctx.watcher!.Decisions.deleteById).toHaveBeenCalledTimes(1);
+            expect(ctx.watcher!.Decisions.deleteById).toHaveBeenCalledWith('11');
+            expect(result).toContain('1 decision(s) deleted');
+        });
+
+        it('should refuse the search fallback when contains is known unsupported', async () => {
+            const ctx = createMockContext();
+            ctx.watcher!.supports.mockReturnValue(false);
+            ctx.watcher!.Decisions.delete.mockRejectedValue(
+                Object.assign(new Error("'contains' doesn't exist: invalid filter"), { code: 500 })
+            );
+            const tool = findTool('unban_ip');
+
+            await expect(tool!.handler({ ip: '1.2.3.4' }, ctx as any)).rejects.toThrow(/contains filter requires CrowdSec 1\.0\.3/);
+            expect(ctx.watcher!.Alerts.search).not.toHaveBeenCalled();
+            expect(ctx.watcher!.Decisions.deleteById).not.toHaveBeenCalled();
         });
 
         it('should reject unknown unban parameters', async () => {
@@ -940,7 +1198,7 @@ describe('decisionTools', () => {
             await tool!.handler({ scope: 'Ip', value: '1.2.3.4', type: 'Ban', scenario: 'test' }, ctx as any);
 
             const query = ctx.watcher!.Decisions.delete.mock.calls[0][0];
-            expect(query).toMatchObject({ ip: '1.2.3.4', type: 'ban', scenario: 'test' });
+            expect(query).toMatchObject({ ip: '1.2.3.4', type: 'ban', scenario: 'test', contains: false });
             expect(query).not.toHaveProperty('scope');
             expect(query).not.toHaveProperty('value');
         });
@@ -954,10 +1212,11 @@ describe('decisionTools', () => {
 
             expect(ctx.watcher!.Decisions.delete).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    scope: 'Country',
+                    scopes: 'Country',
                     value: 'DE'
                 })
             );
+            expect(ctx.watcher!.Decisions.delete.mock.calls[0][0]).not.toHaveProperty('scope');
             expect(ctx.watcher!.Alerts.search).not.toHaveBeenCalled();
             expect(result).toContain('1 decision(s) deleted');
         });

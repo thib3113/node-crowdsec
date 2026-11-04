@@ -6,7 +6,11 @@ import { isValidCidr, isValidIp } from '../utils.js';
 
 const ListAllowlistsInput = z
     .object({
-        limit: z.number().int().positive().optional().describe('Maximum number of allowlists to display')
+        limit: z.number().int().positive().optional().describe('Maximum number of allowlists to display'),
+        with_content: z
+            .boolean()
+            .default(true)
+            .describe('Download allowlist items to report their size. Set false to avoid transferring every item (size shows as -).')
     })
     .strict();
 
@@ -36,19 +40,19 @@ export const allowlistTools: ToolDefinition[] = [
         name: 'list_allowlists',
         title: 'List allowlists',
         description:
-            'List all allowlists with their name, description, creation/update dates, console management status, and item count. Mirrors `cscli allowlists list`.',
+            'List all allowlists with their name, description, creation/update dates, console management status, and item count. Mirrors `cscli allowlists list`. Set with_content=false to skip item transfer; the size column then shows -.',
         inputSchema: ListAllowlistsInput,
         kind: 'read',
-        requires: ['watcher', 'allowlists'],
+        requires: ['allowlists'],
         annotations: {
             readOnlyHint: true,
             idempotentHint: true
         },
         handler: async (input, ctx) => {
-            const { limit } = ListAllowlistsInput.parse(input);
-            const allowlists = await ctx.allowlists.list();
+            const { limit, with_content: withContent } = ListAllowlistsInput.parse(input);
+            const allowlists = await ctx.allowlists.list(withContent);
 
-            return formatAllowlistList(allowlists, limit ?? ctx.config.maxResults);
+            return formatAllowlistList(allowlists, limit ?? ctx.config.maxResults, withContent);
         }
     },
     {
@@ -57,7 +61,7 @@ export const allowlistTools: ToolDefinition[] = [
         description: 'Get detailed information about a specific allowlist including its items. Mirrors `cscli allowlists inspect`.',
         inputSchema: GetAllowlistInput,
         kind: 'read',
-        requires: ['watcher', 'allowlists'],
+        requires: ['allowlists'],
         annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -84,7 +88,7 @@ export const allowlistTools: ToolDefinition[] = [
             'Check whether one or more IPs or CIDR ranges match any allowlist entry. A CIDR can match because it contains an allowlisted IP; the output distinguishes CIDR matches from exact IP matches. Provide either a single `value` or an array of `values`.',
         inputSchema: CheckAllowlistInput,
         kind: 'read',
-        requires: ['watcher', 'allowlists'],
+        requires: ['allowlists'],
         annotations: {
             readOnlyHint: true,
             idempotentHint: true

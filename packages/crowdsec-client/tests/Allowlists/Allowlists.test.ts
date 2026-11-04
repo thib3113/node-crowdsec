@@ -1,8 +1,13 @@
 import { describe, it, afterEach, beforeEach, expect, vi } from 'vitest';
 
+import { FeatureNotSupportedError } from '../../src/index.js';
 import type { Allowlists } from '../../src/index.js';
 
-vi.mock('../../src/BaseSubObject.js', () => ({ BaseSubObject: vi.fn() }));
+vi.mock('../../src/BaseSubObject.js', () => ({
+    BaseSubObject: class {
+        requireCapability = vi.fn();
+    }
+}));
 
 describe('Allowlists', () => {
     const httpGetMock = vi.fn();
@@ -94,5 +99,57 @@ describe('Allowlists', () => {
         expect(httpPostMock).toHaveBeenCalledWith('/v1/allowlists/check', {
             targets: ['1.2.3.4', '5.6.7.8']
         });
+    });
+
+    it('should fall back to per-value checks when the bulk capability is known to be absent', async () => {
+        (allowlists as unknown as { capabilities: unknown }).capabilities = { supports: () => false, learn: vi.fn() };
+        httpGetMock.mockImplementation((url: string) =>
+            Promise.resolve({
+                data: url === '/v1/allowlists/check/1.2.3.4' ? { allowlisted: true, reason: 'my-list/1.2.3.4' } : { allowlisted: false }
+            })
+        );
+
+        const result = await allowlists.bulkCheck(['1.2.3.4', '5.6.7.8']);
+
+        expect(result).toEqual({ results: [{ target: '1.2.3.4', allowlists: ['unknown allowlist (matched item: my-list/1.2.3.4)'] }] });
+        expect(httpPostMock).not.toHaveBeenCalled();
+    });
+
+    it('should use the target when the single check has no reason', async () => {
+        (allowlists as unknown as { capabilities: unknown }).capabilities = { supports: () => false, learn: vi.fn() };
+        httpGetMock.mockResolvedValue({ data: { allowlisted: true } });
+
+        const result = await allowlists.bulkCheck(['1.2.3.4']);
+
+        expect(result).toEqual({ results: [{ target: '1.2.3.4', allowlists: ['unknown allowlist (matched item: 1.2.3.4)'] }] });
+    });
+
+    it('should fall back when the bulk route answers 405 (LAPI 1.6.6-1.6.8)', async () => {
+        const learn = vi.fn();
+        (allowlists as unknown as { capabilities: unknown }).capabilities = { supports: () => undefined, learn };
+        httpPostMock.mockRejectedValueOnce({ code: 405 });
+        httpGetMock.mockResolvedValue({ data: { allowlisted: true, reason: 'my-list/1.2.3.4' } });
+
+        const result = await allowlists.bulkCheck(['1.2.3.4']);
+
+        expect(result.results).toEqual([{ target: '1.2.3.4', allowlists: ['unknown allowlist (matched item: my-list/1.2.3.4)'] }]);
+        expect(learn).toHaveBeenCalledWith('allowlistsBulkCheck', false);
+    });
+
+    it('should fall back on a raw Axios 404', async () => {
+        httpPostMock.mockRejectedValueOnce({ code: 'ERR_BAD_REQUEST', response: { status: 404 } });
+        httpGetMock.mockResolvedValue({ data: { allowlisted: true, reason: 'my-list/1.2.3.4' } });
+
+        const result = await allowlists.bulkCheck(['1.2.3.4']);
+
+        expect(result.results).toEqual([{ target: '1.2.3.4', allowlists: ['unknown allowlist (matched item: my-list/1.2.3.4)'] }]);
+        expect(httpGetMock).toHaveBeenCalledWith('/v1/allowlists/check/1.2.3.4');
+    });
+
+    it('should raise a typed error when the per-value route is also missing', async () => {
+        httpPostMock.mockRejectedValueOnce({ code: 405 });
+        httpGetMock.mockRejectedValueOnce({ code: 404 });
+
+        await expect(allowlists.bulkCheck(['1.2.3.4'])).rejects.toBeInstanceOf(FeatureNotSupportedError);
     });
 });

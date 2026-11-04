@@ -202,10 +202,10 @@ jobs:
     # PRs), reported to Code Scanning. Snyk's metered tests are reserved for the
     # release gate in snyk.yml, so this job does not consume Snyk quota.
     #
-    # Report-only on purpose: the lockfile also contains dev-only dependencies,
-    # and the policy treats dev-only advisories as out of scope because they are
-    # not shipped (docs/dependencies.md). The blocking SCA gate stays
-    # `pnpm audit --prod` (runtime) in the build job.
+    # Report-only on purpose: OSV scans the committed lockfile including
+    # devDependencies (only the `dev/` path is excluded). Dev-ledger advisories
+    # are visible here; the blocking SCA gate stays `pnpm audit --prod` (runtime)
+    # in the build job.
     permissions:
       actions: read
       contents: read
