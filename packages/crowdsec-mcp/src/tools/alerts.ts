@@ -208,6 +208,48 @@ function assertDeleteTargets(input: DeleteAlertInput): void {
     }
 }
 
+function normalizeScopeValue(input: DeleteAlertInput): { normalizedScope?: string; normalizedValue?: string } {
+    if (input.scope && !input.value) {
+        throw new Error('scope and value must be provided together for delete_alerts');
+    }
+
+    const normalizedScope = input.scope ? assertValidDecisionScope(input.scope) : undefined;
+    const normalizedValue = normalizedScope && input.value ? assertValidScopeValue(normalizedScope, input.value) : input.value;
+
+    return { normalizedScope, normalizedValue };
+}
+
+function assertDeleteCombination(input: DeleteAlertInput, decisionType?: string): void {
+    if (input.id !== undefined && hasDeleteFilters(input, decisionType)) {
+        throw new Error('Cannot combine id with filters or all=true');
+    }
+    if (input.id === undefined && input.all !== true && !hasDeleteFilters(input, decisionType)) {
+        throw new Error(
+            'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
+        );
+    }
+}
+
+function hasNarrowDeleteTarget(input: DeleteAlertInput, normalizedScope: string | undefined, normalizedValue: string | undefined): boolean {
+    // A /0 CIDR is not a narrow target: it covers everything, so it must go
+    // through the same confirm=true gate as a broad filter or all=true.
+    const totalScopeValue = normalizedScope === 'Range' && normalizedValue !== undefined && isTotalCidr(normalizedValue);
+
+    return Boolean(
+        (input.ip && !isTotalCidr(input.ip)) ||
+        (input.range && !isTotalCidr(input.range)) ||
+        (normalizedScope && normalizedValue && !totalScopeValue)
+    );
+}
+
+function assertNarrowDeleteTarget(input: DeleteAlertInput, normalizedScope: string | undefined, normalizedValue: string | undefined): void {
+    if (input.id === undefined && !hasNarrowDeleteTarget(input, normalizedScope, normalizedValue) && input.confirm !== true) {
+        throw new Error(
+            'Deleting alerts filtered only by scenario, origin, type, time or has_active_decision requires confirm=true; add ip, range, or scope+value to narrow the target'
+        );
+    }
+}
+
 function normalizeDeleteInput(input: DeleteAlertInput): NormalizedDeleteAlertInput {
     validateDeleteTimes(input.since, input.until);
     const decisionType = input.type ? assertValidDecisionType(input.type) : undefined;
@@ -217,35 +259,10 @@ function normalizeDeleteInput(input: DeleteAlertInput): NormalizedDeleteAlertInp
     }
     assertDeleteTargets(input);
 
-    if (input.scope && !input.value) {
-        throw new Error('scope and value must be provided together for delete_alerts');
-    }
+    const { normalizedScope, normalizedValue } = normalizeScopeValue(input);
 
-    const normalizedScope = input.scope ? assertValidDecisionScope(input.scope) : undefined;
-    const normalizedValue = normalizedScope && input.value ? assertValidScopeValue(normalizedScope, input.value) : input.value;
-
-    if (input.id !== undefined && hasDeleteFilters(input, decisionType)) {
-        throw new Error('Cannot combine id with filters or all=true');
-    }
-    if (input.id === undefined && input.all !== true && !hasDeleteFilters(input, decisionType)) {
-        throw new Error(
-            'At least one filter (ip, range, scope, value, scenario, origin, type, since, until, has_active_decision) or all=true is required'
-        );
-    }
-
-    // A /0 CIDR is not a narrow target: it covers everything, so it must go
-    // through the same confirm=true gate as a broad filter or all=true.
-    const totalScopeValue = normalizedScope === 'Range' && normalizedValue !== undefined && isTotalCidr(normalizedValue);
-    const hasNarrowTarget = Boolean(
-        (input.ip && !isTotalCidr(input.ip)) ||
-        (input.range && !isTotalCidr(input.range)) ||
-        (normalizedScope && normalizedValue && !totalScopeValue)
-    );
-    if (input.id === undefined && !hasNarrowTarget && input.confirm !== true) {
-        throw new Error(
-            'Deleting alerts filtered only by scenario, origin, type, time or has_active_decision requires confirm=true; add ip, range, or scope+value to narrow the target'
-        );
-    }
+    assertDeleteCombination(input, decisionType);
+    assertNarrowDeleteTarget(input, normalizedScope, normalizedValue);
 
     return { ...input, decisionType, normalizedScope, normalizedValue };
 }
@@ -316,7 +333,7 @@ function isUnknownFilterError(error: unknown, parameter: string): boolean {
     }
 
     const message = cleanErrorMessage(error);
-    if (!new RegExp(`\\b${parameter}\\b`, 'i').test(message)) {
+    if (!new RegExp(String.raw`\b${parameter}\b`, 'i').test(message)) {
         return false;
     }
 

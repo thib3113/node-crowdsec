@@ -53,7 +53,7 @@ function isUnknownAlertFilter(error: unknown, parameter: string): boolean {
     }
 
     const message = cleanErrorMessage(error);
-    if (!new RegExp(`\\b${parameter}\\b`, 'i').test(message)) {
+    if (!new RegExp(String.raw`\b${parameter}\b`, 'i').test(message)) {
         return false;
     }
 
@@ -559,6 +559,116 @@ function normalizeListDecisionsFilters(input: ListDecisionsFilters): NormalizedL
     return { scope, value };
 }
 
+interface ListDecisionFilters {
+    ip?: string;
+    range?: string;
+    scope?: string;
+    value?: string;
+    type?: string;
+    origin?: string;
+    scenario?: string;
+    since?: string;
+    until?: string;
+    contains?: boolean;
+    simulated: boolean;
+}
+
+type ListWindow = ReturnType<typeof resolveListWindow>;
+
+async function searchBouncerDecisions(ctx: AppContext, filters: ListDecisionFilters, window: ListWindow): Promise<string | undefined> {
+    if (!ctx.bouncer) {
+        return undefined;
+    }
+
+    try {
+        await ctx.ensureReady('bouncer');
+        const decisions = await ctx.bouncer.Decisions.search({
+            ip: filters.ip,
+            range: filters.range,
+            scope: filters.scope,
+            value: filters.value,
+            type: filters.type,
+            origins: filters.origin,
+            scenarios_containing: filters.scenario,
+            simulated: filters.simulated,
+            ...(filters.ip || filters.range ? { contains: filters.contains } : {})
+        });
+
+        return formatBouncerDecisionList(decisions, window.displayLimit);
+    } catch (error) {
+        // A broken bouncer key must not hide a healthy watcher, but keep the
+        // original failure visible in the debug log.
+        if (!ctx.watcher) {
+            throw error;
+        }
+        log('bouncer decision search failed, falling back to the watcher: %s', cleanErrorMessage(error));
+        return undefined;
+    }
+}
+
+async function searchWatcherDecisions(ctx: AppContext, filters: ListDecisionFilters, window: ListWindow): Promise<string> {
+    await ctx.ensureReady('watcher');
+    const query: APITypes.SearchAlertsQuery = {
+        ip: filters.ip,
+        range: filters.range,
+        scope: filters.scope,
+        value: filters.value,
+        scenario: filters.scenario,
+        decision_type: filters.type,
+        origin: filters.origin,
+        since: filters.since,
+        until: filters.until,
+        simulated: filters.simulated,
+        // `contains` only exists from LAPI 1.0.3 and is only meaningful with
+        // ip/range (docs/api-compatibility.md).
+        ...(filters.ip || filters.range ? { contains: filters.contains } : {}),
+        has_active_decision: true,
+        limit: window.fetchLimit
+    };
+
+    const alerts = await searchAlerts(ctx, query);
+    const rendered = formatDecisionList(alerts, window.displayLimit, window.maybeMore);
+
+    if (!ctx.capabilities.decisionsFast) {
+        return `${rendered}\n\n_Bouncer credentials (CROWDSEC_API_KEY) would make this scan about 60x faster._`;
+    }
+    return rendered;
+}
+
+function isTotalValue(value: string | undefined): boolean {
+    return value !== undefined && isTotalCidr(value);
+}
+
+function unbanTargetState(input: UnbanInput): { totalCidr: boolean; hasNarrowTarget: boolean } {
+    const trimmedValue = input.value?.trim();
+    const totalScopeValue =
+        input.scope !== undefined &&
+        trimmedValue !== undefined &&
+        normalizeScope(input.scope) === 'Range' &&
+        isValidCidr(trimmedValue) &&
+        isTotalCidr(trimmedValue);
+    const totalCidr = isTotalValue(input.ip) || isTotalValue(input.range) || totalScopeValue;
+    const hasNarrowTarget =
+        (input.ip !== undefined && !isTotalValue(input.ip)) ||
+        (input.range !== undefined && !isTotalValue(input.range)) ||
+        (input.scope !== undefined && input.value !== undefined && !totalScopeValue);
+
+    return { totalCidr, hasNarrowTarget };
+}
+
+function assertUnbanConfirmation(input: UnbanInput, normalizedType: string | undefined): void {
+    const { totalCidr, hasNarrowTarget } = unbanTargetState(input);
+
+    if (totalCidr && input.confirm !== true) {
+        throw new Error('Deleting decisions for a /0 range requires confirm=true; narrow the range or use all=true with confirm=true');
+    }
+    if (!hasNarrowTarget && (normalizedType || input.scenario) && input.confirm !== true) {
+        throw new Error(
+            'Deleting decisions filtered only by type/scenario requires confirm=true; add ip, range, or scope+value to narrow the target'
+        );
+    }
+}
+
 export const decisionTools: ToolDefinition[] = [
     {
         name: 'list_decisions',
@@ -576,15 +686,7 @@ export const decisionTools: ToolDefinition[] = [
             const window = resolveListWindow(limit, all, ctx.config.maxResults);
             const normalizedSince = since ? toGoDuration(since) : undefined;
             const normalizedUntil = until ? toGoDuration(until) : undefined;
-
-            // `since`/`until` filter alerts, not decisions: they only work on
-            // the watcher path. The bouncer endpoint always returns the full
-            // decision set, so prefer it whenever those filters are absent.
             const needsAlertWindow = Boolean(normalizedSince || normalizedUntil);
-
-            // `/v1/decisions` silently ignores `scope` on LAPI 1.3.3-1.6.0,
-            // which would widen the result. When a watcher is available, use
-            // the alert path, whose `scope` filter is reliable.
             const scopeNeedsWatcher = normalizedScope !== undefined && ctx.watcher !== undefined;
 
             if (normalizedScope !== undefined && !ctx.watcher && !bouncerScopeFilterIsReliable(ctx.config.lapiVersion)) {
@@ -593,64 +695,29 @@ export const decisionTools: ToolDefinition[] = [
                 );
             }
 
-            if (ctx.bouncer && !needsAlertWindow && !scopeNeedsWatcher) {
-                try {
-                    await ctx.ensureReady('bouncer');
-                    const decisions = await ctx.bouncer.Decisions.search({
-                        ip,
-                        range,
-                        scope: normalizedScope,
-                        value: normalizedValue,
-                        type: decisionType,
-                        origins: origin,
-                        scenarios_containing: scenario,
-                        // Validated on CrowdSec 1.8.1: the decision filter
-                        // excludes simulated decisions by default and does not
-                        // return the `simulated` field. `simulated: true`
-                        // includes both, which preserves the watcher default
-                        // (`no_simulated=false`).
-                        simulated: !no_simulated,
-                        ...(ip || range ? { contains } : {})
-                    });
+            const filters: ListDecisionFilters = {
+                ip,
+                range,
+                scope: normalizedScope,
+                value: normalizedValue,
+                type: decisionType,
+                origin,
+                scenario,
+                since: normalizedSince,
+                until: normalizedUntil,
+                contains,
+                simulated: !no_simulated
+            };
 
-                    return formatBouncerDecisionList(decisions, window.displayLimit);
-                } catch (error) {
-                    // A broken bouncer key must not hide a healthy watcher, but
-                    // keep the original failure visible in the debug log.
-                    if (!ctx.watcher) {
-                        throw error;
-                    }
-                    log('bouncer decision search failed, falling back to the watcher: %s', cleanErrorMessage(error));
+            if (ctx.bouncer && !needsAlertWindow && !scopeNeedsWatcher) {
+                const rendered = await searchBouncerDecisions(ctx, filters, window);
+                if (rendered !== undefined) {
+                    return rendered;
                 }
             }
 
             if (ctx.watcher) {
-                await ctx.ensureReady('watcher');
-                const query: APITypes.SearchAlertsQuery = {
-                    ip,
-                    range,
-                    scope: normalizedScope,
-                    value: normalizedValue,
-                    scenario,
-                    decision_type: decisionType,
-                    origin,
-                    since: normalizedSince,
-                    until: normalizedUntil,
-                    simulated: !no_simulated,
-                    // `contains` only exists from LAPI 1.0.3 and is only
-                    // meaningful with ip/range (docs/api-compatibility.md).
-                    ...(ip || range ? { contains } : {}),
-                    has_active_decision: true,
-                    limit: window.fetchLimit
-                };
-
-                const alerts = await searchAlerts(ctx, query);
-                const rendered = formatDecisionList(alerts, window.displayLimit, window.maybeMore);
-
-                if (!ctx.capabilities.decisionsFast) {
-                    return `${rendered}\n\n_Bouncer credentials (CROWDSEC_API_KEY) would make this scan about 60x faster._`;
-                }
-                return rendered;
+                return searchWatcherDecisions(ctx, filters, window);
             }
 
             if (needsAlertWindow) {
@@ -792,36 +859,7 @@ export const decisionTools: ToolDefinition[] = [
             }
 
             const normalizedType = unbanInput.type ? assertValidDecisionType(unbanInput.type) : undefined;
-
-            // /0 covers every decision; require the same explicit confirmation
-            // as a broad type/scenario delete. `scope=Range`+`value` reaches the
-            // same delete path, so it must be checked too.
-            const trimmedScopeValue = unbanInput.value?.trim();
-            const totalScopeValue =
-                unbanInput.scope !== undefined &&
-                trimmedScopeValue !== undefined &&
-                normalizeScope(unbanInput.scope) === 'Range' &&
-                isValidCidr(trimmedScopeValue) &&
-                isTotalCidr(trimmedScopeValue);
-            const totalCidr = Boolean(
-                (unbanInput.ip && isTotalCidr(unbanInput.ip)) || (unbanInput.range && isTotalCidr(unbanInput.range)) || totalScopeValue
-            );
-            if (totalCidr && unbanInput.confirm !== true) {
-                throw new Error(
-                    'Deleting decisions for a /0 range requires confirm=true; narrow the range or use all=true with confirm=true'
-                );
-            }
-
-            const hasNarrowTarget = Boolean(
-                (unbanInput.ip && !isTotalCidr(unbanInput.ip)) ||
-                (unbanInput.range && !isTotalCidr(unbanInput.range)) ||
-                (unbanInput.scope && unbanInput.value && !totalScopeValue)
-            );
-            if (!hasNarrowTarget && (normalizedType || unbanInput.scenario) && unbanInput.confirm !== true) {
-                throw new Error(
-                    'Deleting decisions filtered only by type/scenario requires confirm=true; add ip, range, or scope+value to narrow the target'
-                );
-            }
+            assertUnbanConfirmation(unbanInput, normalizedType);
 
             if (unbanInput.scope && unbanInput.value) {
                 return unbanByScopeValue(ctx, unbanInput.scope, unbanInput.value, normalizedType, unbanInput.scenario);

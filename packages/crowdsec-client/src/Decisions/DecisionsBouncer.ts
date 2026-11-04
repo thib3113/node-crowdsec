@@ -24,8 +24,8 @@ export class DecisionsBouncer extends BaseSubObject {
     private runningStreams: Array<DecisionsStream<any>> = [];
 
     /** Per-stream timer: pausing/closing one stream must not stop another. */
-    private streamTimeouts = new WeakMap<DecisionsStream<any>, NodeJS.Timeout>();
-    private streamRunning = new WeakSet<DecisionsStream<any>>();
+    private readonly streamTimeouts = new WeakMap<DecisionsStream<any>, NodeJS.Timeout>();
+    private readonly streamRunning = new WeakSet<DecisionsStream<any>>();
 
     /**
      * Fetch one page of the decisions stream.

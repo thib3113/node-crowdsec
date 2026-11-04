@@ -94,10 +94,12 @@ jobs:
           print(json.dumps({"version": value}, separators=(",", ":")))
           PY
           )
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "modes=$modes" >> "$GITHUB_OUTPUT"
-          echo "tls=$tls" >> "$GITHUB_OUTPUT"
-          echo "tls_strict=$tls_strict" >> "$GITHUB_OUTPUT"
+          {
+            echo "matrix=$matrix"
+            echo "modes=$modes"
+            echo "tls=$tls"
+            echo "tls_strict=$tls_strict"
+          } >> "$GITHUB_OUTPUT"
 
   live:
     name: live (${{ matrix.version }})

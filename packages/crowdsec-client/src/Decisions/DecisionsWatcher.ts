@@ -23,7 +23,7 @@ function isUnknownFilter(error: unknown, parameter: 'scope' | 'scopes'): boolean
     // such as "unknown filter parameter 'scope'". Match the parameter name
     // together with any of the documented rejection wordings instead of a
     // single sentence.
-    const mentionsParameter = new RegExp(`\\b${parameter}\\b`, 'i').test(candidate.message);
+    const mentionsParameter = new RegExp(String.raw`\b${parameter}\b`, 'i').test(candidate.message);
     if (!mentionsParameter) {
         return false;
     }
@@ -31,12 +31,17 @@ function isUnknownFilter(error: unknown, parameter: 'scope' | 'scopes'): boolean
     return /(doesn'?t exist|unknown|invalid)[\s\S]{0,60}filter|filter[\s\S]{0,60}(doesn'?t exist|unknown|invalid)/i.test(candidate.message);
 }
 
+function requestedScopeOf(options: DeleteDecisionsQuery): string | undefined {
+    const legacy = options as { scope?: string; scopes?: string };
+    return legacy.scopes ?? legacy.scope;
+}
+
 function withScopeParameter(options: DeleteDecisionsQuery, parameter: 'scope' | 'scopes', value: string): DeleteDecisionsQuery {
-    const query: DeleteDecisionsQuery = { ...options };
+    const query: Record<string, unknown> = { ...options };
     delete query.scope;
     delete query.scopes;
     query[parameter] = value;
-    return query;
+    return query as DeleteDecisionsQuery;
 }
 
 export class DecisionsWatcher extends BaseSubObject {
@@ -67,7 +72,7 @@ export class DecisionsWatcher extends BaseSubObject {
             this.requireCapability(LapiCapability.decisionScenarioDelete);
         }
 
-        const requestedScope = options.scopes ?? options.scope;
+        const requestedScope = requestedScopeOf(options);
         if (requestedScope === undefined) {
             return this.send(options);
         }

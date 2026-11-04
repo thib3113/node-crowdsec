@@ -97,7 +97,10 @@ function formatDecisionRow(decision: APITypes.Decision): string[] {
     const expiryInfo = resolveDecisionExpiry(decision);
     const until = formatDecisionExpiry(expiryInfo);
     // Older LAPIs may omit the field: report it as unknown, not as "no".
-    const simulated = decision.simulated === undefined ? '-' : decision.simulated ? 'yes' : 'no';
+    let simulated = '-';
+    if (decision.simulated !== undefined) {
+        simulated = decision.simulated ? 'yes' : 'no';
+    }
 
     return [
         escapeCell(decision.id ?? '-'),

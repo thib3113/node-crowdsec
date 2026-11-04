@@ -37,9 +37,19 @@ function errorChain(error: unknown): unknown[] {
     return chain;
 }
 
+function messageOf(item: unknown): string {
+    if (item instanceof Error) {
+        return item.message;
+    }
+    if (typeof item === 'string') {
+        return item;
+    }
+    return '';
+}
+
 function timeoutValueMs(error: unknown): number | undefined {
     for (const item of errorChain(error)) {
-        const message = item instanceof Error ? item.message : typeof item === 'string' ? item : '';
+        const message = messageOf(item);
         const match = /timeout of (\d+)\s*ms exceeded/i.exec(message);
         if (match) {
             return Number(match[1]);
@@ -54,7 +64,7 @@ function timeoutValueMs(error: unknown): number | undefined {
 
 function isTimeoutError(error: unknown): boolean {
     for (const item of errorChain(error)) {
-        const message = item instanceof Error ? item.message : typeof item === 'string' ? item : '';
+        const message = messageOf(item);
         if (/timeout of \d+\s*ms exceeded/i.test(message)) {
             return true;
         }

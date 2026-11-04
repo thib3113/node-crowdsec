@@ -286,7 +286,7 @@ export abstract class CrowdSecClient {
      * endpoints it is allowed to reach: `/v1/decisions` is bouncer-only, while
      * a watcher probes `/v1/alerts` and the allowlist routes.
      */
-    protected async collectProbes(): Promise<Array<{ capability: LapiCapability; request: () => Promise<unknown> }>> {
+    protected collectProbes(): Array<{ capability: LapiCapability; request: () => Promise<unknown> }> {
         return [];
     }
 

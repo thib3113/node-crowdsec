@@ -142,7 +142,11 @@ function readSecretFile(env: NodeJS.ProcessEnv, name: string): string | undefine
     }
 
     try {
-        return readFileSync(path, 'utf8').replace(/[\r\n]+$/, '');
+        let content = readFileSync(path, 'utf8');
+        while (content.endsWith('\n') || content.endsWith('\r')) {
+            content = content.slice(0, -1);
+        }
+        return content;
     } catch {
         throw new Error(`${fileVariable} is set but the secret file could not be read`);
     }
@@ -186,47 +190,35 @@ interface ResolvedCredentials {
     bouncer: boolean;
 }
 
-function resolveCredentials(
-    requestedAuth: string | undefined,
-    apiKey: string | undefined,
-    machineId: string | undefined,
-    password: string | undefined,
-    passthrough: boolean,
-    hasTls: boolean
-): ResolvedCredentials {
+function assertRequestedAuth(requestedAuth: string | undefined): void {
     if (requestedAuth !== undefined && requestedAuth !== 'bouncer' && requestedAuth !== 'watcher') {
         throw new Error(`CROWDSEC_AUTH must be 'bouncer' or 'watcher', got '${requestedAuth}'`);
     }
+}
 
-    const hasMachinePair = Boolean(machineId && password);
-    const hasPartialMachine = Boolean(machineId) !== Boolean(password);
-    const hasWatcherCredentials = hasMachinePair || hasTls;
-    const hasBouncerCredentials = Boolean(apiKey || hasTls);
-
-    if (passthrough) {
-        // Passthrough credentials come from headers on every request. Static
-        // credentials and CROWDSEC_AUTH are irrelevant, not invalid: keep a
-        // valid mode for the shared Config shape.
-        return { auth: 'watcher', watcher: false, bouncer: false };
+function resolveRequestedBouncer(hasBouncerCredentials: boolean): ResolvedCredentials {
+    if (!hasBouncerCredentials) {
+        throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
     }
+    return { auth: 'bouncer', watcher: false, bouncer: true };
+}
 
-    if (requestedAuth === 'bouncer') {
-        if (!hasBouncerCredentials) {
-            throw new Error('bouncer authentication requires CROWDSEC_API_KEY or TLS certificates');
+function resolveRequestedWatcher(hasWatcherCredentials: boolean, hasPartialMachine: boolean): ResolvedCredentials {
+    if (!hasWatcherCredentials) {
+        if (hasPartialMachine) {
+            throw new Error('CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD must be provided together');
         }
-        return { auth: 'bouncer', watcher: false, bouncer: true };
+        throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
     }
+    return { auth: 'watcher', watcher: true, bouncer: false };
+}
 
-    if (requestedAuth === 'watcher') {
-        if (!hasWatcherCredentials) {
-            if (hasPartialMachine) {
-                throw new Error('CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD must be provided together');
-            }
-            throw new Error('watcher authentication requires CROWDSEC_MACHINE_ID and CROWDSEC_PASSWORD (or TLS certificates)');
-        }
-        return { auth: 'watcher', watcher: true, bouncer: false };
-    }
-
+function resolveAutoCredentials(
+    hasMachinePair: boolean,
+    apiKey: string | undefined,
+    hasTls: boolean,
+    hasPartialMachine: boolean
+): ResolvedCredentials {
     // Without CROWDSEC_AUTH, enable every explicit credential that is present.
     // A bouncer key and a watcher machine pair can be supplied together, which
     // gives the fast decision path and the richer watcher tools at once.
@@ -256,6 +248,36 @@ function resolveCredentials(
     throw new Error(
         'unable to detect authentication mode: set CROWDSEC_API_KEY, CROWDSEC_MACHINE_ID/CROWDSEC_PASSWORD, TLS certificates, or CROWDSEC_AUTH'
     );
+}
+
+function resolveCredentials(
+    requestedAuth: string | undefined,
+    apiKey: string | undefined,
+    machineId: string | undefined,
+    password: string | undefined,
+    passthrough: boolean,
+    hasTls: boolean
+): ResolvedCredentials {
+    assertRequestedAuth(requestedAuth);
+
+    if (passthrough) {
+        // Passthrough credentials come from headers on every request. Static
+        // credentials and CROWDSEC_AUTH are irrelevant, not invalid: keep a
+        // valid mode for the shared Config shape.
+        return { auth: 'watcher', watcher: false, bouncer: false };
+    }
+
+    const hasMachinePair = Boolean(machineId && password);
+    const hasPartialMachine = Boolean(machineId) !== Boolean(password);
+
+    if (requestedAuth === 'bouncer') {
+        return resolveRequestedBouncer(Boolean(apiKey || hasTls));
+    }
+    if (requestedAuth === 'watcher') {
+        return resolveRequestedWatcher(hasMachinePair || hasTls, hasPartialMachine);
+    }
+
+    return resolveAutoCredentials(hasMachinePair, apiKey, hasTls, hasPartialMachine);
 }
 
 function resolveTls(cert: string | undefined, key: string | undefined, ca: string | undefined): Config['tls'] {

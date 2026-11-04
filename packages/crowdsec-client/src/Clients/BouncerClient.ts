@@ -39,7 +39,7 @@ export class BouncerClient extends CrowdSecClient {
         }
     }
 
-    protected async collectProbes() {
+    protected collectProbes() {
         // `/v1/decisions` is reachable with a bouncer key only. A watcher JWT
         // gets 403 there, so these probes live in the bouncer client.
         //

@@ -41,7 +41,7 @@ export type LapiCapabilityInput = LapiCapability | `${LapiCapability}`;
 
 /** Normalize a capability input to its enum member. */
 export function toLapiCapability(capability: LapiCapabilityInput): LapiCapability {
-    if (!Object.prototype.hasOwnProperty.call(CAPABILITY_MIN_VERSION, capability)) {
+    if (!Object.hasOwn(CAPABILITY_MIN_VERSION, capability)) {
         throw new CrowdsecClientError(`unknown CrowdSec LAPI capability: ${String(capability)}`);
     }
 
@@ -146,6 +146,25 @@ const ALL_CAPABILITIES: Array<LapiCapability> = Object.values(LapiCapability);
  * from real requests are kept out so one rejected request cannot disable
  * unrelated features.
  */
+function inferFromKnown(values: Partial<Record<LapiCapability, boolean>>, known: LapiCapability, supported: boolean): boolean {
+    let changed = false;
+
+    for (const candidate of ALL_CAPABILITIES) {
+        if (values[candidate] !== undefined) {
+            continue;
+        }
+
+        const order = compareLapiVersions(CAPABILITY_MIN_VERSION[candidate], CAPABILITY_MIN_VERSION[known]);
+
+        if ((supported && order <= 0) || (!supported && order >= 0)) {
+            values[candidate] = supported;
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
 function inferCapabilities(values: Partial<Record<LapiCapability, boolean>>): void {
     let changed = true;
 
@@ -158,18 +177,7 @@ function inferCapabilities(values: Partial<Record<LapiCapability, boolean>>): vo
                 continue;
             }
 
-            for (const candidate of ALL_CAPABILITIES) {
-                if (values[candidate] !== undefined) {
-                    continue;
-                }
-
-                const order = compareLapiVersions(CAPABILITY_MIN_VERSION[candidate], CAPABILITY_MIN_VERSION[known]);
-
-                if ((supported && order <= 0) || (!supported && order >= 0)) {
-                    values[candidate] = supported;
-                    changed = true;
-                }
-            }
+            changed = inferFromKnown(values, known, supported) || changed;
         }
     }
 }
@@ -182,44 +190,55 @@ function inferCapabilities(values: Partial<Record<LapiCapability, boolean>>): vo
  * consistent with both, for example `>=1.6.9 <1.7.7`. Patch-level versions
  * inside the range cannot be told apart without a declared version.
  */
+function maxOfVersions(versions: string[]): string | undefined {
+    let result: string | undefined;
+
+    for (const version of versions) {
+        if (!result || compareLapiVersions(version, result) > 0) {
+            result = version;
+        }
+    }
+
+    return result;
+}
+
+function minOfVersions(versions: string[]): string | undefined {
+    let result: string | undefined;
+
+    for (const version of versions) {
+        if (!result || compareLapiVersions(version, result) < 0) {
+            result = version;
+        }
+    }
+
+    return result;
+}
+
 export function estimateLapiVersion(values: Partial<Record<LapiCapability, boolean>>, exactVersion?: string): LapiVersionEstimate {
     if (exactVersion) {
         return { exactVersion, minVersion: exactVersion, probable: exactVersion };
     }
 
-    let minVersion: string | undefined;
-    let belowVersion: string | undefined;
+    const known = ALL_CAPABILITIES.filter((capability) => values[capability] !== undefined);
+    const supported = known.filter((capability) => values[capability] === true).map((capability) => CAPABILITY_MIN_VERSION[capability]);
+    const unsupported = known.filter((capability) => values[capability] === false).map((capability) => CAPABILITY_MIN_VERSION[capability]);
 
-    for (const capability of ALL_CAPABILITIES) {
-        const supported = values[capability];
-        if (supported === undefined) {
-            continue;
-        }
-
-        const version = CAPABILITY_MIN_VERSION[capability];
-
-        if (supported) {
-            if (!minVersion || compareLapiVersions(version, minVersion) > 0) {
-                minVersion = version;
-            }
-        } else if (!belowVersion || compareLapiVersions(version, belowVersion) < 0) {
-            belowVersion = version;
-        }
-    }
+    let minVersion = maxOfVersions(supported);
+    let belowVersion = minOfVersions(unsupported);
 
     // Inference should make this impossible; never return an empty range.
     if (minVersion && belowVersion && compareLapiVersions(minVersion, belowVersion) >= 0) {
         belowVersion = undefined;
     }
 
-    const probable =
-        minVersion && belowVersion
-            ? `>=${minVersion} <${belowVersion}`
-            : minVersion
-              ? `>=${minVersion}`
-              : belowVersion
-                ? `<${belowVersion}`
-                : 'unknown';
+    let probable = 'unknown';
+    if (minVersion && belowVersion) {
+        probable = `>=${minVersion} <${belowVersion}`;
+    } else if (minVersion) {
+        probable = `>=${minVersion}`;
+    } else if (belowVersion) {
+        probable = `<${belowVersion}`;
+    }
 
     return { minVersion, belowVersion, probable };
 }
@@ -258,8 +277,7 @@ export class CapabilityContext implements CapabilityGuard {
         this.state = { source: 'declared', version, estimate: estimateLapiVersion(values, version), values };
     }
 
-    public applyProbes(observed: Partial<Record<LapiCapability, boolean>>): void {
-        const values: Partial<Record<LapiCapability, boolean>> = { ...this.state.values };
+    private extractLearned(values: Partial<Record<LapiCapability, boolean>>): Partial<Record<LapiCapability, boolean>> {
         const learnedValues: Partial<Record<LapiCapability, boolean>> = {};
 
         // Learned values are observations from real requests, not version
@@ -272,7 +290,12 @@ export class CapabilityContext implements CapabilityGuard {
             delete values[capability];
         }
 
+        return learnedValues;
+    }
+
+    private mergeObserved(values: Partial<Record<LapiCapability, boolean>>, observed: Partial<Record<LapiCapability, boolean>>): boolean {
         let seen = false;
+
         for (const [capability, supported] of Object.entries(observed) as Array<[LapiCapability, boolean | undefined]>) {
             if (supported === undefined) {
                 continue;
@@ -283,21 +306,29 @@ export class CapabilityContext implements CapabilityGuard {
             seen = true;
         }
 
-        let version = this.state.version;
-        if (version && !this.isConsistentWithVersion(values, version)) {
-            // A probe contradicts the declared version: the declared-derived
-            // values are not trustworthy, so rebuild from what was actually
-            // observed instead of keeping an exact but wrong version.
-            for (const capability of ALL_CAPABILITIES) {
-                if (!this.probed.has(capability)) {
-                    delete values[capability];
-                }
-            }
-            version = undefined;
+        return seen;
+    }
+
+    private rebuildOnContradiction(values: Partial<Record<LapiCapability, boolean>>, version: string | undefined): string | undefined {
+        if (!version || this.isConsistentWithVersion(values, version)) {
+            return version;
         }
 
-        inferCapabilities(values);
+        // A probe contradicts the declared version: the declared-derived values
+        // are not trustworthy, so rebuild from what was actually observed.
+        for (const capability of ALL_CAPABILITIES) {
+            if (!this.probed.has(capability)) {
+                delete values[capability];
+            }
+        }
 
+        return undefined;
+    }
+
+    private restoreLearned(
+        values: Partial<Record<LapiCapability, boolean>>,
+        learnedValues: Partial<Record<LapiCapability, boolean>>
+    ): void {
         for (const [capability, supported] of Object.entries(learnedValues) as Array<[LapiCapability, boolean]>) {
             // A capability probed in this call left `learned` and was written
             // into `values`: the explicit probe wins over the stale observation.
@@ -305,11 +336,26 @@ export class CapabilityContext implements CapabilityGuard {
                 values[capability] = supported;
             }
         }
+    }
+
+    private sourceFor(version: string | undefined, seen: boolean): 'unknown' | 'declared' | 'probed' | 'observed' {
+        if (version) {
+            return 'declared';
+        }
+        return seen ? 'probed' : this.state.source;
+    }
+
+    public applyProbes(observed: Partial<Record<LapiCapability, boolean>>): void {
+        const values: Partial<Record<LapiCapability, boolean>> = { ...this.state.values };
+        const learnedValues = this.extractLearned(values);
+        const seen = this.mergeObserved(values, observed);
+        const version = this.rebuildOnContradiction(values, this.state.version);
+
+        inferCapabilities(values);
+        this.restoreLearned(values, learnedValues);
 
         this.state = {
-            // A declared version stays authoritative while the probes agree
-            // with it; a contradiction clears it and the state becomes probed.
-            source: version ? 'declared' : seen ? 'probed' : this.state.source,
+            source: this.sourceFor(version, seen),
             version,
             estimate: this.estimate(values, version),
             values

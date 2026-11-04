@@ -112,7 +112,7 @@ export class Allowlists extends BaseSubObject {
         for (const target of targets) {
             let checked: AllowlistsTypes.CheckAllowlist.ResponseBody;
             try {
-                checked = await this.check(target);
+                checked = await this.check(target); // NOSONAR: sequential by design to bound LAPI load
             } catch (error) {
                 if (isRouteUnavailable(error)) {
                     throw new FeatureNotSupportedError(LapiCapability.allowlists, CAPABILITY_MIN_VERSION[LapiCapability.allowlists]);

@@ -283,7 +283,7 @@ export async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper
             }
 
             try {
-                results[index] = await mapper(items[index]);
+                results[index] = await mapper(items[index]); // NOSONAR: bounded concurrency worker
             } catch (error) {
                 // Stop scheduling new work as soon as one item fails: a delete
                 // loop must not keep mutating the LAPI after the tool reported

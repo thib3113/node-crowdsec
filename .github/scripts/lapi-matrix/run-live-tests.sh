@@ -29,17 +29,17 @@ containers=()
 created_network=""
 
 cleanup() {
-    if [ "${#containers[@]}" -gt 0 ]; then
+    if [[ "${#containers[@]}" -gt 0 ]]; then
         docker rm -f "${containers[@]}" >/dev/null 2>&1 || true
     fi
-    if [ -n "$created_network" ]; then
+    if [[ -n "$created_network" ]]; then
         docker network rm "$network" >/dev/null 2>&1 || true
     fi
     rm -rf "$work_dir"
 }
 trap cleanup EXIT
 
-if [ "$#" -gt 0 ]; then
+if [[ "$#" -gt 0 ]]; then
     versions=("$@")
 else
     versions=(v1.0.0 v1.2.0 v1.3.0 v1.3.3 v1.4.0 v1.4.2 v1.6.0 v1.6.6 v1.6.9 v1.7.7 v1.8.2)
@@ -62,7 +62,7 @@ if ! docker network inspect "$network" >/dev/null 2>&1; then
     created_network=1
 fi
 
-if [ "$tls_enabled" = "1" ]; then
+if [[ "$tls_enabled" = "1" ]]; then
     mkdir -p "$tls_dir"
     openssl req -x509 -newkey rsa:2048 -nodes \
         -keyout "$tls_dir/key.pem" -out "$tls_dir/cert.pem" \
@@ -76,7 +76,7 @@ fi
 wait_http() {
     for _ in $(seq 1 90); do
         code=$(curl -s -o /dev/null -w '%{http_code}' "$1" 2>/dev/null || true)
-        [ "$code" != "000" ] && [ -n "$code" ] && return 0
+        [[ "$code" != "000" ]] && [[ -n "$code" ]] && return 0
         sleep 1
     done
     return 1
@@ -85,7 +85,7 @@ wait_http() {
 wait_tls() {
     for _ in $(seq 1 60); do
         code=$(curl -sk -o /dev/null -w '%{http_code}' "$1" 2>/dev/null || true)
-        [ "$code" != "000" ] && [ -n "$code" ] && return 0
+        [[ "$code" != "000" ]] && [[ -n "$code" ]] && return 0
         sleep 1
     done
     return 1
@@ -122,7 +122,7 @@ run_suite() {
         "CROWDSEC_LIVE_COUNTRY=$country_seeded"
         "CROWDSEC_STRICT_SSL=$strict"
     )
-    [ -n "$ca" ] && envs+=("NODE_EXTRA_CA_CERTS=$ca")
+    [[ -n "$ca" ]] && envs+=("NODE_EXTRA_CA_CERTS=$ca")
 
     echo "==> $version mode=$mode tls=$label"
     if (
@@ -175,7 +175,7 @@ for version in "${versions[@]}"; do
     password="node-live-password"
     docker exec "$name" cscli machines add node-live -p "$password" --force -o raw >/dev/null 2>&1 || true
 
-    if [ -z "$key" ]; then
+    if [[ -z "$key" ]]; then
         echo "FAIL $version: bouncer key missing"
         failures=$((failures + 1))
         continue
@@ -183,7 +183,7 @@ for version in "${versions[@]}"; do
 
     nginx_name="cs-tls-${version//./-}"
     tls_ready=0
-    if [ "$tls_enabled" = "1" ]; then
+    if [[ "$tls_enabled" = "1" ]]; then
         cat >"$tls_dir/nginx.conf" <<EOF
 server {
     listen 8443 ssl;
@@ -214,11 +214,11 @@ EOF
         seed_state
         run_suite "$mode" "http://127.0.0.1:${port}" "http" "true"
 
-        if [ "$tls_ready" -eq 1 ]; then
+        if [[ "$tls_ready" -eq 1 ]]; then
             seed_state
             run_suite "$mode" "https://127.0.0.1:${tls_port}" "tls" "false"
 
-            if [ "$tls_strict" = "1" ] && [ "$mode" = "both" ]; then
+            if [[ "$tls_strict" = "1" ]] && [[ "$mode" = "both" ]]; then
                 seed_state
                 run_suite "$mode" "https://127.0.0.1:${tls_port}" "tls-strict" "true" "$tls_dir/cert.pem"
             fi
@@ -229,7 +229,7 @@ EOF
 done
 
 echo "================================================================"
-if [ "$failures" -eq 0 ]; then
+if [[ "$failures" -eq 0 ]]; then
     echo "All live runs passed."
 else
     echo "$failures live run(s) failed."

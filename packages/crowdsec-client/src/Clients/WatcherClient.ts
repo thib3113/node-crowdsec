@@ -125,7 +125,7 @@ export class WatcherClient extends CrowdSecClient {
         return connectionResult;
     }
 
-    protected async collectProbes() {
+    protected collectProbes() {
         // A watcher JWT is rejected on `/v1/decisions` (bouncer route), so probe
         // the equivalent alert filters instead of inheriting decision probes.
         return [

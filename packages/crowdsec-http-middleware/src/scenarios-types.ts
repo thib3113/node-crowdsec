@@ -1,5 +1,5 @@
 import type { APITypes } from 'crowdsec-client';
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 import type { AddressObject } from './utils.js';
 
 /**
