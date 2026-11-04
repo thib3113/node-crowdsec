@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       versions:
-        description: "JSON array of LAPI tags"
+        description: "JSON array of LAPI tags; empty uses .github/scripts/lapi-matrix/versions.txt"
         required: false
-        default: '["v1.0.0","v1.2.0","v1.3.0","v1.3.3","v1.4.0","v1.4.2","v1.6.0","v1.6.6","v1.6.9","v1.7.7","v1.8.2"]'
+        default: ""
       modes:
         description: "Space-separated credential modes (both watcher bouncer)"
         required: false
@@ -45,25 +45,22 @@ jobs:
       tls: ${{ steps.matrix.outputs.tls }}
       tls_strict: ${{ steps.matrix.outputs.tls_strict }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Build the version matrix
         id: matrix
         env:
           VERSIONS: ${{ inputs.versions }}
+          VERSIONS_FILE: .github/scripts/lapi-matrix/versions.txt
           MODES: ${{ inputs.modes }}
           TLS: ${{ inputs.tls }}
           TLS_STRICT: ${{ inputs.tls_strict }}
         run: |
           set -euo pipefail
-          default='["v1.0.0","v1.2.0","v1.3.0","v1.3.3","v1.4.0","v1.4.2","v1.6.0","v1.6.6","v1.6.9","v1.7.7","v1.8.2"]'
-          pr_default='["v1.0.0","v1.8.2"]'
-          versions="${VERSIONS:-}"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            versions="${versions:-$pr_default}"
             modes="both"
             tls="0"
             tls_strict="0"
           else
-            versions="${versions:-$default}"
             modes="${MODES:-both watcher bouncer}"
             tls="${TLS:-1}"
             tls_strict="${TLS_STRICT:-1}"
@@ -83,12 +80,22 @@ jobs:
               *) echo "tls and tls_strict must be 0 or 1" >&2; exit 1 ;;
             esac
           done
-          matrix=$(VERSIONS="$versions" python3 - <<'PY'
+          matrix=$(python3 - <<'PY'
           import json, os, sys
-          try:
-              value = json.loads(os.environ["VERSIONS"])
-          except Exception as exc:
-              sys.exit(f"invalid versions JSON: {exc}")
+
+          raw = os.environ.get("VERSIONS", "").strip()
+          if raw:
+              try:
+                  value = json.loads(raw)
+              except Exception as exc:
+                  sys.exit(f"invalid versions JSON: {exc}")
+          else:
+              with open(os.environ["VERSIONS_FILE"], encoding="utf-8") as handle:
+                  tags = [line.strip() for line in handle if line.strip() and not line.lstrip().startswith("#")]
+              if not tags:
+                  sys.exit("the curated versions file is empty")
+              value = [tags[0], tags[-1]] if os.environ.get("GITHUB_EVENT_NAME") == "pull_request" else tags
+
           if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
               sys.exit("versions must be a JSON array of non-empty strings")
           print(json.dumps({"version": value}, separators=(",", ":")))

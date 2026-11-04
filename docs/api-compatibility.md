@@ -4,7 +4,8 @@ Records the LAPI version each client capability requires and the behaviour when
 the connected LAPI is older. Update it when a package uses a new endpoint,
 parameter or response field.
 
-Tested range: `v1.0.0` … `v1.8.x`.
+Tested range: `v1.0.0` … `v1.8.x`; the exact live matrix is the curated list in
+`.github/scripts/lapi-matrix/versions.txt`.
 
 ## Why detection is needed
 

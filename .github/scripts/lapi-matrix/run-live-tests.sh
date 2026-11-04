@@ -4,7 +4,7 @@
 # usable locally.
 #
 # Usage:
-#   ./run-live-tests.sh                     # curated list, all modes, HTTP+TLS
+#   ./run-live-tests.sh                     # .github/scripts/lapi-matrix/versions.txt, all modes, HTTP+TLS
 #   ./run-live-tests.sh v1.0.0 v1.8.2       # explicit tags
 #   MODES="bouncer" ./run-live-tests.sh     # only the bouncer scenarios
 #   TLS=0 ./run-live-tests.sh               # HTTP only
@@ -39,10 +39,24 @@ cleanup() {
 }
 trap cleanup EXIT
 
+versions_file="${VERSIONS_FILE:-$repo_root/.github/scripts/lapi-matrix/versions.txt}"
 if [[ "$#" -gt 0 ]]; then
     versions=("$@")
 else
-    versions=(v1.0.0 v1.2.0 v1.3.0 v1.3.3 v1.4.0 v1.4.2 v1.6.0 v1.6.6 v1.6.9 v1.7.7 v1.8.2)
+    if [[ ! -f "$versions_file" ]]; then
+        echo "versions file not found: $versions_file" >&2
+        exit 2
+    fi
+    versions=()
+    while IFS= read -r tag; do
+        tag="${tag%$'\r'}"
+        [[ -z "$tag" || "$tag" == \#* ]] && continue
+        versions+=("$tag")
+    done <"$versions_file"
+    if [[ "${#versions[@]}" -eq 0 ]]; then
+        echo "no versions in $versions_file" >&2
+        exit 2
+    fi
 fi
 
 read -r -a modes <<<"${MODES:-both watcher bouncer}"
