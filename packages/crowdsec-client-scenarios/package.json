@@ -73,14 +73,14 @@
     },
     "devDependencies": {
         "@types/debug": "4.1.13",
-        "@vitest/coverage-v8": "5.0.5",
+        "@vitest/coverage-v8": "5.1.0",
         "crowdsec-client": "workspace:^",
         "dotenv": "18.0.9",
         "esbuild": "0.28.2",
-        "mmdb-lib": "3.0.3",
+        "mmdb-lib": "3.0.4",
         "source-map-support": "0.5.21",
         "ts-node": "10.9.2",
-        "vitest": "5.0.5"
+        "vitest": "5.1.0"
     },
     "funding": [
         {

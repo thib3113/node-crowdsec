@@ -76,7 +76,7 @@
     "devDependencies": {
         "@types/benchmark": "2.1.5",
         "@types/debug": "4.1.13",
-        "@vitest/coverage-v8": "5.0.5",
+        "@vitest/coverage-v8": "5.1.0",
         "benchmark": "2.1.4",
         "crowdsec-client-scenarios": "workspace:^",
         "dotenv": "18.0.9",
@@ -84,7 +84,7 @@
         "fast-check": "4.10.2",
         "source-map-support": "0.5.21",
         "ts-node": "10.9.2",
-        "vitest": "5.0.5"
+        "vitest": "5.1.0"
     },
     "funding": [
         {
